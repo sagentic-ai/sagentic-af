@@ -1,5 +1,5 @@
 import "openai/shims/node";
-import { Agent, AgentOptions, BaseAgent } from "../src/agent";
+import { AgentOptions, BaseAgent } from "../src/agent";
 import { ClientMux } from "../src/client";
 import { Session } from "../src/session";
 import { Interaction, Thread, ToolCall, ToolResult, isText } from "../src/thread";
@@ -165,7 +165,7 @@ class TestAgent extends BaseAgent<AgentOptions, undefined, undefined> {}
 
 describe("Thread", () => {
   const clients = new ClientMux("fake-key");
-  let session = new Session(clients, { topic: "test" });
+  const session = new Session(clients, { topic: "test" });
   let agent: TestAgent;
 
   beforeEach(() => {
@@ -447,7 +447,7 @@ describe("Thread", () => {
 
   test("Rollup", () => {
     let thread = new Thread(agent);
-    let prev = new Thread(agent);
+    const prev = new Thread(agent);
 
     let prev2 = new Thread(agent);
     prev2 = prev2.appendUserMessage("Howdy");

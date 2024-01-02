@@ -29,8 +29,8 @@ export class Timing {
    * @throws Error if end is before start
    */
   constructor(start?: Moment, end?: Moment) {
-    let s = start;
-    let e = end;
+    const s = start;
+    const e = end;
     if (s && e && e.isBefore(s)) {
       throw new Error("Timing end is before start");
     }

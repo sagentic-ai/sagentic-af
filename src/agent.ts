@@ -9,9 +9,8 @@ import {
 } from "./common";
 import { ModelType } from "./models";
 import { ModelInvocationOptions, Session } from "./session";
-import { Thread, ToolCall, ToolResult } from "./thread";
+import { Thread, ToolCall } from "./thread";
 import { Tool, ToolSpec } from "./tool";
-import fs from "fs";
 
 /** Basic options for an agent */
 export interface AgentOptions {
@@ -58,7 +57,7 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
   /** Model to use for the agent, can be undefined if the agent does not need to talk to any model. */
   model?: ModelType;
 
-  /** State of the agent, initial state is botained by calling `initialize` */
+  /** State of the agent, initial state is obtained by calling `initialize` */
   state?: StateType = undefined;
 
   /** Result of the agent, obtained by calling `finalize` */
@@ -123,9 +122,10 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
     this.trace(`${this.metadata.ID} run started: ${this.metadata.topic}`);
     this.state = await this.initialize(this.options);
     this.trace("initialize finished", this.state);
-    if (!this.state) {
-      throw new Error("initialize() must return a state");
-    }
+    // FIXME: This check doen't make sense when the state is of type void. We need to rethink this.
+    // if (!this.state) {
+    //   throw new Error("initialize() must return a state");
+    // }
     this.isActive = true;
     while (this.isActive && !this.session.isAborted) {
       this.state = await this.step(this.state!);
@@ -150,20 +150,20 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
    * Used to set up the initial state of the agent.
    * Is called before first invocation of `step`.
    * Implement this when extending the class.
-   * @param options options for the agent
+   * @param _options options for the agent
    * @returns the initial state of the agent
    */
-  async initialize(options: OptionsType): Promise<StateType> {
+  async initialize(_options: OptionsType): Promise<StateType> {
     throw new Error("initialize() not implemented");
   }
 
   /** Finalizes the agent.
    * Used to finalize the agent's work and obtain the final result.
    * Implement this when extending the class.
-   * @param finalState the final state of the agent
+   * @param _finalState the final state of the agent
    * @returns the final result of the agent
    */
-  async finalize(finalState: StateType): Promise<ResultType> {
+  async finalize(_finalState: StateType): Promise<ResultType> {
     throw new Error("finalize() not implemented");
   }
 
@@ -171,10 +171,10 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
    * Used to advance the agent's work.
    * Is called repeatedly until `stop` is called.
    * Implement this when extending the class.
-   * @param finalState the final state of the agent
+   * @param _finalState the final state of the agent
    * @returns the next state of the agent
    */
-  async step(finalState: StateType): Promise<StateType> {
+  async step(_finalState: StateType): Promise<StateType> {
     throw new Error("step() not implemented");
   }
 
@@ -261,7 +261,6 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
       throw new Error("Invalid response");
     }
 
-    //this.trace("dialog", this.constructor.name, nextThread);
     return nextThread;
   }
 
@@ -303,7 +302,7 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
     for (const toolCall of toolCalls) {
       try {
         // find the tool
-        let tool: Tool | undefined = this.tools.find(
+        const tool: Tool | undefined = this.tools.find(
           (t) => t.name === toolCall.function.name
         );
         if (!tool) {

@@ -7,18 +7,16 @@ import {
   meta,
 } from "./common";
 import { Ledger, PCT } from "./ledger";
-import { Client, ClientMux } from "./client";
+import { ClientMux } from "./client";
 import { Agent, AgentOptions } from "./agent";
-import { ModelType, availableModels } from "./models";
+import { ModelType } from "./models";
 import { Message } from "./thread";
-import { assert } from "./errors";
 import {
   ChatCompletionCreateParams,
   ChatCompletionCreateParamsNonStreaming,
   ChatCompletionMessageParam,
 } from "openai/resources";
 import { LoggerFunction } from "./logging";
-import moment from "moment";
 
 /**
  * SessionOptions is used to create a new session
@@ -66,8 +64,8 @@ export class Session implements Identified, ParentOf<Agent> {
   /** Flag indicating whether the session has been aborted */
   private hasBeenAborted: boolean = false;
 
-  notify: LoggerFunction = (...stuff: any[]): undefined => {};
-  trace: LoggerFunction = (...stuff: any[]): undefined => {};
+  notify: LoggerFunction = (..._stuff: any[]): undefined => {};
+  trace: LoggerFunction = (..._stuff: any[]): undefined => {};
 
   constructor(clients: ClientMux, options: SessionOptions) {
     if (options.notifyHandler) {

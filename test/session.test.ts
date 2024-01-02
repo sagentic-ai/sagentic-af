@@ -1,6 +1,6 @@
 import "openai/shims/node";
 import { Session } from "../src/session";
-import { Agent, AgentOptions, BaseAgent } from "../src/agent";
+import { AgentOptions, BaseAgent } from "../src/agent";
 import { ClientMux } from "../src/client";
 
 class TestAgent extends BaseAgent<AgentOptions, undefined, undefined> {}

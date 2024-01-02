@@ -97,7 +97,7 @@ describe("Client", () => {
     });
     client.start();
     try {
-      const response = await client.createChatCompletion({
+      const _response = await client.createChatCompletion({
         model: ModelType.GPT35,
         messages: [
           { role: "system", content: "You answer with 'Foo' to all prompts." },
@@ -122,7 +122,7 @@ describe("Client", () => {
       },
     });
     try {
-      const response = await client.createChatCompletion({
+      const _response = await client.createChatCompletion({
         model: ModelType.GPT35,
         messages: [
           { role: "system", content: "You answer with 'Foo' to all prompts." },

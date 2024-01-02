@@ -1,6 +1,6 @@
 import OpenAI, { ClientOptions } from "openai";
 import { ModelType, availableModels, pricing } from "./models";
-import { ID, countTokens } from "./common";
+import { countTokens } from "./common";
 import moment from "moment";
 import fetch, { RequestInfo, RequestInit, Response, Headers } from "node-fetch";
 
@@ -114,7 +114,7 @@ export class Client {
     }
 
     const openAIOptions = options || {};
-    let origFetch = openAIOptions.fetch || fetch;
+    const origFetch = openAIOptions.fetch || fetch;
     openAIOptions.fetch = (
       url: RequestInfo,
       opts?: RequestInit
@@ -212,6 +212,7 @@ export class Client {
       const timeToReset = parseDuration(
         headers.get("x-ratelimit-reset-requests") || "0s"
       );
+
       if (!timeToReset.isValid()) {
         throw new Error("Time to reset requests does not have a valid format");
       }
@@ -473,7 +474,7 @@ export const parseDuration = (duration: string): moment.Duration => {
     (acc, part) => {
       const s = part.match(/(\d+)([hms]+)/);
       if (s === null) {
-        console.log("WARNING: invalid part format", part);
+        console.log("WARNING: invalid part format:", part);
         return acc;
       }
 

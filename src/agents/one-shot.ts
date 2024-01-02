@@ -5,7 +5,7 @@ import { Thread } from "../thread";
 
 export class OneShotAgent<O extends AgentOptions, R> extends BaseAgent<
   O,
-  {},
+  void,
   R
 > {
   model: ModelType = ModelType.GPT35Turbo;
@@ -20,19 +20,17 @@ export class OneShotAgent<O extends AgentOptions, R> extends BaseAgent<
     throw new Error("Method not implemented.");
   }
 
-  output(answer: string): R {
+  output(_answer: string): R {
     throw new Error("Method not implemented.");
   }
 
-  async initialize(options: O): Promise<{}> {
+  async initialize(_options: O): Promise<void> {
     this.thread.appendUserMessage(this.input());
-    return {};
   }
 
-  async step(): Promise<{}> {
+  async step(): Promise<void> {
     this.thread = await this.advance(this.thread);
     this.stop();
-    return {};
   }
 
   async finalize(): Promise<R> {

@@ -26,7 +26,7 @@ describe("Basic Agent", () => {
     clients.stop();
   });
 
-  class GreeterAgent extends BaseAgent<AgentOptions, {}, string> {
+  class GreeterAgent extends BaseAgent<AgentOptions, void, string> {
     model: ModelType = ModelType.GPT35Turbo;
     systemPrompt: string = "You always respond with 'World' to 'Hello'.";
     thread: Thread;
@@ -40,12 +40,11 @@ describe("Basic Agent", () => {
       }).toThrow("Thread already adopted");
     }
 
-    async initialize(options: AgentOptions): Promise<{}> {
+    async initialize(options: AgentOptions): Promise<void> {
       this.thread = this.thread.appendUserMessage("Hello");
-      return {};
     }
 
-    async step(prevState: {}): Promise<{}> {
+    async step(): Promise<void> {
       this.thread = await this.advance(this.thread);
 
       expect(() => {
@@ -53,10 +52,10 @@ describe("Basic Agent", () => {
       }).toThrow("Can't conclude an active Agent");
 
       this.stop();
-      return {};
+
     }
 
-    async finalize(finalState: {}): Promise<string> {
+    async finalize(): Promise<string> {
       const response = this.thread.assistantResponse;
       return response;
     }
@@ -137,7 +136,7 @@ describe("Agent with tools", () => {
     prompt: string;
   }
 
-  class AdderAgent extends BaseAgent<AdderAgentOptions, {}, string> {
+  class AdderAgent extends BaseAgent<AdderAgentOptions, void, string> {
     model: ModelType = ModelType.GPT35Turbo;
     systemPrompt: string = "You will be asked to add numbers.";
     thread: Thread;
@@ -148,19 +147,17 @@ describe("Agent with tools", () => {
       this.thread = this.createThread();
     }
 
-    async initialize(options: AdderAgentOptions): Promise<{}> {
+    async initialize(options: AdderAgentOptions): Promise<void> {
       const { prompt } = options;
       this.thread = this.thread.appendUserMessage(prompt);
-      return {};
     }
 
-    async step(prevState: {}): Promise<{}> {
+    async step(): Promise<void> {
       this.thread = await this.advance(this.thread);
       this.stop();
-      return {};
     }
 
-    async finalize(finalState: {}): Promise<string> {
+    async finalize(): Promise<string> {
       const response = this.thread.assistantResponse;
       return response;
     }
@@ -234,7 +231,7 @@ describe("Agent conserving tokens", () => {
     "Looks up entities matching the query.",
     GetWordsInput,
     GetWordsOutput,
-    async (agent, _) => {
+    async (_agent, _) => {
       const result = results[searchInvocations];
       if (!result)
         throw new Error("No more results, please don't call me again");
@@ -290,12 +287,12 @@ describe("Agent conserving tokens", () => {
       this.thread = this.createThread();
     }
 
-    async initialize(options: AdderAgentOptions): Promise<string[]> {
+    async initialize(_options: AdderAgentOptions): Promise<string[]> {
       this.thread = this.thread.appendUserMessage("Please begin.");
       return [];
     }
 
-    async step(prevState: string[]): Promise<string[]> {
+    async step(_prevState: string[]): Promise<string[]> {
       this.thread = await this.advance(this.thread);
       const lastMessage = this.thread.assistantResponse;
       try {

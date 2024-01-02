@@ -96,8 +96,9 @@ export class Interaction {
    * @returns Array of messages
    */
   toMessages(): Message[] {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     let current: Interaction | undefined = this;
-    let ret: Message[] = [];
+    const ret: Message[] = [];
     while (current) {
       if (current.complete) {
         if (current.assistant && isText(current.assistant)) {

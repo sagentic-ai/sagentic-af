@@ -1,4 +1,3 @@
-import { Moment } from "moment";
 import { ID, Timing } from "./common";
 import { ModelType, pricing } from "./models";
 import moment from "moment";
