@@ -1,7 +1,8 @@
 {
   "name": "{{NAME}}",
   "version": "0.0.0",
-  "description": "Made with Bazed",
+  "license": "UNLICENSED",
+  "description": "Made with bazed.ai",
   "scripts": {
     "dev": "bazed run",
     "build": "tsc",

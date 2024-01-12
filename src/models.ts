@@ -1,7 +1,7 @@
 /** Available model types */
 export enum ModelType {
   GPT4 = "gpt-4",
-  GPT4Turbo = "gpt-4-1106-preview",
+  GPT4Turbo = "gpt-4-turbo-preview",
 
   GPT35 = "gpt-3.5-turbo-16k",
   GPT35Turbo = "gpt-3.5-turbo-1106",

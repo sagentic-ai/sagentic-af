@@ -1,6 +1,8 @@
 import moment, { Moment } from "moment";
 import shortUUID from "short-uuid";
 import { get_encoding } from "tiktoken";
+import { z } from "zod";
+import zodToJsonSchema from "zod-to-json-schema";
 
 const randomUUID = () => shortUUID.generate();
 
@@ -148,4 +150,68 @@ export interface ParentOf<T extends Identified> {
  */
 export const countTokens = (text: string): number => {
   return encoding.encode(text).length;
+};
+
+/// --- utils
+
+export const jsonSchema = (zodSchema: z.ZodType<any>) => {
+  return JSON.stringify(zodToJsonSchema(zodSchema));
+};
+
+const parseObject = (source: string): [any, string] => {
+  const stack = [];
+  let objStr = "";
+  let pointer = 0;
+  let inString = false;
+
+  while (pointer < source.length) {
+    const char = source[pointer];
+
+    if (
+      stack.length === 0 &&
+      (char === " " || char === "\n" || char === "\r" || char === "\t")
+    ) {
+      pointer++;
+      continue;
+    }
+
+    if (char === '"' && (pointer === 0 || source[pointer - 1] !== "\\")) {
+      inString = !inString;
+    }
+
+    if (!inString) {
+      if (char === "{") {
+        stack.push(char);
+      }
+
+      if (char === "}") {
+        stack.pop();
+      }
+    }
+
+    objStr += char;
+
+    if (stack.length === 0) {
+      return [JSON.parse(objStr), source.slice(pointer + 1)];
+    }
+
+    pointer++;
+  }
+
+  throw new Error("Invalid JSON");
+};
+
+export const parseMultipleObjects = (source: string): any[] => {
+  const ret = [];
+  let rest = source;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    if (rest.length === 0) {
+      break;
+    }
+    const [obj, next] = parseObject(rest);
+    ret.push(obj);
+    rest = next;
+  }
+  return ret;
 };

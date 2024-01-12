@@ -1,12 +1,17 @@
 {
-  "name": "bazed-af",
-  "version": "0.0.1",
+  "name": "@xiv-bazed-ai/bazed-af",
+  "version": "0.0.6",
   "description": "Bazed.ai Agent Framework",
-  "main": "./dist/index.js",
+  "homepage": "https://bazed.ai",
   "repository": "git@github.com:bazed-ai/bazed-af.git",
   "author": "XIV <hello@bazed.ai>",
-  "license": "MPL-2.0",
-  "private": true,
+  "license": "UNLICENSED",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scope": "@xiv-bazed-ai",
   "bin": {
     "bazed": "./dist/bin/bazed.js"
   },
@@ -14,17 +19,21 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "build": "tsc && cp -R templates dist/templates && chmod u+x dist/bin/bazed.js",
+    "build": "rm -rf dist && tsc && cp -R templates dist/templates && chmod u+x dist/bin/bazed.js",
     "test": "jest --coverage",
     "prepare": "husky install",
     "docs": "typedoc --options typedoc.json",
     "cli": "yarn build && node ./dist/bin/bazed.js",
-    "lint": "eslint --ext .ts src"
+    "lint": "eslint --ext .ts src",
+    "local": "yarn build && npm install -g .",
+    "package:publish": "yarn build && npm publish --access private"
   },
   "dependencies": {
     "@fastify/middie": "^8.3.0",
+    "@fastify/multipart": "^8.1.0",
     "axios": "^1.6.0",
     "chalk": "=4.1.0",
+    "cli-progress": "^3.12.0",
     "commander": "^11.1.0",
     "dotenv": "^16.3.1",
     "fastify": "^4.20.0",
@@ -44,6 +53,7 @@
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
+    "@types/cli-progress": "^3.11.5",
     "@types/jest": "^29.5.6",
     "@types/node": "^20.5.0",
     "@types/prompts": "^2.4.9",

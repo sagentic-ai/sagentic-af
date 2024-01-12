@@ -47,7 +47,7 @@ export class Session implements Identified, ParentOf<Agent> {
   metadata: Metadata;
 
   /** Any object that is associated with the session, can be used to pass custom data */
-  private context: any;
+  context: any;
 
   /** Ledger to keep track of costs and performance */
   private ledger: Ledger;
@@ -154,15 +154,15 @@ export class Session implements Identified, ParentOf<Agent> {
       model: type,
     };
     const randomID = Math.floor(Math.random() * 1000000);
-    this.trace(`[${randomID}] ${caller.metadata.ID} -> ${type}`);
+    //console.log(`[${randomID}] ${caller.metadata.ID} -> ${type}`);
     const response = await this.clients.createChatCompletion(invocation);
     const pct = new PCT({
       prompt: response.usage?.prompt_tokens || 0,
       completion: response.usage?.completion_tokens || 0,
     });
-    this.trace(
-      `[${randomID}] ${caller.metadata.ID} <- ${type} (${pct.prompt}, ${pct.completion}, ${pct.total})`
-    );
+    // console.log(
+    //   `[${randomID}] ${caller.metadata.ID} <- ${type} (${pct.prompt}, ${pct.completion}, ${pct.total})`
+    // );
     timing.finish();
     this.ledger.add(caller.metadata.ID, type, timing, pct);
 
@@ -185,6 +185,7 @@ export class Session implements Identified, ParentOf<Agent> {
    * After calling this method, all agents will be notified to abort and the session won't accept new agents or invocations.
    */
   abort() {
+    this.metadata.timing.finish();
     this.hasBeenAborted = true;
   }
 

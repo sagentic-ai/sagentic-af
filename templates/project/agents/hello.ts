@@ -20,12 +20,12 @@ export default class HelloAgent extends OneShotAgent<
     "Your task is to explain why specific person is based. Speculate, limit your response to a sentence.";
 
   // Prepare the input for the LLM call
-  input(): string {
+  async input(): Promise<string> {
     return `Why is ${this.options.person} based?`;
   }
 
   // Process the output from the LLM call
-  output(answer: string): string {
+  async output(answer: string): Promise<string> {
     return answer;
   }
 }

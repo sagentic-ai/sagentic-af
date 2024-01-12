@@ -8,16 +8,16 @@ export class Registry {
     this.agents = {};
   }
 
-  register(id: string, constructor: Constructor<Agent>) {
-    this.agents[id] = constructor;
+  register(namespace: string, id: string, constructor: Constructor<Agent>) {
+    this.agents[`${namespace}/${id}`] = constructor;
   }
 
   get(id: string): Constructor<Agent> {
     return this.agents[id];
   }
 
-  has(id: string): boolean {
-    return id in this.agents;
+  has(namespace: string, id: string): boolean {
+    return `${namespace}/${id}` in this.agents;
   }
 
   list(): string[] {

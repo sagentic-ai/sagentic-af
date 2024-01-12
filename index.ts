@@ -9,3 +9,4 @@ export * from "./src/common";
 export * from "./src/ledger";
 export * from "./src/tool";
 export * from "./src/agents/one-shot";
+export * from "./src/agents/reactive";

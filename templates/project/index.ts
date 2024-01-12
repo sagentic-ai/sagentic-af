@@ -2,4 +2,6 @@
 import HelloAgent from "./agents/hello";
 
 // Export an array of them here
-export default [HelloAgent];
+export default [
+  HelloAgent, //
+];

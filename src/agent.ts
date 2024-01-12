@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import {
   ChildOf,
   Conclusible,
@@ -119,6 +120,7 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
    * @returns the final result of the agent's work
    */
   async run(): Promise<ResultType> {
+    console.log("Agent", chalk.yellow(this.metadata.ID), chalk.blue("start"));
     this.trace(`${this.metadata.ID} run started: ${this.metadata.topic}`);
     this.state = await this.initialize(this.options);
     this.trace("initialize finished", this.state);
@@ -133,6 +135,14 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
     this.isActive = false;
     this.result = await this.finalize(this.state);
     this.conclude();
+    console.log(
+      "Agent",
+      chalk.yellow(this.metadata.ID),
+      chalk.green("done"),
+      chalk.gray(
+        `(took ${this.metadata.timing.elapsed.as("seconds").toFixed(2)}s)`
+      )
+    );
     return this.result;
   }
 
@@ -208,7 +218,6 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
       throw new Error("Thread is complete");
     }
     const messages = thread.messages;
-
     const response = await this.session.invokeModel(
       this,
       this.model,
@@ -336,6 +345,11 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
     constructor: Constructor<T>,
     options?: AgentOptions
   ): T {
+    console.log(
+      chalk.yellow(this.metadata.ID),
+      chalk.blue("spawn"),
+      constructor.name
+    );
     return this.session.spawnAgent(constructor, options);
   }
 

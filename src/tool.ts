@@ -1,7 +1,11 @@
 import { ChatCompletionTool } from "openai/resources/chat/completions";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import { Agent } from "./agent";
+import { Agent, AgentOptions } from "./agent";
+import moment from "moment";
+import chalk from "chalk";
+import { Constructor } from "./common";
+import { OneShotAgent } from "./agents/one-shot";
 
 export type ToolSpec = ChatCompletionTool;
 
@@ -59,9 +63,17 @@ export class FunctionTool<Args, Returns> implements Tool {
   }
 
   async invoke(agent: Agent, args: Args): Promise<Returns> {
+    const start = moment();
     const validatedArgs = this.args.parse(args);
     const result = await this.func(agent, validatedArgs);
     const validatedResults = this.returns.parse(result);
+    const elapsed = moment().diff(start);
+    console.log(
+      chalk.yellow(agent.metadata.ID),
+      chalk.green("tool"),
+      this.name,
+      chalk.gray(`(took ${moment.duration(elapsed).as("seconds").toFixed(2)}s)`)
+    );
     return validatedResults;
   }
 
@@ -75,7 +87,62 @@ export class FunctionTool<Args, Returns> implements Tool {
         description: this.description,
         parameters,
       },
-      // returns: zodToJsonSchema(tool.args), // not supported in the API yet?
     };
   }
 }
+
+interface ToolableAgentConstructor extends Constructor<Agent> {
+  asTool?: Tool;
+}
+
+/** Toolable is a mixin for agent classes that can be used as tools. */
+export interface Toolable {
+  asTool?: Tool;
+}
+
+export type ToolLike = Tool | Toolable;
+
+/** Convert a toolable to a tool.
+ * @param toolLike Tool or toolable
+ * @returns Tool
+ * @throws Error if the toolable doesn't have a tool
+ */
+export const toTool = (toolLike: ToolLike): Tool => {
+  if ("asTool" in toolLike) {
+    if (toolLike.asTool) {
+      return toolLike.asTool;
+    } else {
+      throw new Error("Toolable doesn't have a tool");
+    }
+  } else {
+    return toolLike as Tool;
+  }
+};
+
+/** Decorator for agent classes that can be used as tools.
+ * @param name Name of the tool
+ * @param args Zod schema for parameters of the tool
+ * @param returns Zod schema for return value of the tool
+ */
+export const isTool = <A, R>(
+  name: string,
+  description: string,
+  args: z.ZodType<A>,
+  returns: z.ZodType<R>
+) =>
+  function (constructor: Constructor<Agent>, _context: any) {
+    (constructor as ToolableAgentConstructor).asTool = new FunctionTool(
+      name,
+      description,
+      args,
+      returns,
+      async (agent, args) => {
+        const instance = agent.session.spawnAgent(
+          constructor,
+          args as AgentOptions
+        );
+        const result = await instance.run();
+        return result;
+      }
+    );
+  };

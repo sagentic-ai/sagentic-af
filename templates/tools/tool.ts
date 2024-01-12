@@ -2,21 +2,21 @@ import { FunctionTool, Tool, Agent } from "bazed";
 import { z } from "zod";
 
 /** Tool is a spicy function that can describe itself with OpenAI compatible JSON schema.*/
-export const adder: Tool = new FunctionTool(
+export const exampleTool: Tool = new FunctionTool(
   /** name of the tool */
+  "exampleTool",
 
-  "adder",
   /** description of the tool */
-  "Adds two numbers together",
+  "... description ...",
 
   /** Zod schema for parameters of the tool */
-  z.object({ a: z.number(), b: z.number() }),
+  z.object({}),
 
   /** Zod schema for return value of the tool */
-  z.number(),
+  z.object({}),
 
   /** Function for the tool to perform when called, notice that types of a and b are inferred */
-  async (_agent: Agent, { a, b }) => {
-    return a + b;
+  async (_agent: Agent, {}) => {
+    throw new Error("Method not implemented.");
   }
 );

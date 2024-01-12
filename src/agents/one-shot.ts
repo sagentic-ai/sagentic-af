@@ -3,29 +3,28 @@ import { ModelType } from "../models";
 import { Session } from "../session";
 import { Thread } from "../thread";
 
-export class OneShotAgent<O extends AgentOptions, R> extends BaseAgent<
-  O,
-  void,
-  R
-> {
+export class OneShotAgent<
+  OptionsType extends AgentOptions,
+  ResultType
+> extends BaseAgent<OptionsType, void, ResultType> {
   model: ModelType = ModelType.GPT35Turbo;
   thread: Thread;
 
-  constructor(session: Session, options: O) {
+  constructor(session: Session, options: OptionsType) {
     super(session, options);
     this.thread = this.createThread();
   }
 
-  input(): string {
+  async input(): Promise<string> {
     throw new Error("Method not implemented.");
   }
 
-  output(_answer: string): R {
+  async output(_answer: string): Promise<ResultType> {
     throw new Error("Method not implemented.");
   }
 
-  async initialize(_options: O): Promise<void> {
-    this.thread.appendUserMessage(this.input());
+  async initialize(_options: OptionsType): Promise<void> {
+    this.thread.appendUserMessage(await this.input());
   }
 
   async step(): Promise<void> {
@@ -33,7 +32,7 @@ export class OneShotAgent<O extends AgentOptions, R> extends BaseAgent<
     this.stop();
   }
 
-  async finalize(): Promise<R> {
+  async finalize(): Promise<ResultType> {
     return this.output(this.thread.assistantResponse);
   }
 }
