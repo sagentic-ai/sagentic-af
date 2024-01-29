@@ -8,16 +8,19 @@ import prompts from "prompts";
 import chalk from "chalk";
 import { startServer } from "../src/server/server";
 import dotenv from "dotenv";
-import child_process from "child_process";
 import axios from "axios";
 import FormData from "form-data";
-import { SingleBar, Presets } from "cli-progress";
+import { SingleBar } from "cli-progress";
+import tar from "tar";
+
 dotenv.config();
 
 const PACKAGE_PATH = Path.resolve(__dirname, "..");
-
-// TODO: set this to NPM package name when published
 const PACKAGE_NAME = "@xiv-bazed-ai/bazed-af";
+const PACKAGE_VERSION = version;
+
+const BAZED_API_KEY = process.env.BAZED_API_KEY;
+const BAZED_API_URL = process.env.BAZED_API_URL || "https://p.bazed.ai";
 
 const banner = () => {
   console.log(
@@ -47,6 +50,9 @@ const outro = (pm: "yarn" | "npm", projectPath: string) => {
 ${chalk.bold("Next steps")}\n
 ${relativeStep}
 ${i++}. Set your OpenAI API key in the ${chalk.cyan(".env")} file.\n
+  ${chalk.cyan("OPENAI_API_KEY=sk-...")}\n
+${i++}. Set your Bazed AI API key in the ${chalk.cyan(".env")} file.\n
+  ${chalk.cyan("BAZED_API_KEY=...")}\n
 ${i++}. Install dependencies:\n
   ${chalk.cyan(installCommand)}\n
 ${i++}. Start the development server:\n
@@ -169,6 +175,7 @@ program
     const variables = {
       NAME: name,
       BAZED_PACKAGE: PACKAGE_NAME,
+      BAZED_VERSION: PACKAGE_VERSION,
     };
     copyTemplate("project", fullPath, variables);
     outro("yarn", fullPath);
@@ -203,6 +210,8 @@ commandNew
     );
     copySrcTemplate(`agents/${type}.ts`, fullPath, {
       Example: toPascalCase(name),
+      BAZED_PACKAGE: PACKAGE_NAME,
+      BAZED_VERSION: PACKAGE_VERSION,
     });
     addExport(
       Path.join(process.cwd(), "index.ts"),
@@ -220,6 +229,8 @@ commandNew
     const type = "tool";
     copySrcTemplate(`tools/${type}.ts`, fullPath, {
       ExampleAgent: toCamelCase(name),
+      BAZED_PACKAGE: PACKAGE_NAME,
+      BAZED_VERSION: PACKAGE_VERSION,
     });
   });
 
@@ -247,6 +258,74 @@ program.command("platform").action(async (_options: object) => {
   });
 });
 
+const tarProject = (path: string): Promise<[string, () => void]> => {
+  return new Promise((resolve, reject) => {
+    const tmpDir = FS.mkdtempSync("bazed-");
+    const tarPath = Path.join(tmpDir, "dist.tar");
+    tar
+      .c(
+        {
+          gzip: true,
+          file: tarPath,
+          cwd: path,
+        },
+        ["dist"]
+      )
+      .then(() => {
+        resolve([tarPath, () => FS.rmdirSync(tmpDir, { recursive: true })]);
+      })
+      .catch((e) => {
+        reject(e);
+      });
+  });
+};
+
+const checkAPIKey = async (): Promise<boolean> => {
+  if (!BAZED_API_KEY) {
+    console.log(
+      `No ${chalk.cyan(
+        "BAZED_API_KEY"
+      )} environment variable found. Please set your API key.`
+    );
+    return false;
+  }
+  const url = `${BAZED_API_URL}/ping`;
+  const headers = {
+    Authorization: `Bearer ${BAZED_API_KEY}`,
+  };
+  try {
+    const response = await axios.get(url, { headers });
+    if (response.data === "pong") {
+      return true;
+    }
+  } catch (e) {
+    console.log("Error when checking BAZED_API_KEY", e);
+  }
+  return false;
+};
+
+const constructorsFromModule = (module: any): any[] => {
+  const constructors = [];
+  if (Array.isArray(module.default)) {
+    constructors.push(...module.default);
+  } else if (Array.isArray(module.default.agents)) {
+    constructors.push(...module.default.agents);
+  } else {
+    constructors.push(module.default);
+  }
+  return constructors;
+};
+
+const scanForAgents = async (path: string): Promise<Record<string, any>> => {
+  const module = await import(path);
+  const constructors = constructorsFromModule(module);
+  const agents: Record<string, any> = {};
+  for (const constructor of constructors) {
+    agents[constructor.name] = { input: {}, output: {}, state: {} };
+  }
+  return agents;
+};
+
 program
   .command("deploy")
   .description("Deploy a project to bazed.ai")
@@ -264,10 +343,18 @@ program
         return;
       }
 
+      if (!(await checkAPIKey())) {
+        console.log(chalk.red("Error: No Bazed API key found\n"));
+        console.log(
+          `Please set your Bazed API key in ${chalk.cyan("BAZED_API_KEY")}.`
+        );
+        return;
+      }
+
       // parse the package.json file
       const packageJsonPath = Path.join(path, "package.json");
       const packageJson = JSON.parse(FS.readFileSync(packageJsonPath, "utf-8"));
-      packageJson.dependencies.bazed = "../../dist";
+      //packageJson.dependencies.bazed = "../../dist";
       // write the package.json file to dist
       const distPackageJsonPath = Path.join(distPath, "package.json");
       FS.writeFileSync(
@@ -276,16 +363,27 @@ program
       );
 
       console.log("Deploying project");
-      // zip the dist folder
-      const zipPath = Path.join(path, "dist.zip");
-      // invoke zip command with dist folder
-      const zipCommand = `zip -r ${zipPath} dist/*`;
-      child_process.execSync(zipCommand);
+      // zip the dist folder into unique zip file in tmp
+      const [zipPath, cleanup] = await tarProject(path);
       // upload to bazed.ai with axios
-      const url = "http://p.bazed.ai/deploy";
+      const url = `${BAZED_API_URL}/deploy`;
       const formData = new FormData();
       formData.append("file", FS.createReadStream(zipPath));
       const headers = formData.getHeaders();
+
+      headers.Authorization = `Bearer ${BAZED_API_KEY}`;
+
+      const agents = await scanForAgents(distPath);
+
+      formData.append(
+        "manifest",
+        JSON.stringify({
+          name: packageJson.name,
+          version: packageJson.version,
+          description: packageJson.description,
+          agents,
+        })
+      );
 
       progress.start(100, 0);
       const response = await axios.post(url, formData, {
@@ -296,9 +394,7 @@ program
         },
       });
       progress.stop();
-      // delete the zip file
-      FS.unlinkSync(zipPath);
-      // console.log(response.data);
+      cleanup();
       console.log("Project deployed successfully");
     } catch (e) {
       progress.stop();

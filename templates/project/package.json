@@ -10,7 +10,7 @@
     "lint": "eslint --ext .ts src"
   },
   "dependencies": {
-    "bazed": "{{BAZED_PACKAGE}}"
+    "{{BAZED_PACKAGE}}": "^{{BAZED_VERSION}}"
   },
   "devDependencies": {
     "@types/node": "^20.5.0",
