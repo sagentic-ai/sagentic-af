@@ -16,7 +16,7 @@ import tar from "tar";
 dotenv.config();
 
 const PACKAGE_PATH = Path.resolve(__dirname, "..");
-const PACKAGE_NAME = "@xiv-bazed-ai/bazed-af";
+const PACKAGE_NAME = "@bazed-ai/bazed-af";
 const PACKAGE_VERSION = version;
 
 const BAZED_API_KEY = process.env.BAZED_API_KEY;

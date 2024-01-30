@@ -1,5 +1,5 @@
 {
-  "name": "@xiv-bazed-ai/bazed-af",
+  "name": "@bazed-ai/bazed-af",
   "version": "0.0.6",
   "description": "Bazed.ai Agent Framework",
   "homepage": "https://bazed.ai",
@@ -11,7 +11,7 @@
   "files": [
     "dist"
   ],
-  "scope": "@xiv-bazed-ai",
+  "scope": "@bazed-ai",
   "bin": {
     "bazed": "./dist/bin/bazed.js"
   },
@@ -21,7 +21,6 @@
   "scripts": {
     "build": "rm -rf dist && tsc && cp -R templates dist/templates && chmod u+x dist/bin/bazed.js",
     "test": "jest --coverage",
-    "prepare": "husky install",
     "docs": "typedoc --options typedoc.json",
     "cli": "yarn build && node ./dist/bin/bazed.js",
     "lint": "eslint --ext .ts src",

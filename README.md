@@ -5,7 +5,7 @@
 To create a new Bazed.ai Agent Framework project, run the following command and follow the instructions:
 
 ```bash
-npx @xiv-bazed-ai/bazed-af init my-project
+npx @bazed-ai/bazed-af init my-project
 ```
 
 It will create `my-project` directory and set up a fresh Bazed.ai Agent Framework project there.
