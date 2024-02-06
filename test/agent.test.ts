@@ -52,7 +52,6 @@ describe("Basic Agent", () => {
       }).toThrow("Can't conclude an active Agent");
 
       this.stop();
-
     }
 
     async finalize(): Promise<string> {
