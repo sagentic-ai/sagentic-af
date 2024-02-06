@@ -11,7 +11,11 @@ describe("Tool", () => {
     });
 
     // fake agent
-    const agent = {} as unknown as Agent;
+    const agent = {
+      metadata: {
+        ID: "test",
+      },
+    } as unknown as Agent;
 
     // output schema
     const AdderOutput = z.number().describe("Sum of a and b");

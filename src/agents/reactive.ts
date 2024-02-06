@@ -84,7 +84,7 @@ export const otherwise = <S, This, Args extends [S, string], Return extends S>(
 export class ReactiveAgent<
   OptionsType extends AgentOptions,
   StateType,
-  ReturnType
+  ReturnType,
 > extends BaseAgent<OptionsType, StateType, ReturnType> {
   thread: Thread;
   expectsJSON: boolean = true;

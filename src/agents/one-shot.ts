@@ -5,7 +5,7 @@ import { Thread } from "../thread";
 
 export class OneShotAgent<
   OptionsType extends AgentOptions,
-  ResultType
+  ResultType,
 > extends BaseAgent<OptionsType, void, ResultType> {
   model: ModelType = ModelType.GPT35Turbo;
   thread: Thread;
