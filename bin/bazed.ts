@@ -368,7 +368,6 @@ program
       // upload to bazed.ai with axios
       const url = `${BAZED_API_URL}/deploy`;
       const formData = new FormData();
-      formData.append("file", FS.createReadStream(zipPath));
       const headers = formData.getHeaders();
 
       headers.Authorization = `Bearer ${BAZED_API_KEY}`;
@@ -384,6 +383,9 @@ program
           agents,
         })
       );
+
+      // add file after all the other fields
+      formData.append("file", FS.createReadStream(zipPath));
 
       progress.start(100, 0);
       const response = await axios.post(url, formData, {
