@@ -468,12 +468,12 @@ interface SpawnResponse {
 program
   .command("spawn")
   .description("Spawn an agent")
-  .requiredOption("-n, --name <name>", "Name of the agent")
   .option("-l, --local", "Spawn the agent locally")
   .option("-u, --url <url>", "URL of the bazed server")
   .option("-d, --details", "Show extra details about the session")
-  .argument("<options...>", "Options for the agent, as key=value pairs")
-  .action(async (options: string[], _options: SpawnOptions) => {
+  .argument("<name>", "Name of the agent to spawn")
+  .argument("[options...]", "Options for the agent, as key=value pairs")
+  .action(async (name: string, options: string[], _options: SpawnOptions) => {
     try {
       let url: string;
       if (_options.local) {
@@ -511,7 +511,7 @@ program
       const response = await axios.post<SpawnResponse>(
         `${url}/spawn`,
         {
-          type: _options.name,
+          type: name,
           options: agentOptions,
         },
         {
