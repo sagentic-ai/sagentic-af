@@ -2,7 +2,13 @@ import "openai/shims/node";
 import { AgentOptions, BaseAgent } from "../src/agent";
 import { ClientMux } from "../src/client";
 import { Session } from "../src/session";
-import { Interaction, Thread, ToolCall, ToolResult, isText } from "../src/thread";
+import {
+  Interaction,
+  Thread,
+  ToolCall,
+  ToolResult,
+  isText,
+} from "../src/thread";
 
 type ChainMessage = string | ToolCall[] | ToolResult[];
 

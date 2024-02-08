@@ -1,5 +1,5 @@
 {
-  "name": "@xiv-bazed-ai/bazed-af",
+  "name": "@bazed-ai/bazed-af",
   "version": "0.0.6",
   "description": "Bazed.ai Agent Framework",
   "homepage": "https://bazed.ai",
@@ -11,7 +11,7 @@
   "files": [
     "dist"
   ],
-  "scope": "@xiv-bazed-ai",
+  "scope": "@bazed-ai",
   "bin": {
     "bazed": "./dist/bin/bazed.js"
   },
@@ -21,7 +21,6 @@
   "scripts": {
     "build": "rm -rf dist && tsc && cp -R templates dist/templates && chmod u+x dist/bin/bazed.js",
     "test": "jest --coverage",
-    "prepare": "husky install",
     "docs": "typedoc --options typedoc.json",
     "cli": "yarn build && node ./dist/bin/bazed.js",
     "lint": "eslint --ext .ts src",
@@ -40,12 +39,14 @@
     "get-port": "^7.0.0",
     "jsonrepair": "^3.2.0",
     "middie": "^7.1.0",
-    "moment": "^2.29.4",
+    "moment": "^2.30.1",
     "moment-duration-format": "^2.3.2",
+    "node-fetch": "2",
     "openai": "^4.18.0",
     "pino": "^8.17.2",
     "prompts": "^2.4.2",
     "short-uuid": "^4.2.2",
+    "tar": "^6.2.0",
     "tiktoken": "^1.0.10",
     "uuid": "^9.0.1",
     "zod": "^3.22.4",
@@ -57,6 +58,7 @@
     "@types/jest": "^29.5.6",
     "@types/node": "^20.5.0",
     "@types/prompts": "^2.4.9",
+    "@types/tar": "^6.1.11",
     "@types/uuid": "^9.0.4",
     "@typescript-eslint/eslint-plugin": "^6.17.0",
     "@typescript-eslint/parser": "^6.17.0",
