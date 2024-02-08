@@ -12,6 +12,7 @@ import axios from "axios";
 import FormData from "form-data";
 import { SingleBar } from "cli-progress";
 import tar from "tar";
+import moment from "moment";
 
 dotenv.config();
 
@@ -64,26 +65,31 @@ const copyTemplate = (
   targetPath: string,
   variables: Record<string, string>
 ) => {
-  // recursively copy all files from the template folder to the target path
-  const templatePath = Path.join(PACKAGE_PATH, "templates", templateName);
-  const files = FS.readdirSync(templatePath);
-  for (const file of files) {
-    const filePath = Path.join(templatePath, file);
-    const targetFilePath = Path.join(targetPath, file);
-    const stat = FS.statSync(filePath);
-    if (stat.isDirectory()) {
-      FS.mkdirSync(targetFilePath);
-      copyTemplate(Path.join(templateName, file), targetFilePath, variables);
-    } else {
-      let content = FS.readFileSync(filePath, "utf-8");
-      for (const key in variables) {
-        content = content.replace(
-          new RegExp(`{{${key}}}`, "g"),
-          variables[key]
-        );
+  try {
+    // recursively copy all files from the template folder to the target path
+    const templatePath = Path.join(PACKAGE_PATH, "templates", templateName);
+    const files = FS.readdirSync(templatePath);
+    for (const file of files) {
+      const filePath = Path.join(templatePath, file);
+      const targetFilePath = Path.join(targetPath, file);
+      const stat = FS.statSync(filePath);
+      if (stat.isDirectory()) {
+        FS.mkdirSync(targetFilePath);
+        copyTemplate(Path.join(templateName, file), targetFilePath, variables);
+      } else {
+        let content = FS.readFileSync(filePath, "utf-8");
+        for (const key in variables) {
+          content = content.replace(
+            new RegExp(`{{${key}}}`, "g"),
+            variables[key]
+          );
+        }
+        FS.writeFileSync(targetFilePath, content);
       }
-      FS.writeFileSync(targetFilePath, content);
     }
+  } catch (e: any) {
+    console.error("Error copying template", e.message);
+    throw e;
   }
 };
 
@@ -92,12 +98,17 @@ const copySrcTemplate = (
   targetPath: string,
   variables: Record<string, string>
 ) => {
-  const templatePath = Path.join(PACKAGE_PATH, "templates", templateName);
-  let content = FS.readFileSync(templatePath, "utf-8");
-  for (const key in variables) {
-    content = content.replace(new RegExp(`${key}`, "g"), variables[key]);
+  try {
+    const templatePath = Path.join(PACKAGE_PATH, "templates", templateName);
+    let content = FS.readFileSync(templatePath, "utf-8");
+    for (const key in variables) {
+      content = content.replace(new RegExp(`${key}`, "g"), variables[key]);
+    }
+    FS.writeFileSync(targetPath, content);
+  } catch (e: any) {
+    console.error("Error copying src template", e.message);
+    throw e;
   }
-  FS.writeFileSync(targetPath, content);
 };
 
 const toPascalCase = (name: string): string => {
@@ -138,47 +149,50 @@ program
   .option("-n, --name <name>", "Name of the project")
   .description("Initialize a new project")
   .action(async (path: string, options: InitOptions) => {
-    banner();
-    const fullPath = Path.resolve(process.cwd(), path);
-    const basename = Path.basename(fullPath);
-    const targetPathExists = FS.existsSync(fullPath);
+    try {
+      banner();
+      const fullPath = Path.resolve(process.cwd(), path);
+      const basename = Path.basename(fullPath);
+      const targetPathExists = FS.existsSync(fullPath);
 
-    // if the name is not specified use the basename of the path
-    let name = options.name || basename;
+      // if the name is not specified use the basename of the path
+      let name = options.name || basename;
 
-    // if path doesn't exist, create it
-    if (!targetPathExists) {
-      console.log(`Directory ${chalk.blue(path)} doesn't exist.`);
-      const { ok } = await prompts({
-        type: "confirm",
-        name: "ok",
-        initial: true,
-        message: `Create ${chalk.blue(path)} directory?`,
-      });
-      if (!ok) {
-        console.log("Aborting");
-        return;
+      // if path doesn't exist, create it
+      if (!targetPathExists) {
+        console.log(`Directory ${chalk.blue(path)} doesn't exist.`);
+        const { ok } = await prompts({
+          type: "confirm",
+          name: "ok",
+          initial: true,
+          message: `Create ${chalk.blue(path)} directory?`,
+        });
+        if (!ok) {
+          program.error("Aborting", { exitCode: 1 });
+        }
+        FS.mkdirSync(fullPath);
       }
-      FS.mkdirSync(fullPath);
+
+      // pick or confirm a name
+      const { name: newName } = await prompts({
+        type: "text",
+        name: "name",
+        message: "Project name:",
+        initial: name,
+      });
+      name = newName;
+
+      // create the project
+      const variables = {
+        NAME: name,
+        BAZED_PACKAGE: PACKAGE_NAME,
+        BAZED_VERSION: PACKAGE_VERSION,
+      };
+      copyTemplate("project", fullPath, variables);
+      outro("yarn", fullPath);
+    } catch (e: any) {
+      program.error(`Aborting due to an error: ${e.message}`, { exitCode: 1 });
     }
-
-    // pick or confirm a name
-    const { name: newName } = await prompts({
-      type: "text",
-      name: "name",
-      message: "Project name:",
-      initial: name,
-    });
-    name = newName;
-
-    // create the project
-    const variables = {
-      NAME: name,
-      BAZED_PACKAGE: PACKAGE_NAME,
-      BAZED_VERSION: PACKAGE_VERSION,
-    };
-    copyTemplate("project", fullPath, variables);
-    outro("yarn", fullPath);
   });
 
 const commandNew = program
@@ -186,15 +200,20 @@ const commandNew = program
   .description("Scaffold agents and tools");
 
 const addExport = (path: string, name: string, importPath: string) => {
-  const content = FS.readFileSync(path, "utf-8");
-  const lines = content.split("\n");
-  const lastImport = lines.findIndex((line) => line.startsWith("import"));
-  lines.splice(lastImport + 1, 0, `import ${name} from "./${importPath}";`);
+  try {
+    const content = FS.readFileSync(path, "utf-8");
+    const lines = content.split("\n");
+    const lastImport = lines.findIndex((line) => line.startsWith("import"));
+    lines.splice(lastImport + 1, 0, `import ${name} from "./${importPath}";`);
 
-  const exportIndex = lines.findIndex((line) => line.startsWith("export"));
-  lines.splice(exportIndex + 1, 0, `  ${name},`);
+    const exportIndex = lines.findIndex((line) => line.startsWith("export"));
+    lines.splice(exportIndex + 1, 0, `  ${name},`);
 
-  FS.writeFileSync(path, lines.join("\n"));
+    FS.writeFileSync(path, lines.join("\n"));
+  } catch (e: any) {
+    console.error("Error adding export", e.message);
+    throw e;
+  }
 };
 
 commandNew
@@ -203,21 +222,25 @@ commandNew
   .argument("[type]", "Type of the new agent", "reactive")
   .description("Scaffold a new agent")
   .action(async (name: string, type: string) => {
-    const fullPath = Path.join(
-      process.cwd(),
-      "agents",
-      toKebabCase(name) + ".ts"
-    );
-    copySrcTemplate(`agents/${type}.ts`, fullPath, {
-      Example: toPascalCase(name),
-      BAZED_PACKAGE: PACKAGE_NAME,
-      BAZED_VERSION: PACKAGE_VERSION,
-    });
-    addExport(
-      Path.join(process.cwd(), "index.ts"),
-      toPascalCase(name),
-      `agents/${toKebabCase(name)}`
-    );
+    try {
+      const fullPath = Path.join(
+        process.cwd(),
+        "agents",
+        toKebabCase(name) + ".ts"
+      );
+      copySrcTemplate(`agents/${type}.ts`, fullPath, {
+        Example: toPascalCase(name),
+        BAZED_PACKAGE: PACKAGE_NAME,
+        BAZED_VERSION: PACKAGE_VERSION,
+      });
+      addExport(
+        Path.join(process.cwd(), "index.ts"),
+        toPascalCase(name),
+        `agents/${toKebabCase(name)}`
+      );
+    } catch (e: any) {
+      program.error(`Aborting due to an error: ${e.message}`, { exitCode: 1 });
+    }
   });
 
 commandNew
@@ -225,13 +248,17 @@ commandNew
   .argument("<name>", "Name of the new tool")
   .description("Scaffold a new tool")
   .action((name: string) => {
-    const fullPath = Path.join(process.cwd(), "tools", toKebabCase(name));
-    const type = "tool";
-    copySrcTemplate(`tools/${type}.ts`, fullPath, {
-      ExampleAgent: toCamelCase(name),
-      BAZED_PACKAGE: PACKAGE_NAME,
-      BAZED_VERSION: PACKAGE_VERSION,
-    });
+    try {
+      const fullPath = Path.join(process.cwd(), "tools", toKebabCase(name));
+      const type = "tool";
+      copySrcTemplate(`tools/${type}.ts`, fullPath, {
+        ExampleAgent: toCamelCase(name),
+        BAZED_PACKAGE: PACKAGE_NAME,
+        BAZED_VERSION: PACKAGE_VERSION,
+      });
+    } catch (e: any) {
+      program.error(`Aborting due to an error: ${e.message}`, { exitCode: 1 });
+    }
   });
 
 program
@@ -239,23 +266,31 @@ program
   .description("Run a project")
   .arguments("[importPaths...]")
   .action(async (importPaths: string[], _options: object) => {
-    if (importPaths.length === 0) {
-      importPaths = ["."];
+    try {
+      if (importPaths.length === 0) {
+        importPaths = ["."];
+      }
+      await startServer({
+        port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
+        openaiApiKey: process.env.OPENAI_API_KEY || "",
+        imports: importPaths,
+      });
+    } catch (e: any) {
+      program.error(`Aborting due to an error: ${e.message}`, { exitCode: 1 });
     }
-    await startServer({
-      port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
-      openaiApiKey: process.env.OPENAI_API_KEY || "",
-      imports: importPaths,
-    });
   });
 
 program.command("platform").action(async (_options: object) => {
-  await startServer({
-    port: process.env.PORT ? parseInt(process.env.PORT) : 9000,
-    openaiApiKey: process.env.OPENAI_API_KEY || "",
-    imports: [],
-    platform: true,
-  });
+  try {
+    await startServer({
+      port: process.env.PORT ? parseInt(process.env.PORT) : 9000,
+      openaiApiKey: process.env.OPENAI_API_KEY || "",
+      imports: [],
+      platform: true,
+    });
+  } catch (e: any) {
+    program.error(`Aborting due to an error: ${e.message}`, { exitCode: 1 });
+  }
 });
 
 const tarProject = (path: string): Promise<[string, () => void]> => {
@@ -272,7 +307,7 @@ const tarProject = (path: string): Promise<[string, () => void]> => {
         ["dist"]
       )
       .then(() => {
-        resolve([tarPath, () => FS.rmdirSync(tmpDir, { recursive: true })]);
+        resolve([tarPath, () => FS.rmSync(tmpDir, { recursive: true })]);
       })
       .catch((e) => {
         reject(e);
@@ -305,15 +340,20 @@ const checkAPIKey = async (): Promise<boolean> => {
 };
 
 const constructorsFromModule = (module: any): any[] => {
-  const constructors = [];
-  if (Array.isArray(module.default)) {
-    constructors.push(...module.default);
-  } else if (Array.isArray(module.default.agents)) {
-    constructors.push(...module.default.agents);
-  } else {
-    constructors.push(module.default);
+  try {
+    const constructors = [];
+    if (Array.isArray(module.default)) {
+      constructors.push(...module.default);
+    } else if (Array.isArray(module.default.agents)) {
+      constructors.push(...module.default.agents);
+    } else {
+      constructors.push(module.default);
+    }
+    return constructors;
+  } catch (e: any) {
+    console.error("Error getting constructors", e.message);
+    return [];
   }
-  return constructors;
 };
 
 const scanForAgents = async (path: string): Promise<Record<string, any>> => {
@@ -344,11 +384,14 @@ program
       }
 
       if (!(await checkAPIKey())) {
-        console.log(chalk.red("Error: No Bazed API key found\n"));
+        console.log(chalk.red("Error: No valid Bazed API key found\n"));
         console.log(
           `Please set your Bazed API key in ${chalk.cyan("BAZED_API_KEY")}.`
         );
-        return;
+        program.error(
+          `Aborting due to an error: No valid Bazed API key found`,
+          { exitCode: 1 }
+        );
       }
 
       // parse the package.json file
@@ -398,9 +441,118 @@ program
       progress.stop();
       cleanup();
       console.log("Project deployed successfully");
-    } catch (e) {
+    } catch (e: any) {
       progress.stop();
+      program.error(`Aborting due to an error: ${e.message}`, { exitCode: 1 });
+    }
+  });
+
+interface SpawnOptions {
+  name: string;
+  local: boolean;
+  details: boolean;
+  url?: string;
+}
+
+interface SpawnResponse {
+  success: boolean;
+  result?: string;
+  session?: {
+    cost: number;
+    elapsed: number;
+    tokens: Record<string, number>;
+  };
+  error?: string;
+}
+
+program
+  .command("spawn")
+  .description("Spawn an agent")
+  .requiredOption("-n, --name <name>", "Name of the agent")
+  .option("-l, --local", "Spawn the agent locally")
+  .option("-u, --url <url>", "URL of the bazed server")
+  .option("-d, --details", "Show extra details about the session")
+  .argument("<options...>", "Options for the agent, as key=value pairs")
+  .action(async (options: string[], _options: SpawnOptions) => {
+    try {
+      let url: string;
+      if (_options.local) {
+        url = "http://localhost:3000";
+      } else if (_options.url) {
+        url = _options.url;
+      } else {
+        url = BAZED_API_URL;
+      }
+
+      if (!_options.local && !(await checkAPIKey())) {
+        console.log(chalk.red("Error: No valid Bazed API key found\n"));
+        console.log(
+          `Please set your Bazed API key in ${chalk.cyan("BAZED_API_KEY")}.`
+        );
+        program.error(
+          `Aborting due to an error: No valid Bazed API key found`,
+          { exitCode: 1 }
+        );
+      }
+
+      const agentOptions: Record<string, string> = {};
+      for (const option of options) {
+        const [key, value] = option.split("=");
+        agentOptions[key] = value;
+      }
+
+      const headers: any = {
+        "Content-Type": "application/json",
+      };
+      if (!_options.local) {
+        headers.Authorization = `Bearer ${BAZED_API_KEY}`;
+      }
+
+      const response = await axios.post<SpawnResponse>(
+        `${url}/spawn`,
+        {
+          type: _options.name,
+          options: agentOptions,
+        },
+        {
+          headers,
+        }
+      );
+
+      if (!response.data.success) {
+        console.log(chalk.red(`Error: ${response.data.error}`));
+        program.error(`Aborting due to an error`, { exitCode: 1 });
+      }
+
+      console.log(
+        chalk.green(
+          `Agent spawned successfully, response: \n\t${response.data.result}\n`
+        )
+      );
+      if (_options.details) {
+        if (!response.data.session) {
+          console.log(chalk.yellow("No session details available"));
+        } else {
+          console.log("Session details:");
+          console.log(
+            `\tCost: \$${response.data.session.cost.toFixed(2)}`,
+            chalk.gray(`(${response.data.session.cost})`)
+          );
+          console.log(
+            `\tElapsed time: ${moment
+              .duration(response.data.session.elapsed)
+              .humanize()}`,
+            chalk.gray(`(${response.data.session.elapsed}s)`)
+          );
+          console.log("\tTokens used:");
+          for (const model in response.data.session.tokens) {
+            console.log(`\t\t${model}: ${response.data.session.tokens[model]}`);
+          }
+        }
+      }
+    } catch (e: any) {
       console.log(e);
+      program.error(`Aborting due to an error: ${e.message}`, { exitCode: 1 });
     }
   });
 
