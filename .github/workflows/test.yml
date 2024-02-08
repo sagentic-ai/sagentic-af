@@ -1,6 +1,12 @@
 name: Run tests
 
-on: [push]
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    tags-ignore:
+      - "*" # Ignore tags
 
 jobs:
   test:
@@ -25,4 +31,4 @@ jobs:
         run: echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
 
       - name: Run tests
-        run: yarn test --coverage --silent
+        run: yarn test --silent

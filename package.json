@@ -3,7 +3,10 @@
   "version": "0.0.7",
   "description": "Bazed.ai Agent Framework",
   "homepage": "https://bazed.ai",
-  "repository": "git@github.com:bazed-ai/bazed-af.git",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/bazed-ai/bazed-af.git"
+  },
   "author": "XIV <hello@bazed.ai>",
   "license": "UNLICENSED",
   "main": "./dist/index.js",
@@ -11,12 +14,11 @@
   "files": [
     "dist"
   ],
-  "scope": "@bazed-ai",
   "bin": {
-    "bazed": "./dist/bin/bazed.js"
+    "bazed": "dist/bin/bazed.js"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": "^20.11.0"
   },
   "scripts": {
     "build": "rm -rf dist && tsc && cp -R templates dist/templates && chmod u+x dist/bin/bazed.js",
