@@ -12,6 +12,7 @@ import axios from "axios";
 import FormData from "form-data";
 import { SingleBar } from "cli-progress";
 import tar from "tar";
+import moment from "moment";
 
 dotenv.config();
 
@@ -442,6 +443,115 @@ program
       console.log("Project deployed successfully");
     } catch (e: any) {
       progress.stop();
+      program.error(`Aborting due to an error: ${e.message}`, { exitCode: 1 });
+    }
+  });
+
+interface SpawnOptions {
+  name: string;
+  local: boolean;
+  details: boolean;
+  url?: string;
+}
+
+interface SpawnResponse {
+  success: boolean;
+  result?: string;
+  session?: {
+    cost: number;
+    elapsed: number;
+    tokens: Record<string, number>;
+  };
+  error?: string;
+}
+
+program
+  .command("spawn")
+  .description("Spawn an agent")
+  .requiredOption("-n, --name <name>", "Name of the agent")
+  .option("-l, --local", "Spawn the agent locally")
+  .option("-u, --url <url>", "URL of the bazed server")
+  .option("-d, --details", "Show extra details about the session")
+  .argument("<options...>", "Options for the agent, as key=value pairs")
+  .action(async (options: string[], _options: SpawnOptions) => {
+    try {
+      let url: string;
+      if (_options.local) {
+        url = "http://localhost:3000";
+      } else if (_options.url) {
+        url = _options.url;
+      } else {
+        url = BAZED_API_URL;
+      }
+
+      if (!_options.local && !(await checkAPIKey())) {
+        console.log(chalk.red("Error: No valid Bazed API key found\n"));
+        console.log(
+          `Please set your Bazed API key in ${chalk.cyan("BAZED_API_KEY")}.`
+        );
+        program.error(
+          `Aborting due to an error: No valid Bazed API key found`,
+          { exitCode: 1 }
+        );
+      }
+
+      const agentOptions: Record<string, string> = {};
+      for (const option of options) {
+        const [key, value] = option.split("=");
+        agentOptions[key] = value;
+      }
+
+      const headers: any = {
+        "Content-Type": "application/json",
+      };
+      if (!_options.local) {
+        headers.Authorization = `Bearer ${BAZED_API_KEY}`;
+      }
+
+      const response = await axios.post<SpawnResponse>(
+        `${url}/spawn`,
+        {
+          type: _options.name,
+          options: agentOptions,
+        },
+        {
+          headers,
+        }
+      );
+
+      if (!response.data.success) {
+        console.log(chalk.red(`Error: ${response.data.error}`));
+        program.error(`Aborting due to an error`, { exitCode: 1 });
+      }
+
+      console.log(
+        chalk.green(
+          `Agent spawned successfully, response: \n\t${response.data.result}\n`
+        )
+      );
+      if (_options.details) {
+        if (!response.data.session) {
+          console.log(chalk.yellow("No session details available"));
+        } else {
+          console.log("Session details:");
+          console.log(
+            `\tCost: \$${response.data.session.cost.toFixed(2)}`,
+            chalk.gray(`(${response.data.session.cost})`)
+          );
+          console.log(
+            `\tElapsed time: ${moment
+              .duration(response.data.session.elapsed)
+              .humanize()}`,
+            chalk.gray(`(${response.data.session.elapsed}s)`)
+          );
+          console.log("\tTokens used:");
+          for (const model in response.data.session.tokens) {
+            console.log(`\t\t${model}: ${response.data.session.tokens[model]}`);
+          }
+        }
+      }
+    } catch (e: any) {
+      console.log(e);
       program.error(`Aborting due to an error: ${e.message}`, { exitCode: 1 });
     }
   });

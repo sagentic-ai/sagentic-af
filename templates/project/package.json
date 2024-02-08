@@ -7,6 +7,7 @@
     "dev": "bazed run",
     "build": "tsc",
     "deploy": "bazed deploy",
+    "spawn": "bazed spawn",
     "lint": "eslint --ext .ts src"
   },
   "dependencies": {
