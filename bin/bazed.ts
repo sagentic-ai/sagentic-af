@@ -272,7 +272,7 @@ const tarProject = (path: string): Promise<[string, () => void]> => {
         ["dist"]
       )
       .then(() => {
-        resolve([tarPath, () => FS.rmdirSync(tmpDir, { recursive: true })]);
+        resolve([tarPath, () => FS.rmSync(tmpDir, { recursive: true })]);
       })
       .catch((e) => {
         reject(e);
