@@ -38,6 +38,7 @@
     "commander": "^11.1.0",
     "dotenv": "^16.3.1",
     "fastify": "^4.20.0",
+    "form-data": "^4.0.0",
     "get-port": "^7.0.0",
     "jsonrepair": "^3.2.0",
     "middie": "^7.1.0",
