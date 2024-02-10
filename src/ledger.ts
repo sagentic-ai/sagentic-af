@@ -1,3 +1,6 @@
+// Copyright 2024 Ahyve AI Inc.
+// SPDX-License-Identifier: MIT
+
 import { ID, Timing } from "./common";
 import { ModelType, pricing } from "./models";
 import moment from "moment";

@@ -1,3 +1,6 @@
+// Copyright 2024 Ahyve AI Inc.
+// SPDX-License-Identifier: MIT
+
 export * from "./src/session";
 export * from "./src/agent";
 export * from "./src/thread";

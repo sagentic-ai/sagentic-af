@@ -1,3 +1,6 @@
+// Copyright 2024 Ahyve AI Inc.
+// SPDX-License-Identifier: MIT
+
 import moment, { Moment } from "moment";
 import shortUUID from "short-uuid";
 import { get_encoding } from "tiktoken";

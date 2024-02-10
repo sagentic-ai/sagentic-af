@@ -1,3 +1,6 @@
+// Copyright 2024 Ahyve AI Inc.
+// SPDX-License-Identifier: MIT
+
 import "openai/shims/node";
 import { Client, parseDuration } from "../src/client";
 import { ModelType } from "../src/models";

@@ -1,14 +1,14 @@
 {
   "name": "@bazed-ai/bazed-af",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Bazed.ai Agent Framework",
   "homepage": "https://bazed.ai",
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/bazed-ai/bazed-af.git"
   },
-  "author": "XIV <hello@bazed.ai>",
-  "license": "UNLICENSED",
+  "author": "Ahyve AI Inc. <hello@bazed.ai>",
+  "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [

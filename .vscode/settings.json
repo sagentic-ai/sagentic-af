@@ -1,3 +1,8 @@
 {
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "licenser.author": "Ahyve AI Inc",
+    "licenser.license": "MIT",
+    "licenser.useSPDXLicenseFormat": true,
+    "licenser.customTermsAndConditions": "Copyright (C) 2023-@YEAR@ Ahyve AI Inc.",
+    "licenser.disableAutoHeaderInsertion": false,
 }

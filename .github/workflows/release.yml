@@ -2,8 +2,6 @@ name: Run tests
 
 on:
   push:
-    branches:
-      - main
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
 
@@ -43,4 +41,4 @@ jobs:
       - name: Publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_KEY }}
-        run: npm publish --access public # --provenance
+        run: npm publish --access public --provenance

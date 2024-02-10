@@ -1,3 +1,6 @@
+// Copyright 2024 Ahyve AI Inc.
+// SPDX-License-Identifier: MIT
+
 import {
   Constructor,
   Identified,

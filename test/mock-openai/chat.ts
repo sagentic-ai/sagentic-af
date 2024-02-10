@@ -1,3 +1,6 @@
+// Copyright 2024 Ahyve AI Inc.
+// SPDX-License-Identifier: MIT
+
 import OpenAI from "openai";
 import { v4 as uuidv4 } from "uuid";
 import { countTokens } from "../../src/common";

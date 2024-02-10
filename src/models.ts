@@ -1,3 +1,6 @@
+// Copyright 2024 Ahyve AI Inc.
+// SPDX-License-Identifier: MIT
+
 /** Available model types */
 export enum ModelType {
   GPT4 = "gpt-4",

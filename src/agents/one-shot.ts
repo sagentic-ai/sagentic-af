@@ -1,3 +1,6 @@
+// Copyright 2024 Ahyve AI Inc.
+// SPDX-License-Identifier: MIT
+
 import { AgentOptions, BaseAgent } from "../agent";
 import { ModelType } from "../models";
 import { Session } from "../session";
@@ -5,7 +8,7 @@ import { Thread } from "../thread";
 
 export class OneShotAgent<
   OptionsType extends AgentOptions,
-  ResultType,
+  ResultType
 > extends BaseAgent<OptionsType, void, ResultType> {
   model: ModelType = ModelType.GPT35Turbo;
   thread: Thread;

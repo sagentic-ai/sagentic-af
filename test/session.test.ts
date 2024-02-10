@@ -1,3 +1,6 @@
+// Copyright 2024 Ahyve AI Inc.
+// SPDX-License-Identifier: MIT
+
 import "openai/shims/node";
 import { Session } from "../src/session";
 import { AgentOptions, BaseAgent } from "../src/agent";

@@ -1,3 +1,6 @@
+// Copyright 2024 Ahyve AI Inc.
+// SPDX-License-Identifier: MIT
+
 import { Ledger, PCT } from "../src/ledger";
 import { Session } from "../src/session";
 import { ModelType, pricing } from "../src/models";

@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// Copyright 2024 Ahyve AI Inc.
+// SPDX-License-Identifier: MIT
 
 import Path from "path";
 import FS from "fs";
@@ -252,7 +254,7 @@ commandNew
       const fullPath = Path.join(process.cwd(), "tools", toKebabCase(name));
       const type = "tool";
       copySrcTemplate(`tools/${type}.ts`, fullPath, {
-        ExampleAgent: toCamelCase(name),
+        example: toCamelCase(name),
         BAZED_PACKAGE: PACKAGE_NAME,
         BAZED_VERSION: PACKAGE_VERSION,
       });
@@ -535,7 +537,7 @@ program
         } else {
           console.log("Session details:");
           console.log(
-            `\tCost: \$${response.data.session.cost.toFixed(2)}`,
+            `\tCost: $${response.data.session.cost.toFixed(2)}`,
             chalk.gray(`(${response.data.session.cost})`)
           );
           console.log(

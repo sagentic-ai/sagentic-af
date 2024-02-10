@@ -1,3 +1,6 @@
+// Copyright 2024 Ahyve AI Inc.
+// SPDX-License-Identifier: MIT
+
 import { ChatCompletionTool } from "openai/resources/chat/completions";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";

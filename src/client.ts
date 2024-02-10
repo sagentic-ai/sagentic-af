@@ -1,3 +1,6 @@
+// Copyright 2024 Ahyve AI Inc.
+// SPDX-License-Identifier: MIT
+
 import OpenAI, { ClientOptions } from "openai";
 import { ModelType, availableModels, pricing } from "./models";
 import { countTokens } from "./common";
@@ -470,37 +473,34 @@ export const parseDuration = (duration: string): moment.Duration => {
     console.log("WARNING: no parts when parsing time in client:", duration);
     return moment.duration(0);
   }
-  const units: Record<string, number> = parts.reduce(
-    (acc, part) => {
-      const s = part.match(/(\d+)([hms]+)/);
-      if (s === null) {
-        console.log("WARNING: invalid part format:", part);
-        return acc;
-      }
-
-      const num = parseInt(s[1], 10);
-
-      if (isNaN(num)) {
-        console.log("WARNING: NaN when parsing time in client", s[1], s[2]);
-        return acc;
-      }
-
-      const unit = {
-        s: "seconds",
-        m: "minutes",
-        h: "hours",
-        ms: "milliseconds",
-      }[s[2]];
-
-      if (!unit) {
-        console.log("WARNING: unknown unit when parsing time in client", s[2]);
-        return acc;
-      }
-
-      acc[unit] = num;
+  const units: Record<string, number> = parts.reduce((acc, part) => {
+    const s = part.match(/(\d+)([hms]+)/);
+    if (s === null) {
+      console.log("WARNING: invalid part format:", part);
       return acc;
-    },
-    {} as Record<string, number>
-  );
+    }
+
+    const num = parseInt(s[1], 10);
+
+    if (isNaN(num)) {
+      console.log("WARNING: NaN when parsing time in client", s[1], s[2]);
+      return acc;
+    }
+
+    const unit = {
+      s: "seconds",
+      m: "minutes",
+      h: "hours",
+      ms: "milliseconds",
+    }[s[2]];
+
+    if (!unit) {
+      console.log("WARNING: unknown unit when parsing time in client", s[2]);
+      return acc;
+    }
+
+    acc[unit] = num;
+    return acc;
+  }, {} as Record<string, number>);
   return moment.duration(units);
 };
