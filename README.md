@@ -2,6 +2,8 @@
 
 Visit [bazed.ai](https://bazed.ai) for more information.
 
+Join our [Discord server](https://discord.gg/VmEEUrc7dg) for support and discussions.
+
 ## 📦 Installation
 
 To create a new Bazed.ai Agent Framework project, run the following command and follow the instructions:
@@ -48,8 +50,6 @@ See the [documentation](https://bazed.ai/first-agent.html) for more information.
 Contributions, issues and feature requests are welcome!
 
 Check our [issues page](https://github.com/bazed-ai/bazed-af/issues).
-
-Join our [Discord server](https://discord.gg/VmEEUrc7dg) to discuss new features or ask questions.
 
 ## 📝 License
 
