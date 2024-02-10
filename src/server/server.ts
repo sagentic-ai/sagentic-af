@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 import Fastify from "fastify";
-import fastifyMultipart from "@fastify/multipart";
 import path from "path";
 import fs from "fs";
 import { ClientMux } from "../client";
@@ -18,40 +17,43 @@ export interface ServerOptions {
   port?: number;
   openaiApiKey: string;
   imports?: string[];
-  platform?: boolean;
 }
 
 const compileTypescript = async (outputDir: string) => {
-  const { exec } = await import("child_process");
-
   const start = moment();
   return new Promise<void>((resolve, reject) => {
-    exec(`npx tsc --outDir ${outputDir}`, (error, stdout, stderr) => {
-      if (error) {
-        console.log(chalk.red("Failed to compile typescript\n"));
-        console.log(
-          stdout
-            .split("\n")
-            .map((line) => `|\t${line}`)
-            .join("\n")
-        );
-        console.log(
-          stderr
-            .split("\n")
-            .map((line) => `|\t${line}`)
-            .join("\n")
-        );
-        reject(error);
-      } else {
-        const elapsed = moment().diff(start);
-        console.log(
-          `${chalk.green("Compiled typescript")} ${chalk.gray(
-            "(took " + moment.duration(elapsed).as("seconds").toFixed(2) + "s)"
-          )}`
-        );
-        resolve();
+    child_process.execFile(
+      "npx",
+      ["tsc", "--outDir", outputDir],
+      (error, stdout, stderr) => {
+        if (error) {
+          console.log(chalk.red("Failed to compile typescript\n"));
+          console.log(
+            stdout
+              .split("\n")
+              .map((line) => `|\t${line}`)
+              .join("\n")
+          );
+          console.log(
+            stderr
+              .split("\n")
+              .map((line) => `|\t${line}`)
+              .join("\n")
+          );
+          reject(error);
+        } else {
+          const elapsed = moment().diff(start);
+          console.log(
+            `${chalk.green("Compiled typescript")} ${chalk.gray(
+              "(took " +
+                moment.duration(elapsed).as("seconds").toFixed(2) +
+                "s)"
+            )}`
+          );
+          resolve();
+        }
       }
-    });
+    );
   });
 };
 
@@ -91,14 +93,6 @@ const constructorsFromModule = (module: any): any[] => {
     constructors.push(module.default);
   }
   return constructors;
-};
-
-const namespaceFromModule = (module: any, defaultNamespace: string): string => {
-  if (module.default.namespace) {
-    return module.default.namespace;
-  } else {
-    return defaultNamespace;
-  }
 };
 
 const namespaceFromPackage = (imp: string): string => {
@@ -147,44 +141,10 @@ const importAgents = async (registry: Registry, imports: string[]) => {
   }
 };
 
-const importAgentsRaw = async (registry: Registry, imports: string[]) => {
-  clearRequireCache();
-  for (const impRaw of imports) {
-    let imp = path.resolve(process.cwd(), impRaw);
-    // if the path is a directory, select index.ts
-    const indexed = addIndexToPath(imp, true);
-    imp = indexed;
-    //imp = computeFileLocationInCache(imp, "dist");
-
-    console.log(`import ${chalk.cyan(path.relative(process.cwd(), indexed))}`);
-    try {
-      const module = await import(imp);
-      if (!module.default) {
-        throw new Error(`Module ${impRaw} has no default export`);
-      }
-      const constructors = constructorsFromModule(module);
-      const namespace =
-        "xiv/" + namespaceFromModule(module, path.basename(path.dirname(imp)));
-      for (const constructor of constructors) {
-        console.log(
-          `  ${
-            registry.has(namespace, constructor.name) ? "update" : "register"
-          } agent ${chalk.cyan(constructor.name)}`
-        );
-        registry.register(namespace, constructor.name, constructor);
-      }
-    } catch (e: any) {
-      console.log(`Failed to import ${impRaw}: ${e.message}`);
-      continue;
-    }
-  }
-};
-
 export const startServer = async ({
   port,
   openaiApiKey,
   imports,
-  platform,
 }: ServerOptions) => {
   console.log(
     `\n😎 ${chalk.yellow(
@@ -205,28 +165,27 @@ export const startServer = async ({
   const clientMux = new ClientMux(apiKey);
   const registry = new Registry();
 
-  if (!platform) {
-    await importAgents(registry, imports || []);
+  await importAgents(registry, imports || []);
 
-    fs.watch(
-      process.cwd(),
-      { recursive: true },
-      async (action: fs.WatchEventType, filePath: string | null) => {
-        if (!filePath) return;
+  fs.watch(
+    process.cwd(),
+    { recursive: true },
+    async (action: fs.WatchEventType, filePath: string | null) => {
+      if (!filePath) return;
 
-        // skip cache directory
-        const cacheDir = path.join(process.cwd(), "cache");
-        const distDir = path.join(process.cwd(), "dist");
-        const absoluteFilePath = path.resolve(process.cwd(), filePath || "");
+      // skip cache directory
+      const cwd = process.cwd();
+      const cacheDir = path.join(cwd, "cache");
+      const distDir = path.join(cwd, "dist");
+      const absoluteFilePath = path.resolve(cwd, filePath || "");
 
-        if (absoluteFilePath.startsWith(cacheDir)) return;
-        if (absoluteFilePath.startsWith(distDir)) return;
-        if (filePath?.startsWith("node_modules")) return;
+      if (absoluteFilePath.startsWith(cacheDir)) return;
+      if (absoluteFilePath.startsWith(distDir)) return;
+      if (filePath?.startsWith("node_modules")) return;
 
-        await importAgents(registry, imports || []);
-      }
-    );
-  }
+      await importAgents(registry, imports || []);
+    }
+  );
 
   server.get("/", async (_request, _reply) => {
     return {
@@ -273,41 +232,6 @@ export const startServer = async ({
     }
   });
 
-  // After initializing your Fastify instance
-  server.register(fastifyMultipart);
-
-  server.post("/deploy", async (request, reply) => {
-    try {
-      const data = await request.file();
-      if (!data) {
-        return reply.send({ success: false });
-      }
-      const fileContent = await data.toBuffer();
-
-      // save file to disk as project.zip
-      const zipPath = path.join(process.cwd(), "project.zip");
-
-      fs.writeFileSync(zipPath, fileContent);
-
-      // unzip project.zip
-      child_process.execSync(`unzip -o ${zipPath} -d ${process.cwd()}/project`);
-
-      // remove project.zip
-      fs.unlinkSync(zipPath);
-
-      //run yarn in project/dist
-      child_process.execSync(`cd ${process.cwd()}/project/dist && yarn`);
-
-      // import agents
-      await importAgentsRaw(registry, ["project/dist"]);
-
-      return reply.send({ success: true });
-    } catch (e) {
-      console.log(e);
-      return reply.send({ success: false });
-    }
-  });
-
   const report = (session: Session) => {
     const rep = {
       cost: session.totalCost(),
@@ -322,7 +246,7 @@ export const startServer = async ({
     return rep;
   };
 
-  const listenPort = port; //|| (await getPort({ port: portNumbers(3000, 3100) }));
+  const listenPort = port;
 
   server.listen({ port: listenPort, host: "localhost" }, (err, _address) => {
     if (err) {

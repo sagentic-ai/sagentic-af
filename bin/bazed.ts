@@ -282,19 +282,6 @@ program
     }
   });
 
-program.command("platform").action(async (_options: object) => {
-  try {
-    await startServer({
-      port: process.env.PORT ? parseInt(process.env.PORT) : 9000,
-      openaiApiKey: process.env.OPENAI_API_KEY || "",
-      imports: [],
-      platform: true,
-    });
-  } catch (e: any) {
-    program.error(`Aborting due to an error: ${e.message}`, { exitCode: 1 });
-  }
-});
-
 const tarProject = (path: string): Promise<[string, () => void]> => {
   return new Promise((resolve, reject) => {
     const tmpDir = FS.mkdtempSync("bazed-");
