@@ -467,14 +467,24 @@ export const parseDuration = (duration: string): moment.Duration => {
   // moment.duration. This format is as follows:
   // 0h0m0s0ms where h, m, s, and ms sections are optional
   // for example: 6h10m0s0ms, 6m0s, 12ms, 55s, 20s200ms, etc.
+
+  if (duration.length > 64) {
+    // This is a sanity check to prevent (very unlikely) attack on regular expressions
+    console.log(
+      "WARNING: duration too long when parsing time in client:",
+      duration
+    );
+    return moment.duration(0);
+  }
+
   duration = duration.toLowerCase();
-  const parts = duration.match(/(\d+(h|ms|m|s))/g);
+  const parts = duration.match(/(\d{1,5}(h|ms|m|s))/g);
   if (parts === null) {
     console.log("WARNING: no parts when parsing time in client:", duration);
     return moment.duration(0);
   }
   const units: Record<string, number> = parts.reduce((acc, part) => {
-    const s = part.match(/(\d+)([hms]+)/);
+    const s = part.match(/(\d{1,5})(h|ms|m|s)/);
     if (s === null) {
       console.log("WARNING: invalid part format:", part);
       return acc;
