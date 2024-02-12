@@ -9,6 +9,8 @@ import { version } from "../package.json";
 import prompts from "prompts";
 import chalk from "chalk";
 import { startServer } from "../src/server/server";
+import { ModelType } from "../src/models";
+import { SessionReport } from "../src/session";
 import dotenv from "dotenv";
 import axios from "axios";
 import FormData from "form-data";
@@ -446,11 +448,7 @@ interface SpawnOptions {
 interface SpawnResponse {
   success: boolean;
   result?: string;
-  session?: {
-    cost: number;
-    elapsed: number;
-    tokens: Record<string, number>;
-  };
+  session?: SessionReport;
   error?: string;
 }
 
@@ -524,18 +522,28 @@ program
         } else {
           console.log("Session details:");
           console.log(
-            `\tCost: $${response.data.session.cost.toFixed(2)}`,
-            chalk.gray(`(${response.data.session.cost})`)
+            `\tCost: $${response.data.session.totalCost.toFixed(2)}`,
+            chalk.gray(`(${response.data.session.totalCost})`)
           );
+          console.log(`\tTokens used: ${response.data.session.totalTokens}`);
           console.log(
             `\tElapsed time: ${moment
               .duration(response.data.session.elapsed)
               .humanize()}`,
             chalk.gray(`(${response.data.session.elapsed}s)`)
           );
-          console.log("\tTokens used:");
+          console.log("\tCost per model:");
+          for (const model in response.data.session.cost) {
+            console.log(
+              `\t\t${model}: $${response.data.session.cost[model as ModelType].toFixed(2)}`,
+              chalk.gray(`(${response.data.session.cost[model as ModelType]})`)
+            );
+          }
+          console.log("\tTokens per model:");
           for (const model in response.data.session.tokens) {
-            console.log(`\t\t${model}: ${response.data.session.tokens[model]}`);
+            console.log(
+              `\t\t${model}: ${response.data.session.tokens[model as ModelType]}`
+            );
           }
         }
       }
