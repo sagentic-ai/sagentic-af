@@ -225,26 +225,12 @@ export const startServer = async ({
     try {
       const result = await agent.run();
       session.abort();
-      return { success: true, result, session: report(session) };
+      return { success: true, result, session: session.report() };
     } catch (e: any) {
       session.abort();
-      return { error: e.message, session: report(session) };
+      return { error: e.message, session: session.report() };
     }
   });
-
-  const report = (session: Session) => {
-    const rep = {
-      cost: session.totalCost(),
-      tokens: {} as Record<string, number>,
-      elapsed: session.metadata.timing.elapsed.asSeconds(),
-    };
-    for (const [model, cost] of Object.entries(session.report())) {
-      if (cost.total > 0) {
-        rep.tokens[model] = cost.total;
-      }
-    }
-    return rep;
-  };
 
   const listenPort = port;
 

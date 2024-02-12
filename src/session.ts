@@ -37,6 +37,23 @@ export interface SessionOptions {
   traceHandler?: LoggerFunction;
 }
 
+/**
+ * SessionReport is a report of the costs of the session
+ * and the performance of the models used.
+ */
+export interface SessionReport {
+  /** total cost of the session in USD */
+  totalCost: number;
+  /** total tokens used in the session */
+  totalTokens: number;
+  /** total time elapsed in the session in seconds */
+  elapsed: number;
+  /** cost of each model used in the session */
+  cost: Record<ModelType, number>;
+  /** tokens used by each model in the session */
+  tokens: Record<ModelType, number>;
+}
+
 export type ModelInvocationOptions =
   Partial<ChatCompletionCreateParamsNonStreaming>;
 
@@ -172,12 +189,33 @@ export class Session implements Identified, ParentOf<Agent> {
     return response.choices[0].message as Message;
   }
 
-  report() {
-    return this.ledger.modelCost;
+  report(): SessionReport {
+    const report = {
+      totalCost: this.totalCost(),
+      totalTokens: this.totalTokens(),
+      elapsed: this.metadata.timing.elapsed.asSeconds(),
+      cost: {} as Record<ModelType, number>,
+      tokens: {} as Record<ModelType, number>,
+    };
+    for (const [model, cost] of Object.entries(this.ledger.modelCost)) {
+      if (cost.total > 0) {
+        report.cost[model as ModelType] = cost.total;
+      }
+    }
+    for (const [model, tokens] of Object.entries(this.ledger.modelTokens)) {
+      if (tokens.total > 0) {
+        report.tokens[model as ModelType] = tokens.total;
+      }
+    }
+    return report;
   }
 
   totalCost() {
     return this.ledger.cost.total;
+  }
+
+  totalTokens() {
+    return this.ledger.tokens.total;
   }
 
   getLedger() {
