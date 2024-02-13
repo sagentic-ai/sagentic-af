@@ -50,7 +50,7 @@ interface ClientOptionsExteded extends ClientOptions {
 /** OpenAI Client wrapper */
 export class Client {
   /** OpenAI client */
-  private openai: OpenAI;
+  #openai: OpenAI;
   /** Model to use */
   private model: ModelType;
 
@@ -128,7 +128,7 @@ export class Client {
       });
     };
 
-    this.openai = new OpenAI({
+    this.#openai = new OpenAI({
       ...openAIOptions,
       apiKey: openAIKey,
     });
@@ -344,7 +344,7 @@ export class Client {
     if (this.debug)
       console.log("processing ticket", ticket.id, "tokens", ticket.tokens);
     this.inflightTickets.add(ticket.id);
-    this.openai.chat.completions
+    this.#openai.chat.completions
       .create(ticket.request)
       .then((response) => {
         if (this.debug) console.log("ticket resolved", ticket.id);
@@ -483,37 +483,34 @@ export const parseDuration = (duration: string): moment.Duration => {
     console.log("WARNING: no parts when parsing time in client:", duration);
     return moment.duration(0);
   }
-  const units: Record<string, number> = parts.reduce(
-    (acc, part) => {
-      const s = part.match(/(\d{1,5})(h|ms|m|s)/);
-      if (s === null) {
-        console.log("WARNING: invalid part format:", part);
-        return acc;
-      }
-
-      const num = parseInt(s[1], 10);
-
-      if (isNaN(num)) {
-        console.log("WARNING: NaN when parsing time in client", s[1], s[2]);
-        return acc;
-      }
-
-      const unit = {
-        s: "seconds",
-        m: "minutes",
-        h: "hours",
-        ms: "milliseconds",
-      }[s[2]];
-
-      if (!unit) {
-        console.log("WARNING: unknown unit when parsing time in client", s[2]);
-        return acc;
-      }
-
-      acc[unit] = num;
+  const units: Record<string, number> = parts.reduce((acc, part) => {
+    const s = part.match(/(\d{1,5})(h|ms|m|s)/);
+    if (s === null) {
+      console.log("WARNING: invalid part format:", part);
       return acc;
-    },
-    {} as Record<string, number>
-  );
+    }
+
+    const num = parseInt(s[1], 10);
+
+    if (isNaN(num)) {
+      console.log("WARNING: NaN when parsing time in client", s[1], s[2]);
+      return acc;
+    }
+
+    const unit = {
+      s: "seconds",
+      m: "minutes",
+      h: "hours",
+      ms: "milliseconds",
+    }[s[2]];
+
+    if (!unit) {
+      console.log("WARNING: unknown unit when parsing time in client", s[2]);
+      return acc;
+    }
+
+    acc[unit] = num;
+    return acc;
+  }, {} as Record<string, number>);
   return moment.duration(units);
 };
