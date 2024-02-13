@@ -7,10 +7,12 @@ import { ClientMux } from "../src/client";
 import { Session } from "../src/session";
 import {
   Interaction,
+  TextAssistantContent,
+  TextUserContent,
   Thread,
   ToolCall,
   ToolResult,
-  isText,
+  text,
 } from "../src/thread";
 
 type ChainMessage = string | ToolCall[] | ToolResult[];
@@ -19,16 +21,28 @@ const makeChain = (messages: ChainMessage[]): Interaction => {
   let previous: Interaction | undefined = undefined;
   for (const message of messages) {
     if (previous && !previous.complete) {
-      if (isText(message)) {
-        previous.assistant = message as string;
+      if (typeof message === "string") {
+        previous.assistant = { type: "text", text: message as string };
       } else {
-        previous.assistant = message as ToolCall[];
+        previous.assistant = {
+          type: "tool_calls",
+          toolCalls: message as ToolCall[],
+        };
       }
     } else {
-      if (isText(message)) {
-        previous = new Interaction(message as string, previous);
+      if (typeof message === "string") {
+        previous = new Interaction(
+          { type: "text", text: message as string },
+          previous
+        );
       } else {
-        previous = new Interaction(message as ToolResult[], previous);
+        previous = new Interaction(
+          {
+            type: "tool_results",
+            toolResults: message as ToolResult[],
+          },
+          previous
+        );
       }
     }
   }
@@ -37,29 +51,29 @@ const makeChain = (messages: ChainMessage[]): Interaction => {
 
 describe("Interaction", () => {
   test("Create Interaction", () => {
-    const interaction = new Interaction("Hello");
+    const interaction = new Interaction(text("Hello"));
     expect(interaction).toBeDefined();
-    expect(interaction.user).toBe("Hello");
+    expect(interaction.user).toEqual(text("Hello"));
     expect(interaction.assistant).toBeUndefined();
     expect(interaction.previous).toBeUndefined();
     expect(interaction.complete).toBeFalsy();
   });
 
   test("Create Interaction with previous", () => {
-    const previous = new Interaction("Hello");
+    const previous = new Interaction(text("Hello"));
 
     expect(() => {
-      new Interaction("World", previous);
+      new Interaction(text("World"), previous);
     }).toThrow();
 
     expect(previous.complete).toBeFalsy();
-    previous.assistant = "World";
+    previous.assistant = text("World");
     expect(previous.complete).toBeTruthy();
 
-    const interaction = new Interaction("What's", previous);
+    const interaction = new Interaction(text("What's"), previous);
 
     expect(interaction).toBeDefined();
-    expect(interaction.user).toBe("What's");
+    expect((interaction.user as TextUserContent).text).toBe("What's");
     expect(interaction.assistant).toBeUndefined();
     expect(interaction.previous).toBe(previous);
     expect(interaction.complete).toBeFalsy();
@@ -69,12 +83,14 @@ describe("Interaction", () => {
     const last = makeChain(["hello", "world", "what's", "up?"]);
 
     expect(last.complete).toBeTruthy();
-    expect(last.user).toBe("what's");
-    expect(last.assistant).toBe("up?");
+    expect(last.user).toEqual(text("what's"));
+    expect(last.assistant).toEqual(text("up?"));
     expect(last.previous).toBeDefined();
     expect(last.previous!.complete).toBeTruthy();
-    expect(last.previous!.user).toBe("hello");
-    expect(last.previous!.assistant).toBe("world");
+    expect((last.previous!.user as TextUserContent).text).toBe("hello");
+    expect((last.previous!.assistant as TextAssistantContent).text).toBe(
+      "world"
+    );
     expect(last.previous!.previous).toBeUndefined();
 
     expect(last.toMessages()).toStrictEqual([
@@ -89,12 +105,14 @@ describe("Interaction", () => {
     const last = makeChain(["hello", "world", "what's"]);
 
     expect(last.complete).toBeFalsy();
-    expect(last.user).toBe("what's");
+    expect(last.user).toEqual(text("what's"));
     expect(last.assistant).toBeUndefined();
     expect(last.previous).toBeDefined();
     expect(last.previous!.complete).toBeTruthy();
-    expect(last.previous!.user).toBe("hello");
-    expect(last.previous!.assistant).toBe("world");
+    expect((last.previous!.user as TextUserContent).text).toBe("hello");
+    expect((last.previous!.assistant as TextAssistantContent).text).toBe(
+      "world"
+    );
     expect(last.previous!.previous).toBeUndefined();
 
     expect(last.toMessages()).toStrictEqual([

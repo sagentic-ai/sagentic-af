@@ -16,10 +16,25 @@ export enum MessageRole {
   Tool = "tool",
 }
 
+export interface TextContentPart {
+  type: "text";
+  text: string;
+}
+
+export interface ImageContentPart {
+  type: "image_url";
+  image_url: {
+    url: string;
+    detail?: "auto" | "high" | "low";
+  };
+}
+
+export type ContentPart = TextContentPart | ImageContentPart;
+
 /** Message sent in a conversation */
 export interface Message {
   role: MessageRole;
-  content: string | null;
+  content: string | ContentPart[] | null;
   tool_calls?: ToolCall[];
   tool_call_id?: string;
 }
@@ -44,8 +59,48 @@ export interface ToolCall {
   };
 }
 
-/** Used to determine whether we have a text message or something else*/
-export const isText = (o: any): o is string => typeof o === "string";
+export interface ImageEmbed {
+  /** Transport of the image */
+  transport: "url" | "base64";
+  /** URL to the image data, used with "url" transport */
+  url?: string;
+  /** Base64 encoded image data, used with "base64" data*/
+  buffer?: Buffer;
+  /** Detail of the image */
+  detail?: "auto" | "high" | "low";
+}
+
+export interface TextUserContent {
+  type: "text";
+  text: string;
+}
+
+export const text = (text: string): TextUserContent => ({ type: "text", text });
+
+export interface ImageUserContent {
+  type: "image";
+  text: string;
+  images: ImageEmbed[];
+}
+
+export interface ToolUserContent {
+  type: "tool_results";
+  toolResults: ToolResult[];
+}
+
+export type UserContent = TextUserContent | ImageUserContent | ToolUserContent;
+
+export interface TextAssistantContent {
+  type: "text";
+  text: string;
+}
+
+export interface ToolAssistantContent {
+  type: "tool_calls";
+  toolCalls: ToolCall[];
+}
+
+export type AssistantContent = TextAssistantContent | ToolAssistantContent;
 
 /** Interaction is a single interaction in a conversation.
  * An interaction is a pair of messages, one from us to OpenAI and one from OpenAI to us.
@@ -58,17 +113,17 @@ export const isText = (o: any): o is string => typeof o === "string";
 export class Interaction {
   /** Previous interaction in chain */
   previous?: Interaction;
-  /** Text sent (or to be sent) by us to OpenAI */
-  user: string | ToolResult[];
-  /** Text received from OpenAI */
-  assistant?: string | ToolCall[];
+  /** Information sent (or to be sent) by us to OpenAI */
+  user: UserContent;
+  /** Information received from OpenAI */
+  assistant?: AssistantContent;
 
   /** Create new Interaction
    * @param user Text or tool results sent (or to be sent) by us to OpenAI
    * @param previous Previous interaction in chain, omitting this means this is the first interaction in the chain
    * @returns Interaction
    */
-  constructor(user: string | ToolResult[], previous?: Interaction) {
+  constructor(user: UserContent, previous?: Interaction) {
     if (previous && !previous.complete) {
       throw new Error("Cannot create interaction with incomplete previous");
     }
@@ -91,7 +146,9 @@ export class Interaction {
    */
   get expectsToolResponse(): boolean {
     return (
-      this.complete && this.assistant !== undefined && !isText(this.assistant)
+      this.complete &&
+      this.assistant !== undefined &&
+      this.assistant.type !== "text"
     );
   }
 
@@ -104,30 +161,36 @@ export class Interaction {
     const ret: Message[] = [];
     while (current) {
       if (current.complete) {
-        if (current.assistant && isText(current.assistant)) {
+        if (current.assistant && current.assistant.type === "text") {
           // if we have a string response from agent then just put it in a message
           ret.unshift({
             role: MessageRole.Assistant,
-            content: current.assistant! as string,
+            content: current.assistant.text,
           });
-        } else {
+        } else if (
+          current.assistant &&
+          current.assistant.type === "tool_calls"
+        ) {
           // if we have a tool call then pack it in a message
           ret.unshift({
             role: MessageRole.Assistant,
             content: null,
-            tool_calls: current.assistant! as ToolCall[],
+            tool_calls: current.assistant.toolCalls,
           });
+        } else {
+          throw new Error(`Invalid assistant response: ${current.assistant}`);
         }
       }
-      if (current.user && isText(current.user)) {
+      if (current.user && current.user.type === "text") {
         // if we have a string prompt from user then just put it in a message
-        ret.unshift({
-          role: MessageRole.User,
-          content: current.user as string,
-        });
-      } else {
+        if (current.user.text !== "")
+          ret.unshift({
+            role: MessageRole.User,
+            content: current.user.text,
+          });
+      } else if (current.user && current.user.type === "tool_results") {
         // if we have a tool result then unpack it into messages
-        const toolResults = current.user as ToolResult[];
+        const toolResults = current.user.toolResults;
         for (let i = toolResults.length - 1; i >= 0; i--) {
           ret.unshift({
             role: MessageRole.Tool,
@@ -135,6 +198,40 @@ export class Interaction {
             tool_call_id: toolResults[i].toolCallID,
           });
         }
+      } else if (current.user && current.user.type === "image") {
+        // if we have an image prompt from user then first put any text in a message and then put any images in messages
+        const content: ContentPart[] = [];
+        if (current.user.text !== "") {
+          content.push({
+            type: "text",
+            text: current.user.text,
+          });
+        }
+        for (const image of current.user.images) {
+          if (image.transport === "url") {
+            // if we have an image URL then put it in a message
+            if (!image.url) throw new Error("Image URL is missing");
+            content.push({
+              type: "image_url",
+              image_url: {
+                url: image.url,
+                detail: image.detail,
+              },
+            });
+          } else if (image.transport === "base64") {
+            // if we have a base64 image then throw an error as it is not supported for now
+            throw new Error("TODO Base64 images are not supported");
+          } else {
+            throw new Error(`Invalid image transport: ${image.transport}`);
+          }
+        }
+        // put the content in a message
+        ret.unshift({
+          role: MessageRole.User,
+          content: content,
+        });
+      } else {
+        throw new Error(`Invalid user content: ${current.user}`);
       }
       current = current.previous;
     }
@@ -169,7 +266,7 @@ export class Thread implements Identified, Conclusible, ChildOf<Agent> {
   constructor(parent: Agent, topic?: string) {
     this.metadata = meta(Thread, topic);
     this.metadata.parent = parent;
-    this.interaction = new Interaction("");
+    this.interaction = new Interaction(text(""));
   }
 
   /** Get messages in this thread.
@@ -198,7 +295,10 @@ export class Thread implements Identified, Conclusible, ChildOf<Agent> {
   }
 
   get empty(): boolean {
-    return this.interaction.user.length === 0;
+    return (
+      this.interaction.user.type === "text" &&
+      this.interaction.user.text.length === 0
+    );
   }
 
   /** Is this thread suitable to be sent to the LLM? */
@@ -222,12 +322,16 @@ export class Thread implements Identified, Conclusible, ChildOf<Agent> {
    */
   appendUserMessage(message: string): Thread {
     if (!this.complete) {
-      if (!isText(this.interaction.user)) {
+      if (
+        this.interaction.user.type !== "text" &&
+        this.interaction.user.type !== "image"
+      ) {
         throw new Error(
           "Cannot append user message to tool result interaction"
         );
       }
-      this.interaction.user += message;
+      // We can safely append string to the user message as both TextUserContent and ImageUserContent have a text field
+      this.interaction.user.text += message;
       return this;
     } else {
       if (this.interaction.expectsToolResponse) {
@@ -235,7 +339,63 @@ export class Thread implements Identified, Conclusible, ChildOf<Agent> {
           "Cannot append user message to interaction that expects tool response"
         );
       }
-      const newInteraction = new Interaction(message, this.interaction);
+      const newInteraction = new Interaction(text(message), this.interaction);
+      const newThread = new Thread(this.parent);
+      newThread.interaction = newInteraction;
+      return newThread;
+    }
+  }
+
+  /** Append an image to this thread.
+   * Beware: this method mutates the thread when it's incomplete. Always use the return value.
+   * It is only legal to append image if the thread is not complete.
+   * @throws Error if the thread is complete
+   * @param message Message to append
+   * @param images Images to append
+   * @returns new Thread object with the image appended
+   */
+  appendUserImage(
+    url: string,
+    options?: { detail: "auto" | "high" | "low" }
+  ): Thread {
+    if (!this.parent.modelDetails?.supportsImages) {
+      throw new Error("This agent does not support images");
+    }
+    const image: ImageEmbed = {
+      transport: "url",
+      url,
+      detail: options?.detail || undefined,
+    };
+    if (!this.complete) {
+      if (
+        this.interaction.user.type !== "text" &&
+        this.interaction.user.type !== "image"
+      ) {
+        throw new Error("Cannot append user image to tool result interaction");
+      }
+
+      if (this.interaction.user.type === "image") {
+        // if we already have image message then just append the image to it
+        this.interaction.user.images.push(image);
+      } else if (this.interaction.user.type === "text") {
+        // if we already have text message then we promote it to an image message
+        this.interaction.user = {
+          type: "image",
+          text: this.interaction.user.text,
+          images: [image],
+        };
+      }
+      return this;
+    } else {
+      if (this.interaction.expectsToolResponse) {
+        throw new Error(
+          "Cannot append user message to interaction that expects tool response"
+        );
+      }
+      const newInteraction = new Interaction(
+        { type: "image", text: "", images: [image] },
+        this.interaction
+      );
       const newThread = new Thread(this.parent);
       newThread.interaction = newInteraction;
       return newThread;
@@ -252,10 +412,12 @@ export class Thread implements Identified, Conclusible, ChildOf<Agent> {
    */
   appendToolResult(toolCallID: string, result: string): Thread {
     if (!this.complete) {
-      if (isText(this.interaction.user)) {
-        throw new Error("Cannot append tool result text prompt interaction");
+      if (this.interaction.user.type !== "tool_results") {
+        throw new Error(
+          "Cannot append tool result to text/image prompt interaction"
+        );
       }
-      this.interaction.user.push({ toolCallID, result });
+      this.interaction.user.toolResults.push({ toolCallID, result });
       return this;
     } else {
       if (!this.interaction.expectsToolResponse) {
@@ -264,7 +426,10 @@ export class Thread implements Identified, Conclusible, ChildOf<Agent> {
         );
       }
       const newInteraction = new Interaction(
-        [{ toolCallID, result }] as ToolResult[],
+        {
+          type: "tool_results",
+          toolResults: [{ toolCallID, result }] as ToolResult[],
+        },
         this.interaction
       );
       const newThread = new Thread(this.parent);
@@ -282,7 +447,7 @@ export class Thread implements Identified, Conclusible, ChildOf<Agent> {
    */
   appendAssistantMessage(message: string): Thread {
     if (!this.complete && !this.empty) {
-      this.interaction.assistant = message;
+      this.interaction.assistant = { type: "text", text: message };
       return this;
     } else {
       throw new Error("Cannot append to complete interaction");
@@ -300,7 +465,7 @@ export class Thread implements Identified, Conclusible, ChildOf<Agent> {
       throw new Error("Cannot append empty tool call");
     }
     if (!this.complete && !this.empty) {
-      this.interaction.assistant = toolCalls;
+      this.interaction.assistant = { type: "tool_calls", toolCalls };
       return this;
     } else {
       throw new Error("Cannot append to complete interaction");
@@ -312,10 +477,13 @@ export class Thread implements Identified, Conclusible, ChildOf<Agent> {
     if (!this.complete) {
       throw new Error("Cannot get assistant response from incomplete thread");
     }
-    if (!this.interaction.assistant || !isText(this.interaction.assistant)) {
+    if (
+      !this.interaction.assistant ||
+      this.interaction.assistant.type !== "text"
+    ) {
       throw new Error("Expected string response");
     }
-    return this.interaction.assistant;
+    return this.interaction.assistant.text;
   }
 
   /** Create new thread with last response from agent removed.
@@ -350,7 +518,7 @@ export class Thread implements Identified, Conclusible, ChildOf<Agent> {
       throw new Error("Cannot edit complete interaction");
     }
     const newInteraction = new Interaction(
-      newUserMessage,
+      text(newUserMessage),
       this.interaction.previous
     );
     const newThread = new Thread(this.parent);
@@ -383,8 +551,8 @@ export class Thread implements Identified, Conclusible, ChildOf<Agent> {
     }
 
     const newInteraction = new Interaction(
-      edit && typeof to.interaction.user === "string"
-        ? `${to.interaction.user}\n${edit}`
+      edit && to.interaction.user.type === "text"
+        ? text(`${to.interaction.user.text}\n${edit}`)
         : to.interaction.user,
       to.interaction.previous
     );

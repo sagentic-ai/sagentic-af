@@ -5,13 +5,14 @@
 export enum ModelType {
   GPT4 = "gpt-4",
   GPT4Turbo = "gpt-4-turbo-preview",
+  GPT4Vision = "gpt-4-vision-preview",
 
   GPT35 = "gpt-3.5-turbo-16k",
   GPT35Turbo = "gpt-3.5-turbo-1106",
 }
 
 /** Describes model pricing and limits */
-interface ModelPricing {
+export interface ModelPricing {
   /** price per prompt token in USD */
   prompt: number;
   /** price per completion token in USD */
@@ -22,6 +23,8 @@ interface ModelPricing {
   rpm: number;
   /** tokens per minute */
   tpm: number;
+  /** does it support images? */
+  supportsImages?: boolean;
 }
 
 /** Pricing and limits for each model */
@@ -39,6 +42,14 @@ export const pricing: Record<ModelType, ModelPricing> = {
     contextSize: 128_000,
     rpm: 5000,
     tpm: 300_000,
+  },
+  [ModelType.GPT4Vision]: {
+    prompt: 0.01,
+    completion: 0.03,
+    contextSize: 128_000,
+    rpm: 80,
+    tpm: 10_000,
+    supportsImages: true,
   },
   [ModelType.GPT35]: {
     prompt: 0.001,
