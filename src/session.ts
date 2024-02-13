@@ -79,7 +79,7 @@ export class Session implements Identified, ParentOf<Agent> {
   private agents: Agent[] = [];
 
   /** ClientMux to use for LLM invocations */
-  private clients: ClientMux;
+  #clients: ClientMux;
 
   /** Flag indicating whether the session has been aborted */
   private hasBeenAborted: boolean = false;
@@ -97,7 +97,7 @@ export class Session implements Identified, ParentOf<Agent> {
     this.context = options.context || {};
     this.metadata = meta(Session, options.topic);
     this.ledger = new Ledger(this);
-    this.clients = clients;
+    this.#clients = clients;
     this.budget = options.budget || 1.0;
   }
 
@@ -173,16 +173,11 @@ export class Session implements Identified, ParentOf<Agent> {
       messages: messages as ChatCompletionMessageParam[],
       model: type,
     };
-    const randomID = Math.floor(Math.random() * 1000000);
-    //console.log(`[${randomID}] ${caller.metadata.ID} -> ${type}`);
-    const response = await this.clients.createChatCompletion(invocation);
+    const response = await this.#clients.createChatCompletion(invocation);
     const pct = new PCT({
       prompt: response.usage?.prompt_tokens || 0,
       completion: response.usage?.completion_tokens || 0,
     });
-    // console.log(
-    //   `[${randomID}] ${caller.metadata.ID} <- ${type} (${pct.prompt}, ${pct.completion}, ${pct.total})`
-    // );
     timing.finish();
     this.ledger.add(caller.metadata.ID, type, timing, pct);
 
