@@ -11,9 +11,9 @@ import {
   ParentOf,
   meta,
 } from "./common";
-import { ModelType } from "./models";
+import { ModelType, pricing, ModelPricing } from "./models";
 import { ModelInvocationOptions, Session } from "./session";
-import { Thread, ToolCall } from "./thread";
+import { Thread, ToolAssistantContent, ToolCall } from "./thread";
 import { Tool, ToolSpec } from "./tool";
 
 /** Basic options for an agent */
@@ -95,6 +95,14 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
   /** Session that the agent belongs to, alias to `parent` */
   get session(): Session {
     return this.parent;
+  }
+
+  /** Model details */
+  get modelDetails(): ModelPricing | undefined {
+    if (this.model) {
+      return pricing[this.model];
+    }
+    return undefined;
   }
 
   /** Constructs a new agent.
@@ -228,7 +236,7 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
       this.modelInvocationOptions
     );
     let nextThread: Thread;
-    if (response.content) {
+    if (response.content && typeof response.content === "string") {
       nextThread = thread.appendAssistantMessage(response.content);
       if (nextThread !== thread) {
         throw new Error("Thread should have been mutably advanced");
@@ -249,10 +257,13 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
       const assistantRespondedThread = await this.advance(nextThread2);
 
       if (this.eatToolResults) {
-        const toolCalls: ToolCall[] | string | undefined =
-          assistantRespondedThread.interaction.previous?.assistant;
+        const toolCalls: ToolCall[] | undefined = (
+          assistantRespondedThread.interaction.previous?.assistant as
+            | ToolAssistantContent
+            | undefined
+        )?.toolCalls;
 
-        if (typeof toolCalls === "string" || toolCalls === undefined) {
+        if (toolCalls === undefined) {
           throw new Error("Invalid tool calls when eating tool results");
         }
 
@@ -310,7 +321,10 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
    * @returns A promise that resolves to the updated thread with the tool results appended.
    */
   async handleToolCalls(thread: Thread): Promise<Thread> {
-    const toolCalls: ToolCall[] = thread.interaction.assistant as ToolCall[];
+    if (thread.interaction.assistant?.type !== "tool_calls") {
+      throw new Error("Thread does not contain tool calls");
+    }
+    const toolCalls: ToolCall[] = thread.interaction.assistant.toolCalls;
     for (const toolCall of toolCalls) {
       try {
         // find the tool
