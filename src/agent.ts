@@ -82,6 +82,9 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
   /** Temperature to use with the LLM */
   temperature: number = 0.0;
 
+  /** Maximum tokens to produce */
+  maxTokens?: number = undefined;
+
   /** Used to track threads that the agent is managing */
   private threads: Thread[];
 
@@ -307,6 +310,11 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
       options.response_format = { type: "json_object" };
     }
     options.temperature = this.temperature;
+
+    if (this.maxTokens !== undefined) {
+      options.max_tokens = this.maxTokens;
+    }
+
     if (Object.keys(options).length > 0) {
       return options;
     }
