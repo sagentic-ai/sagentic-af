@@ -272,6 +272,10 @@ export class Client {
   async createChatCompletion(
     request: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming
   ): Promise<OpenAI.Chat.Completions.ChatCompletion> {
+    if (pricing[this.model].supportsImages) {
+      // FIXME count tokens without base64 images
+      return this.enqueue(1000, request);
+    }
     const tokens = estimateTokens(request);
     return this.enqueue(tokens, request);
   }

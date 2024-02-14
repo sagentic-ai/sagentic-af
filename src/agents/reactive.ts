@@ -87,7 +87,7 @@ export const otherwise = <S, This, Args extends [S, string], Return extends S>(
 export class ReactiveAgent<
   OptionsType extends AgentOptions,
   StateType,
-  ReturnType,
+  ReturnType
 > extends BaseAgent<OptionsType, StateType, ReturnType> {
   thread: Thread;
   expectsJSON: boolean = true;
@@ -116,9 +116,18 @@ export class ReactiveAgent<
     return await this.output(state);
   }
 
-  respond(message: string): void {
+  respond(
+    message: string,
+    images?: string[],
+    options?: { detail: "auto" | "high" | "low" }
+  ): void {
     this.abandon(this.thread);
     this.thread = this.thread.appendUserMessage(message);
+    if (images && this.modelDetails?.supportsImages) {
+      for (const image of images) {
+        this.thread = this.thread.appendUserImage(image, options);
+      }
+    }
     this.adopt(this.thread);
   }
 
