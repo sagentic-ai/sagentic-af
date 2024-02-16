@@ -152,7 +152,7 @@ export const startServer = async ({
     )}\n   dev server ${chalk.gray("v" + version)}\n`
   );
 
-  const server = Fastify();
+  const server = Fastify({ logger: true });
 
   const apiKey = openaiApiKey;
 
