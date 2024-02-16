@@ -464,7 +464,8 @@ program
     try {
       let url: string;
       if (_options.local) {
-        url = "http://localhost:3000";
+        const port = process.env.PORT || 3000;
+        url = `http://localhost:${port}`;
       } else if (_options.url) {
         url = _options.url;
       } else {
