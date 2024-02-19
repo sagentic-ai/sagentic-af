@@ -12,9 +12,6 @@ const DEFAULT_MAX_RETRIES = 5;
 /** Interval for fallback clearing limit counters */
 const DEFAULT_RESET_INTERVAL = 60 * 1000;
 
-/** Generic error message to replace OpenAI API error messages with */
-const GENERIC_OPENAI_ERROR = "There was an issue communicating with OpenAI API";
-
 let ids = 0;
 
 /** Ticket is a request waiting to be fulfilled */
@@ -363,7 +360,7 @@ export class Client {
             console.log("reason:", reason);
           }
           this.inflightTickets.delete(ticket.id);
-          ticket.reject(GENERIC_OPENAI_ERROR);
+          ticket.reject(reason);
           return;
         }
 
@@ -375,7 +372,7 @@ export class Client {
               console.log("reason:", reason);
             }
             this.inflightTickets.delete(ticket.id);
-            ticket.reject(GENERIC_OPENAI_ERROR);
+            ticket.reject(reason);
             return;
           case 429:
             // rate limit or quota
@@ -387,7 +384,7 @@ export class Client {
                 console.log("reason:", reason);
               }
               this.inflightTickets.delete(ticket.id);
-              ticket.reject(GENERIC_OPENAI_ERROR);
+              ticket.reject(reason);
               return;
             }
             // retry
@@ -403,7 +400,7 @@ export class Client {
               console.log("reason:", reason);
             }
             this.inflightTickets.delete(ticket.id);
-            ticket.reject(GENERIC_OPENAI_ERROR);
+            ticket.reject(reason);
             return;
         }
 
