@@ -228,7 +228,13 @@ export const startServer = async ({
       return { success: true, result, session: session.report() };
     } catch (e: any) {
       session.abort();
-      return { error: e.message, session: session.report() };
+      _reply.code(500);
+      return {
+        success: false,
+        error: e.message,
+        session: session.report(),
+        trace: e.stack,
+      };
     }
   });
 

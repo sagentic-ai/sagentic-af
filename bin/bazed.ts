@@ -12,7 +12,7 @@ import { startServer } from "../src/server/server";
 import { ModelType } from "../src/models";
 import { SessionReport } from "../src/session";
 import dotenv from "dotenv";
-import axios from "axios";
+import axios, { AxiosResponse, AxiosError } from "axios";
 import FormData from "form-data";
 import { SingleBar } from "cli-progress";
 import tar from "tar";
@@ -442,6 +442,7 @@ interface SpawnOptions {
   name: string;
   local: boolean;
   details: boolean;
+  verbose: boolean;
   url?: string;
 }
 
@@ -450,6 +451,7 @@ interface SpawnResponse {
   result?: string;
   session?: SessionReport;
   error?: string;
+  trace?: string;
 }
 
 program
@@ -458,6 +460,7 @@ program
   .option("-l, --local", "Spawn the agent locally")
   .option("-u, --url <url>", "URL of the bazed server")
   .option("-d, --details", "Show extra details about the session")
+  .option("-v, --verbose", "Show extra debug information")
   .argument("<name>", "Name of the agent to spawn")
   .argument("[options...]", "Options for the agent, as key=value pairs")
   .action(async (name: string, options: string[], _options: SpawnOptions) => {
@@ -496,20 +499,30 @@ program
         headers.Authorization = `Bearer ${BAZED_API_KEY}`;
       }
 
-      const response = await axios.post<SpawnResponse>(
-        `${url}/spawn`,
-        {
-          type: name,
-          options: agentOptions,
-        },
-        {
-          headers,
+      let response: AxiosResponse<SpawnResponse>;
+      try {
+        response = await axios.post<SpawnResponse>(
+          `${url}/spawn`,
+          {
+            type: name,
+            options: agentOptions,
+          },
+          {
+            headers,
+          }
+        );
+      } catch (e: any) {
+        response = e.response!;
+        if (axios.isAxiosError(e)) {
+          if (_options.verbose && response.data.trace) {
+            console.log(chalk.red(`Stack trace: \n${response.data.trace}`));
+          } else {
+            console.log(chalk.red(`Error: ${response.data.error}`));
+          }
+          program.error(`Aborting due to an error`, { exitCode: 1 });
+        } else {
+          throw e;
         }
-      );
-
-      if (!response.data.success) {
-        console.log(chalk.red(`Error: ${response.data.error}`));
-        program.error(`Aborting due to an error`, { exitCode: 1 });
       }
 
       console.log(
