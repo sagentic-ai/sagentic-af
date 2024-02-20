@@ -94,12 +94,21 @@ export class FunctionTool<Args, Returns> implements Tool {
   }
 }
 
+interface ToolInterface {
+  name: string;
+  description: string;
+  args: z.ZodType<any>;
+  returns: z.ZodType<any>;
+}
+
 interface ToolableAgentConstructor extends Constructor<Agent> {
+  toolInterface?: ToolInterface;
   asTool?: Tool;
 }
 
 /** Toolable is a mixin for agent classes that can be used as tools. */
 export interface Toolable {
+  toolInterface?: ToolInterface;
   asTool?: Tool;
 }
 
@@ -122,6 +131,21 @@ export const toTool = (toolLike: ToolLike): Tool => {
   }
 };
 
+/** Get the tool interface of a toolable.
+ * @param toolLike
+ * @returns Tool interface or undefined
+ */
+export const getToolInterface = (
+  toolLike: ToolLike
+): ToolInterface | undefined => {
+  if ("toolInterface" in toolLike) {
+    if (toolLike.toolInterface) {
+      return toolLike.toolInterface;
+    }
+  }
+  return undefined;
+};
+
 /** Decorator for agent classes that can be used as tools.
  * @param name Name of the tool
  * @param args Zod schema for parameters of the tool
@@ -134,7 +158,14 @@ export const isTool = <A, R>(
   returns: z.ZodType<R>
 ) =>
   function (constructor: Constructor<Agent>, _context: any) {
-    (constructor as ToolableAgentConstructor).asTool = new FunctionTool(
+    const c = constructor as ToolableAgentConstructor;
+    c.toolInterface = {
+      name,
+      description,
+      args,
+      returns,
+    };
+    c.asTool = new FunctionTool(
       name,
       description,
       args,

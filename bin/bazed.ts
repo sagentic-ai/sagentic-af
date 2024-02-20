@@ -17,6 +17,8 @@ import FormData from "form-data";
 import { SingleBar } from "cli-progress";
 import tar from "tar";
 import moment from "moment";
+import { getToolInterface } from "../src/tool";
+import zodToJsonSchema from "zod-to-json-schema";
 
 dotenv.config();
 
@@ -352,7 +354,22 @@ const scanForAgents = async (path: string): Promise<Record<string, any>> => {
   const constructors = constructorsFromModule(module);
   const agents: Record<string, any> = {};
   for (const constructor of constructors) {
-    agents[constructor.name] = { input: {}, output: {}, state: {} };
+    const toolInterface = getToolInterface(constructor);
+    if (toolInterface) {
+      agents[constructor.name] = {
+        description: toolInterface.description,
+        input: zodToJsonSchema(toolInterface.args),
+        output: zodToJsonSchema(toolInterface.returns),
+        state: {},
+      };
+    } else {
+      agents[constructor.name] = {
+        description: "",
+        input: {},
+        output: {},
+        state: {},
+      };
+    }
   }
   return agents;
 };
@@ -555,14 +572,18 @@ program
           console.log("\tCost per model:");
           for (const model in response.data.session.cost) {
             console.log(
-              `\t\t${model}: $${response.data.session.cost[model as ModelType].toFixed(2)}`,
+              `\t\t${model}: $${response.data.session.cost[
+                model as ModelType
+              ].toFixed(2)}`,
               chalk.gray(`(${response.data.session.cost[model as ModelType]})`)
             );
           }
           console.log("\tTokens per model:");
           for (const model in response.data.session.tokens) {
             console.log(
-              `\t\t${model}: ${response.data.session.tokens[model as ModelType]}`
+              `\t\t${model}: ${
+                response.data.session.tokens[model as ModelType]
+              }`
             );
           }
         }
