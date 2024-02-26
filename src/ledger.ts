@@ -5,6 +5,7 @@ import { ID, Timing } from "./common";
 import { ModelType, pricing } from "./models";
 import moment from "moment";
 import { Session } from "./session";
+import { EventEmitter } from "events";
 
 /** PCT stands for prompt, completion and total quantities */
 export class PCT {
@@ -52,8 +53,23 @@ export interface LedgerEntry {
   cost: PCT;
 }
 
+/** Events emitted by the Ledger */
+export interface LedgerEvents {
+  entry: (entry: LedgerEntry) => void;
+}
+
+export interface Ledger {
+  on<U extends keyof LedgerEvents>(event: U, listener: LedgerEvents[U]): this;
+  emit<U extends keyof LedgerEvents>(
+    event: U,
+    ...args: Parameters<LedgerEvents[U]>
+  ): boolean;
+  off<U extends keyof LedgerEvents>(event: U, listener: LedgerEvents[U]): this;
+  once<U extends keyof LedgerEvents>(event: U, listener: LedgerEvents[U]): this;
+}
+
 /** Ledger tracks LLM invocations and associated token counts and costs */
-export class Ledger {
+export class Ledger extends EventEmitter {
   private session: Session;
   private log: LedgerEntry[];
 
@@ -69,6 +85,7 @@ export class Ledger {
    * @param session the session that the ledger is associated with
    */
   constructor(session: Session) {
+    super();
     this.session = session;
     this.log = [];
 
@@ -116,13 +133,16 @@ export class Ledger {
     }
     this.costPerCaller[callerID].add(cost);
 
-    this.log.push({
+    const entry = {
       callerID: callerID,
       timing: timing,
       model: model,
       tokens: tokens,
       cost: cost,
-    });
+    };
+
+    this.log.push(entry);
+    this.emit("entry", entry);
   }
 
   /** Return the timespan covered by the ledger entries */

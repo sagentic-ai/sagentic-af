@@ -9,7 +9,7 @@ import {
   Timing,
   meta,
 } from "./common";
-import { Ledger, PCT } from "./ledger";
+import { Ledger, LedgerEntry, PCT } from "./ledger";
 import { ClientMux } from "./client";
 import { Agent, AgentOptions } from "./agent";
 import { ModelType } from "./models";
@@ -20,6 +20,7 @@ import {
   ChatCompletionMessageParam,
 } from "openai/resources";
 import { LoggerFunction } from "./logging";
+import { EventEmitter } from "events";
 
 /**
  * SessionOptions is used to create a new session
@@ -57,13 +58,53 @@ export interface SessionReport {
 export type ModelInvocationOptions =
   Partial<ChatCompletionCreateParamsNonStreaming>;
 
+interface AgentListeners {
+  start: any;
+  stop: any;
+  stopping: any;
+  step: any;
+  heartbeat: any;
+}
+
+/** Session events */
+export interface SessionEvents<StateType, ResultType> {
+  "agent-start": (agent: string, state: StateType) => void;
+  "agent-stop": (agent: string, result: ResultType) => void;
+  "agent-stopping": (agent: string, state: StateType) => void;
+  "agent-step": (agent: string, state: StateType) => void;
+  "ledger-entry": (entry: LedgerEntry) => void;
+  heartbeat: () => void;
+}
+
+export interface Session {
+  on<U extends keyof SessionEvents<any, any>>(
+    event: U,
+    listener: SessionEvents<any, any>[U]
+  ): this;
+  emit<U extends keyof SessionEvents<any, any>>(
+    event: U,
+    ...args: Parameters<SessionEvents<any, any>[U]>
+  ): boolean;
+  off<U extends keyof SessionEvents<any, any>>(
+    event: U,
+    listener: SessionEvents<any, any>[U]
+  ): this;
+  once<U extends keyof SessionEvents<any, any>>(
+    event: U,
+    listener: SessionEvents<any, any>[U]
+  ): this;
+}
+
 /**
  * Session is the main bus for information exchange between threads and agents.
  * It also tallies the costs and manages the LLM invocations using supplied clients.
  * @param clients the client mux to use for LLM invocations
  * @param options options for the session
  */
-export class Session implements Identified, ParentOf<Agent> {
+export class Session
+  extends EventEmitter
+  implements Identified, ParentOf<Agent>
+{
   metadata: Metadata;
 
   /** Any object that is associated with the session, can be used to pass custom data */
@@ -78,6 +119,12 @@ export class Session implements Identified, ParentOf<Agent> {
   /** List of agents that are spawned by this session */
   private agents: Agent[] = [];
 
+  /** Agent event listeners */
+  private agentListeners: Record<string, AgentListeners> = {};
+
+  /** Ledger event listener */
+  private ledgerListener: any;
+
   /** ClientMux to use for LLM invocations */
   #clients: ClientMux;
 
@@ -88,6 +135,7 @@ export class Session implements Identified, ParentOf<Agent> {
   trace: LoggerFunction = (..._stuff: any[]): undefined => {};
 
   constructor(clients: ClientMux, options: SessionOptions) {
+    super();
     if (options.notifyHandler) {
       this.notify = options.notifyHandler;
     }
@@ -97,6 +145,10 @@ export class Session implements Identified, ParentOf<Agent> {
     this.context = options.context || {};
     this.metadata = meta(Session, options.topic);
     this.ledger = new Ledger(this);
+    this.ledgerListener = (entry: any) => {
+      this.emit("ledger-entry", entry);
+    };
+    this.ledger.on("entry", this.ledgerListener);
     this.#clients = clients;
     this.budget = options.budget || 1.0;
   }
@@ -131,7 +183,32 @@ export class Session implements Identified, ParentOf<Agent> {
     if (this.agents.includes(child)) {
       throw new Error("Agent already adopted");
     }
+    this.setUpListeners(child);
     this.agents.push(child);
+  }
+
+  private setUpListeners(child: Agent): void {
+    const listeners: AgentListeners = {
+      start: (state: any) => {
+        this.emit("agent-start", child.metadata.ID, state);
+      },
+      stop: (result: any) => {
+        this.emit("agent-stop", child.metadata.ID, result);
+      },
+      stopping: (state: any) => {
+        this.emit("agent-stopping", child.metadata.ID, state);
+      },
+      step: (state: any) => {
+        this.emit("agent-step", child.metadata.ID, state);
+      },
+      heartbeat: () => {
+        this.emit("heartbeat");
+      },
+    };
+    Object.entries(listeners).forEach(([event, listener]) => {
+      child.on(event as keyof AgentListeners, listener);
+    });
+    this.agentListeners[child.metadata.ID] = listeners;
   }
 
   abandon(child: Agent): void {
@@ -141,7 +218,16 @@ export class Session implements Identified, ParentOf<Agent> {
     if (!this.agents.includes(child)) {
       throw new Error("Agent not adopted");
     }
+    this.clearListeners(child);
     this.agents = this.agents.filter((t) => t !== child);
+  }
+
+  private clearListeners(child: Agent): void {
+    const listeners = this.agentListeners[child.metadata.ID];
+    Object.entries(listeners).forEach(([event, listener]) => {
+      child.off(event as keyof AgentListeners, listener);
+    });
+    delete this.agentListeners[child.metadata.ID];
   }
 
   /**
@@ -222,6 +308,7 @@ export class Session implements Identified, ParentOf<Agent> {
    */
   abort() {
     this.metadata.timing.finish();
+    this.ledger.off("entry", this.ledgerListener);
     this.hasBeenAborted = true;
   }
 
