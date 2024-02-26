@@ -15,6 +15,7 @@ import { ModelType, pricing, ModelPricing } from "./models";
 import { ModelInvocationOptions, Session } from "./session";
 import { Thread, ToolAssistantContent, ToolCall } from "./thread";
 import { Tool, ToolSpec } from "./tool";
+import { EventEmitter } from "events";
 
 /** Basic options for an agent */
 export interface AgentOptions {
@@ -37,6 +38,38 @@ export interface AgentOptions {
 /** Agent is the interface for all agents */
 export type Agent = BaseAgent<any, any, any>;
 
+/** Agent events */
+export interface AgentEvents<StateType, ResultType> {
+  start: (state: StateType) => void;
+  step: (state: StateType) => void;
+  stopping: (state: StateType) => void;
+  stop: (result: ResultType) => void;
+  heartbeat: () => void;
+}
+
+export interface BaseAgent<
+  OptionsType extends AgentOptions,
+  StateType,
+  ResultType,
+> {
+  on<U extends keyof AgentEvents<StateType, ResultType>>(
+    event: U,
+    listener: AgentEvents<StateType, ResultType>[U]
+  ): this;
+  emit<U extends keyof AgentEvents<StateType, ResultType>>(
+    event: U,
+    ...args: Parameters<AgentEvents<StateType, ResultType>[U]>
+  ): boolean;
+  off<U extends keyof AgentEvents<StateType, ResultType>>(
+    event: U,
+    listener: AgentEvents<StateType, ResultType>[U]
+  ): this;
+  once<U extends keyof AgentEvents<StateType, ResultType>>(
+    event: U,
+    listener: AgentEvents<StateType, ResultType>[U]
+  ): this;
+}
+
 /**
  * BaseAgent is the base class for all agents.
  * It implements the basic agent lifecycle and convenience functions.
@@ -48,6 +81,7 @@ export type Agent = BaseAgent<any, any, any>;
  * @param ResultType result of the agent
  */
 export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
+  extends EventEmitter
   implements Identified, Conclusible, ChildOf<Session>, ParentOf<Thread>
 {
   metadata: Metadata;
@@ -113,6 +147,7 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
    * @param options options for the agent
    */
   constructor(session: Session, options?: OptionsType) {
+    super();
     this.metadata = meta(
       this.constructor as Constructor<Identified>,
       options?.topic
@@ -143,11 +178,16 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
     //   throw new Error("initialize() must return a state");
     // }
     this.isActive = true;
+    this.emit("start", this.state);
     while (this.isActive && !this.session.isAborted) {
+      this.heartbeat();
       this.state = await this.step(this.state!);
+      this.emit("step", this.state);
     }
     this.isActive = false;
+    this.emit("stopping", this.state);
     this.result = await this.finalize(this.state);
+    this.emit("stop", this.result);
     this.conclude();
     console.log(
       "Agent",
@@ -404,6 +444,11 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
     }
     this.metadata.timing.finish();
     this.parent.abandon(this);
+  }
+
+  /** Notify session that the agent is still active. Use in long-running side-effects (e.g. tool invocations, long external requests, etc.) to prevent timeouts. This method is automatically called in `step` so you don't need to call it manually in most cases. */
+  heartbeat(): void {
+    this.emit("heartbeat");
   }
 
   notify(...stuff: any[]): number | undefined {
