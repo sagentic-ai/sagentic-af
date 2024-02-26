@@ -444,6 +444,7 @@ interface SpawnOptions {
   details: boolean;
   verbose: boolean;
   url?: string;
+  timeout?: number;
 }
 
 interface SpawnResponse {
@@ -461,6 +462,10 @@ program
   .option("-u, --url <url>", "URL of the bazed server")
   .option("-d, --details", "Show extra details about the session")
   .option("-v, --verbose", "Show extra debug information")
+  .option(
+    "-t, --timeout <timeout>",
+    "Abort the session if the agent is not reporting activity for a certain amount of time (in seconds); default is 1 minute"
+  )
   .argument("<name>", "Name of the agent to spawn")
   .argument("[options...]", "Options for the agent, as key=value pairs")
   .action(async (name: string, options: string[], _options: SpawnOptions) => {
@@ -506,6 +511,7 @@ program
           {
             type: name,
             options: agentOptions,
+            timeout: (_options.timeout || 60) * 1000,
           },
           {
             headers,
