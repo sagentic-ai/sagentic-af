@@ -22,7 +22,7 @@ export interface ServerOptions {
 const compileTypescriptWin32 = async (outputDir: string) => {
   return new Promise<void>((resolve, reject) => {
     child_process.exec(
-      `npx tsc --outDir ${outputDir}`,
+      "npx tsc --outDir " + outputDir,
       (error, stdout, stderr) => {
         if (error) {
           console.log(chalk.red("Failed to compile typescript\n"));
