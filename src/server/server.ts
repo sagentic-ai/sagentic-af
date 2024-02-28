@@ -23,7 +23,7 @@ const compileTypescript = async (outputDir: string) => {
   const start = moment();
   return new Promise<void>((resolve, reject) => {
     child_process.execFile(
-      "npx",
+      process.platform === "win32" ? "npx.cmd" : "npx",
       ["tsc", "--outDir", outputDir],
       (error, stdout, stderr) => {
         if (error) {
