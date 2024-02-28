@@ -19,6 +19,35 @@ export interface ServerOptions {
   imports?: string[];
 }
 
+const compileTypescriptWin32 = async (outputDir: string) => {
+  return new Promise<void>((resolve, reject) => {
+    child_process.exec(
+      `npx tsc --outDir ${outputDir}`,
+      (error, stdout, stderr) => {
+        if (error) {
+          console.log(chalk.red("Failed to compile typescript\n"));
+          console.log(
+            stdout
+              .split("\n")
+              .map((line) => `|\t${line}`)
+              .join("\n")
+          );
+          console.log(
+            stderr
+              .split("\n")
+              .map((line) => `|\t${line}`)
+              .join("\n")
+          );
+          reject(error);
+        } else {
+          console.log(chalk.green("Compiled typescript"));
+          resolve();
+        }
+      }
+    );
+  });
+};
+
 const compileTypescript = async (outputDir: string) => {
   const start = moment();
   return new Promise<void>((resolve, reject) => {
@@ -103,7 +132,11 @@ const namespaceFromPackage = (imp: string): string => {
 
 const importAgents = async (registry: Registry, imports: string[]) => {
   try {
-    await compileTypescript(path.join(process.cwd(), "cache"));
+    if (process.platform === "win32") {
+      await compileTypescriptWin32(path.join(process.cwd(), "cache"));
+    } else {
+      await compileTypescript(path.join(process.cwd(), "cache"));
+    }
   } catch (e) {
     return;
   }
