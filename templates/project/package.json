@@ -11,7 +11,8 @@
     "lint": "eslint --ext .ts src"
   },
   "dependencies": {
-    "{{BAZED_PACKAGE}}": "^{{BAZED_VERSION}}"
+    "{{BAZED_PACKAGE}}": "^{{BAZED_VERSION}}",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/node": "^20.5.0",

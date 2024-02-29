@@ -12,6 +12,7 @@ import { Session } from "../session";
 import moment from "moment";
 import chalk from "chalk";
 import child_process from "child_process";
+import chokidar from "chokidar";
 
 export interface ServerOptions {
   port?: number;
@@ -167,25 +168,23 @@ export const startServer = async ({
 
   await importAgents(registry, imports || []);
 
-  fs.watch(
-    process.cwd(),
-    { recursive: true },
-    async (action: fs.WatchEventType, filePath: string | null) => {
-      if (!filePath) return;
+  const watcher = chokidar.watch(process.cwd(), {
+    ignoreInitial: true,
+    ignored: [/node_modules/, /cache/, /dist/],
+    cwd: process.cwd(),
+  });
 
-      // skip cache directory
-      const cwd = process.cwd();
-      const cacheDir = path.join(cwd, "cache");
-      const distDir = path.join(cwd, "dist");
-      const absoluteFilePath = path.resolve(cwd, filePath || "");
+  let timer: NodeJS.Timeout | null = null;
 
-      if (absoluteFilePath.startsWith(cacheDir)) return;
-      if (absoluteFilePath.startsWith(distDir)) return;
-      if (filePath?.startsWith("node_modules")) return;
-
-      await importAgents(registry, imports || []);
+  watcher.on("all", () => {
+    // debounce
+    if (timer) {
+      clearTimeout(timer);
     }
-  );
+    timer = setTimeout(async () => {
+      await importAgents(registry, imports || []);
+    }, 1000);
+  });
 
   server.get("/", async (_request, _reply) => {
     return {
