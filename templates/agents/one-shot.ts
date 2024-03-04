@@ -1,4 +1,4 @@
-import { AgentOptions, OneShotAgent, ModelType } from "{{BAZED_PACKAGE}}";
+import { AgentOptions, OneShotAgent, ModelType } from "BAZED_PACKAGE";
 
 export interface ExampleAgentOptions extends AgentOptions {
   /** agent options */

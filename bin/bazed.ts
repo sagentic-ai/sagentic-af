@@ -12,7 +12,7 @@ import { startServer } from "../src/server/server";
 import { ModelType } from "../src/models";
 import { SessionReport } from "../src/session";
 import dotenv from "dotenv";
-import axios, { AxiosResponse, AxiosError } from "axios";
+import axios, { AxiosResponse } from "axios";
 import FormData from "form-data";
 import { SingleBar } from "cli-progress";
 import tar from "tar";
