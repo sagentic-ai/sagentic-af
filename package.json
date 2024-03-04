@@ -21,10 +21,10 @@
     "build": "rm -rf dist && tsc && cp -R templates dist/templates && chmod u+x dist/bin/bazed.js",
     "test": "jest --coverage",
     "docs": "typedoc --options typedoc.json",
-    "cli": "yarn build && node ./dist/bin/bazed.js",
+    "cli": "pnpm build && node ./dist/bin/bazed.js",
     "lint": "eslint --ext .ts src",
-    "local": "yarn build && npm install -g .",
-    "package:publish": "yarn build && npm publish --access private"
+    "local": "pnpm build && npm install -g .",
+    "package:publish": "pnpm build && npm publish --access private"
   },
   "dependencies": {
     "@fastify/middie": "^8.3.0",
@@ -42,7 +42,7 @@
     "middie": "^7.1.0",
     "moment": "^2.30.1",
     "moment-duration-format": "^2.3.2",
-    "node-fetch": "2",
+    "node-fetch": "^2.7.0",
     "openai": "^4.18.0",
     "pino": "^8.17.2",
     "prompts": "^2.4.2",
@@ -58,6 +58,7 @@
     "@types/cli-progress": "^3.11.5",
     "@types/jest": "^29.5.6",
     "@types/node": "^20.5.0",
+    "@types/node-fetch": "^2.6.11",
     "@types/prompts": "^2.4.9",
     "@types/tar": "^6.1.11",
     "@types/uuid": "^9.0.4",

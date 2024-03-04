@@ -19,24 +19,27 @@ jobs:
         with:
           submodules: true
 
+      - name: Enable corepack
+        run: corepack enable
+
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: 20
           registry-url: "https://registry.npmjs.org"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_KEY }}
 
       - name: Install dependencies
-        run: yarn install
+        run: pnpm install --frozen-lockfile
 
       - name: Run tests
-        run: yarn test --silent
+        run: pnpm test --silent
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       - name: Build
-        run: yarn build
+        run: pnpm build
 
       - name: Publish
         env:
