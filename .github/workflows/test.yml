@@ -9,6 +9,55 @@ on:
       - "*" # Ignore tags
 
 jobs:
+  build-node-16:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Enable corepack
+        run: corepack enable
+        
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 16
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Build
+        run: pnpm build
+
+  build-node-20:
+          runs-on: ubuntu-latest
+          timeout-minutes: 5
+      
+          steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                submodules: true
+      
+            - name: Enable corepack
+              run: corepack enable
+              
+            - name: Use Node.js
+              uses: actions/setup-node@v4
+              with:
+                node-version: 20
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+            
+            - name: Build
+              run: pnpm build
+
+      
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -19,16 +68,18 @@ jobs:
         with:
           submodules: true
 
+      - name: Enable corepack
+        run: corepack enable
+        
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-
+          node-version: 20
       - name: Install dependencies
-        run: yarn install
+        run: pnpm install --frozen-lockfile
 
       - name: Set env
         run: echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
 
       - name: Run tests
-        run: yarn test --silent
+        run: pnpm test --silent
