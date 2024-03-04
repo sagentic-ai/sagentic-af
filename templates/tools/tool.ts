@@ -1,4 +1,4 @@
-import { FunctionTool, Tool, Agent } from "{{BAZED_PACKAGE}}";
+import { FunctionTool, Tool, Agent } from "BAZED_PACKAGE";
 import { z } from "zod";
 
 /** Tool is a spicy function that can describe itself with OpenAI compatible JSON schema.*/

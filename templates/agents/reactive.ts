@@ -1,9 +1,4 @@
-import {
-  AgentOptions,
-  ReactiveAgent,
-  ModelType,
-  when,
-} from "{{BAZED_PACKAGE}}";
+import { AgentOptions, ReactiveAgent, ModelType, when } from "BAZED_PACKAGE";
 import { z } from "zod";
 
 export interface ExampleAgentOptions extends AgentOptions {
@@ -26,7 +21,7 @@ export default class ExampleAgent extends ReactiveAgent<
   model: ModelType = ModelType.GPT35Turbo;
   systemPrompt: string = "... add your system prompt here ...";
 
-  async input(_options: ExampleAgent): Promise<ExampleAgentState> {
+  async input(_options: ExampleAgentOptions): Promise<ExampleAgentState> {
     /* Transform input into the initial state */
     throw new Error("Method not implemented.");
   }
