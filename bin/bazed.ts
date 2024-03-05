@@ -19,6 +19,7 @@ import tar from "tar";
 import moment from "moment";
 import { getToolInterface } from "../src/tool";
 import zodToJsonSchema from "zod-to-json-schema";
+import { cliTable } from "./utils";
 
 dotenv.config();
 
@@ -446,9 +447,33 @@ program
             progress.update((100 * progressEvent.loaded) / progressEvent.total);
         },
       });
+
       progress.stop();
+
+      if (response.data?.success) {
+        console.log(
+          `\nDeployment successful\nProject: ${chalk.green(
+            response.data.deployment.project
+          )}\nVersion: ${chalk.green(response.data.deployment.version)}\n`
+        );
+
+        const agents: any[] = response.data.deployment.agents;
+        const agentRows: any[] = [];
+        const cols = [" name", "version", "namespace"];
+        Object.values(agents).forEach((agent) => {
+          agentRows.push([agent.name, agent.version, agent.ns]);
+        });
+        console.log(chalk.green("Agents:"));
+        console.log(cliTable(cols, agentRows));
+        console.log(
+          `\n Dashboard: ${chalk.blue(
+            `https://app.bazed.ai/project/${
+              response.data.deployment.project?.split("/")[1]
+            }`
+          )}\n`
+        );
+      }
       cleanup();
-      console.log("Project deployed successfully");
     } catch (e: any) {
       progress.stop();
       program.error(`Aborting due to an error: ${e.message}`, { exitCode: 1 });
