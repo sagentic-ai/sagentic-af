@@ -20,6 +20,7 @@ import moment from "moment";
 import { getToolInterface } from "../src/tool";
 import zodToJsonSchema from "zod-to-json-schema";
 import { cliTable } from "./utils";
+import { lockDeps, getLocalDeps, checkDeps } from "./lock-deps";
 
 dotenv.config();
 
@@ -375,10 +376,25 @@ const scanForAgents = async (path: string): Promise<Record<string, any>> => {
   return agents;
 };
 
+interface DeployOptions {
+  verbose: boolean;
+  force: boolean;
+  packageManager: string;
+}
+
 program
   .command("deploy")
+  .option("-v, --verbose", "Show extra debug information")
+  .option(
+    "-f, --force",
+    "Force deployment despite missing or local-only dependencies; will likely not work"
+  )
+  .option(
+    "-p, --package-manager <packageManager>",
+    "Package manager to use to lock dependencies [pnpm|npm|none]; pnpm is prefered for fastest spawn times; by default it will try to use best available"
+  )
   .description("Deploy a project to bazed.ai")
-  .action(async () => {
+  .action(async (_options: DeployOptions) => {
     const progress = new SingleBar({});
     try {
       const path = process.cwd();
@@ -412,6 +428,43 @@ program
       FS.writeFileSync(
         distPackageJsonPath,
         JSON.stringify(packageJson, null, 2)
+      );
+
+      // check for local dependencies
+      const localDeps = getLocalDeps(packageJson, _options.verbose);
+      if (localDeps.length > 0) {
+        console.log(
+          "The following local dependencies are not allowed in the deployment:\n",
+          localDeps.join("\n")
+        );
+        if (!_options.force) {
+          program.error(
+            `Aborting due to an error: Local dependencies are not allowed in the deployment`,
+            { exitCode: 1 }
+          );
+        }
+      }
+
+      // check for undeclared dependencies
+      const undeclaredDeps = await checkDeps(distPath, _options.verbose);
+      if (undeclaredDeps.length > 0) {
+        console.log(
+          "The following dependencies are used in your project but not declared in the package.json file:\n",
+          undeclaredDeps.join("\n")
+        );
+        if (!_options.force) {
+          program.error(
+            `Aborting due to an error: Undeclared dependencies are not allowed in the deployment`,
+            { exitCode: 1 }
+          );
+        }
+      }
+
+      // lock the dependencies
+      const lockfile = await lockDeps(
+        distPath,
+        _options.packageManager,
+        _options.verbose
       );
 
       console.log("Deploying project");
