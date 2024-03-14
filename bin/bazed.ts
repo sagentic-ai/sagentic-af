@@ -382,6 +382,12 @@ interface DeployOptions {
   packageManager: string;
 }
 
+interface DeployResponse {
+  success: boolean;
+  deployment?: any;
+  error?: string;
+}
+
 program
   .command("deploy")
   .option("-v, --verbose", "Show extra debug information")
@@ -396,6 +402,7 @@ program
   .description("Deploy a project to bazed.ai")
   .action(async (_options: DeployOptions) => {
     const progress = new SingleBar({});
+    let response: AxiosResponse<DeployResponse>;
     try {
       const path = process.cwd();
       const distPath = Path.join(path, "dist");
@@ -493,17 +500,22 @@ program
       formData.append("file", FS.createReadStream(zipPath));
 
       progress.start(100, 0);
-      const response = await axios.post(url, formData, {
+      response = await axios.post<DeployResponse>(url, formData, {
         headers,
         onUploadProgress: (progressEvent) => {
-          if (progressEvent.total)
+          if (progressEvent.total) {
             progress.update((100 * progressEvent.loaded) / progressEvent.total);
+            if (progressEvent.loaded >= progressEvent.total) {
+              progress.stop();
+              console.log("Verifying deployment...");
+            }
+          }
         },
       });
 
       progress.stop();
 
-      if (response.data?.success) {
+      if (response.data.success) {
         console.log(
           `\nDeployment successful\nProject: ${chalk.green(
             response.data.deployment.project
@@ -529,7 +541,15 @@ program
       cleanup();
     } catch (e: any) {
       progress.stop();
-      program.error(`Aborting due to an error: ${e.message}`, { exitCode: 1 });
+      response = e.response!;
+      if (axios.isAxiosError(e)) {
+        console.log(chalk.red(`Error: ${response.data.error}`));
+        program.error(`Aborting due to an error`, { exitCode: 1 });
+      } else {
+        program.error(`Aborting due to an error: ${e.message}`, {
+          exitCode: 1,
+        });
+      }
     }
   });
 
