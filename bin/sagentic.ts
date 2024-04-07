@@ -25,15 +25,16 @@ import { lockDeps, getLocalDeps, checkDeps } from "./lock-deps";
 dotenv.config();
 
 const PACKAGE_PATH = Path.resolve(__dirname, "..");
-const PACKAGE_NAME = "@bazed-ai/bazed-af";
+const PACKAGE_NAME = "@sagentic-ai/sagentic-af";
 const PACKAGE_VERSION = version;
 
-const BAZED_API_KEY = process.env.BAZED_API_KEY;
-const BAZED_API_URL = process.env.BAZED_API_URL || "https://p.bazed.ai";
+const SAGENTIC_API_KEY = process.env.SAGENTIC_API_KEY;
+const SAGENTIC_API_URL =
+  process.env.SAGENTIC_API_URL || "https://p.sagentic.ai";
 
 const banner = () => {
   console.log(
-    `\n😎 ${chalk.yellow(`Bazed.ai Agent Framework`)} ${chalk.gray(
+    `\n😎 ${chalk.yellow(`Sagentic.ai Agent Framework`)} ${chalk.gray(
       "v" + version
     )}\n`
   );
@@ -60,8 +61,8 @@ ${chalk.bold("Next steps")}\n
 ${relativeStep}
 ${i++}. Set your OpenAI API key in the ${chalk.cyan(".env")} file.\n
   ${chalk.cyan("OPENAI_API_KEY=sk-...")}\n
-${i++}. Set your Bazed AI API key in the ${chalk.cyan(".env")} file.\n
-  ${chalk.cyan("BAZED_API_KEY=...")}\n
+${i++}. Set your Sagentic AI API key in the ${chalk.cyan(".env")} file.\n
+  ${chalk.cyan("SAGENTIC_API_KEY=...")}\n
 ${i++}. Install dependencies:\n
   ${chalk.cyan(installCommand)}\n
 ${i++}. Start the development server:\n
@@ -143,9 +144,9 @@ const toCamelCase = (name: string): string => {
 const program = new Command();
 
 program
-  .name("bazed")
+  .name("sagentic")
   .version(version)
-  .description("😎 Bazed Agent Framework CLI");
+  .description("😎 Sagentic Agent Framework CLI");
 
 interface InitOptions {
   name?: string;
@@ -193,8 +194,8 @@ program
       // create the project
       const variables = {
         NAME: name,
-        BAZED_PACKAGE: PACKAGE_NAME,
-        BAZED_VERSION: PACKAGE_VERSION,
+        SAGENTIC_PACKAGE: PACKAGE_NAME,
+        SAGENTIC_VERSION: PACKAGE_VERSION,
       };
       copyTemplate("project", fullPath, variables);
       outro("yarn", fullPath);
@@ -238,8 +239,8 @@ commandNew
       );
       copySrcTemplate(`agents/${type}.ts`, fullPath, {
         Example: toPascalCase(name),
-        BAZED_PACKAGE: PACKAGE_NAME,
-        BAZED_VERSION: PACKAGE_VERSION,
+        SAGENTIC_PACKAGE: PACKAGE_NAME,
+        SAGENTIC_VERSION: PACKAGE_VERSION,
       });
       addExport(
         Path.join(process.cwd(), "index.ts"),
@@ -261,8 +262,8 @@ commandNew
       const type = "tool";
       copySrcTemplate(`tools/${type}.ts`, fullPath, {
         example: toCamelCase(name),
-        BAZED_PACKAGE: PACKAGE_NAME,
-        BAZED_VERSION: PACKAGE_VERSION,
+        SAGENTIC_PACKAGE: PACKAGE_NAME,
+        SAGENTIC_VERSION: PACKAGE_VERSION,
       });
     } catch (e: any) {
       program.error(`Aborting due to an error: ${e.message}`, { exitCode: 1 });
@@ -290,7 +291,7 @@ program
 
 const tarProject = (path: string): Promise<[string, () => void]> => {
   return new Promise((resolve, reject) => {
-    const tmpDir = FS.mkdtempSync("bazed-");
+    const tmpDir = FS.mkdtempSync("sagentic-");
     const tarPath = Path.join(tmpDir, "dist.tar");
     tar
       .c(
@@ -311,17 +312,17 @@ const tarProject = (path: string): Promise<[string, () => void]> => {
 };
 
 const checkAPIKey = async (): Promise<boolean> => {
-  if (!BAZED_API_KEY) {
+  if (!SAGENTIC_API_KEY) {
     console.log(
       `No ${chalk.cyan(
-        "BAZED_API_KEY"
+        "SAGENTIC_API_KEY"
       )} environment variable found. Please set your API key.`
     );
     return false;
   }
-  const url = `${BAZED_API_URL}/ping`;
+  const url = `${SAGENTIC_API_URL}/ping`;
   const headers = {
-    Authorization: `Bearer ${BAZED_API_KEY}`,
+    Authorization: `Bearer ${SAGENTIC_API_KEY}`,
   };
   try {
     const response = await axios.get(url, { headers });
@@ -329,7 +330,7 @@ const checkAPIKey = async (): Promise<boolean> => {
       return true;
     }
   } catch (e) {
-    console.log("Error when checking BAZED_API_KEY", e);
+    console.log("Error when checking SAGENTIC_API_KEY", e);
   }
   return false;
 };
@@ -399,7 +400,7 @@ program
     "-p, --package-manager <packageManager>",
     "Package manager to use to lock dependencies [pnpm|npm|none]; pnpm is prefered for fastest spawn times; by default it will try to use best available"
   )
-  .description("Deploy a project to bazed.ai")
+  .description("Deploy a project to sagentic.ai")
   .action(async (_options: DeployOptions) => {
     const progress = new SingleBar({});
     let response: AxiosResponse<DeployResponse>;
@@ -416,12 +417,14 @@ program
       }
 
       if (!(await checkAPIKey())) {
-        console.log(chalk.red("Error: No valid Bazed API key found\n"));
+        console.log(chalk.red("Error: No valid Sagentic API key found\n"));
         console.log(
-          `Please set your Bazed API key in ${chalk.cyan("BAZED_API_KEY")}.`
+          `Please set your Sagentic API key in ${chalk.cyan(
+            "SAGENTIC_API_KEY"
+          )}.`
         );
         program.error(
-          `Aborting due to an error: No valid Bazed API key found`,
+          `Aborting due to an error: No valid Sagentic API key found`,
           { exitCode: 1 }
         );
       }
@@ -429,7 +432,7 @@ program
       // parse the package.json file
       const packageJsonPath = Path.join(path, "package.json");
       const packageJson = JSON.parse(FS.readFileSync(packageJsonPath, "utf-8"));
-      //packageJson.dependencies.bazed = "../../dist";
+      //packageJson.dependencies.sagentic = "../../dist";
       // write the package.json file to dist
       const distPackageJsonPath = Path.join(distPath, "package.json");
       FS.writeFileSync(
@@ -477,12 +480,12 @@ program
       console.log("Deploying project");
       // zip the dist folder into unique zip file in tmp
       const [zipPath, cleanup] = await tarProject(path);
-      // upload to bazed.ai with axios
-      const url = `${BAZED_API_URL}/deploy`;
+      // upload to sagentic.ai with axios
+      const url = `${SAGENTIC_API_URL}/deploy`;
       const formData = new FormData();
       const headers = formData.getHeaders();
 
-      headers.Authorization = `Bearer ${BAZED_API_KEY}`;
+      headers.Authorization = `Bearer ${SAGENTIC_API_KEY}`;
 
       const agents = await scanForAgents(distPath);
 
@@ -532,7 +535,7 @@ program
         console.log(cliTable(cols, agentRows));
         console.log(
           `\n Dashboard: ${chalk.blue(
-            `https://app.bazed.ai/project/${
+            `https://app.sagentic.ai/project/${
               response.data.deployment.project?.split("/")[1]
             }`
           )}\n`
@@ -574,7 +577,7 @@ program
   .command("spawn")
   .description("Spawn an agent")
   .option("-l, --local", "Spawn the agent locally")
-  .option("-u, --url <url>", "URL of the bazed server")
+  .option("-u, --url <url>", "URL of the sagentic server")
   .option("-d, --details", "Show extra details about the session")
   .option("-v, --verbose", "Show extra debug information")
   .option(
@@ -592,16 +595,18 @@ program
       } else if (_options.url) {
         url = _options.url;
       } else {
-        url = BAZED_API_URL;
+        url = SAGENTIC_API_URL;
       }
 
       if (!_options.local && !(await checkAPIKey())) {
-        console.log(chalk.red("Error: No valid Bazed API key found\n"));
+        console.log(chalk.red("Error: No valid Sagentic API key found\n"));
         console.log(
-          `Please set your Bazed API key in ${chalk.cyan("BAZED_API_KEY")}.`
+          `Please set your Sagentic API key in ${chalk.cyan(
+            "SAGENTIC_API_KEY"
+          )}.`
         );
         program.error(
-          `Aborting due to an error: No valid Bazed API key found`,
+          `Aborting due to an error: No valid Sagentic API key found`,
           { exitCode: 1 }
         );
       }
@@ -616,7 +621,7 @@ program
         "Content-Type": "application/json",
       };
       if (!_options.local) {
-        headers.Authorization = `Bearer ${BAZED_API_KEY}`;
+        headers.Authorization = `Bearer ${SAGENTIC_API_KEY}`;
       }
 
       let response: AxiosResponse<SpawnResponse>;

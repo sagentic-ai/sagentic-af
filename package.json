@@ -1,13 +1,13 @@
 {
-  "name": "@bazed-ai/bazed-af",
+  "name": "@sagentic-ai/sagentic-af",
   "version": "0.1.0",
-  "description": "Bazed.ai Agent Framework",
-  "homepage": "https://bazed.ai",
+  "description": "Sagentic.ai Agent Framework",
+  "homepage": "https://sagentic.ai",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/bazed-ai/bazed-af.git"
+    "url": "git+ssh://git@github.com/sagentic-ai/sagentic-af.git"
   },
-  "author": "Ahyve AI Inc. <hello@bazed.ai>",
+  "author": "Ahyve AI Inc. <hello@sagentic.ai>",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,13 +15,13 @@
     "dist"
   ],
   "bin": {
-    "bazed": "dist/bin/bazed.js"
+    "sagentic": "dist/bin/sagentic.js"
   },
   "scripts": {
-    "build": "rm -rf dist && tsc && cp -R templates dist/templates && chmod u+x dist/bin/bazed.js",
+    "build": "rm -rf dist && tsc && cp -R templates dist/templates && chmod u+x dist/bin/sagentic.js",
     "test": "jest --coverage",
     "docs": "typedoc --options typedoc.json",
-    "cli": "pnpm build && node ./dist/bin/bazed.js",
+    "cli": "pnpm build && node ./dist/bin/sagentic.js",
     "lint": "eslint --ext .ts src",
     "local": "pnpm build && npm install -g .",
     "package:publish": "pnpm build && npm publish --access private"

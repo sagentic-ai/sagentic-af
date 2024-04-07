@@ -1,30 +1,30 @@
-# 😎 Bazed.ai Agent Framework
+# 😎 Sagentic.ai Agent Framework
 
-Visit [bazed.ai](https://bazed.ai) for more information.
+Visit [sagentic.ai](https://sagentic.ai) for more information.
 
 Join our [Discord server](https://discord.gg/VmEEUrc7dg) for support and discussions.
 
 ## 📦 Installation
 
-To create a new Bazed.ai Agent Framework project, run the following command and follow the instructions:
+To create a new Sagentic.ai Agent Framework project, run the following command and follow the instructions:
 
 ```bash
-npx @bazed-ai/bazed-af init my-project
+npx @sagentic-ai/sagentic-af init my-project
 ```
 
-It will create `my-project` directory and set up a fresh Bazed.ai Agent Framework project there.
+It will create `my-project` directory and set up a fresh Sagentic.ai Agent Framework project there.
 
 Remember to install dependencies with `yarn` or `npm install`!
 
-See the [documentation](https://bazed.ai/installation.html) for more information.
+See the [documentation](https://sagentic.ai/installation.html) for more information.
 
 ## 📚 Documentation
 
-The documentation for the Bazed.ai Agent Framework can be found [here](https://bazed.ai/introduction.html).
+The documentation for the Sagentic.ai Agent Framework can be found [here](https://sagentic.ai/introduction.html).
 
 ## 🚀 Usage
 
-Bazed.ai Agent Framework comes with a dev server with hot reloading. To start it, run the following command:
+Sagentic.ai Agent Framework comes with a dev server with hot reloading. To start it, run the following command:
 
 ```bash
 yarn dev
@@ -43,13 +43,13 @@ curl -X POST http://localhost:3000/spawn \
         }'
 ```
 
-See the [documentation](https://bazed.ai/first-agent.html) for more information.
+See the [documentation](https://sagentic.ai/first-agent.html) for more information.
 
 ## 🤝 Contributing
 
 Contributions, issues and feature requests are welcome!
 
-Check our [issues page](https://github.com/bazed-ai/bazed-af/issues).
+Check our [issues page](https://github.com/sagentic-ai/sagentic-af/issues).
 
 ## 📝 License
 

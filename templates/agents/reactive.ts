@@ -1,4 +1,4 @@
-import { AgentOptions, ReactiveAgent, ModelType, when } from "BAZED_PACKAGE";
+import { AgentOptions, ReactiveAgent, ModelType, when } from "SAGENTIC_PACKAGE";
 import { z } from "zod";
 
 export interface ExampleAgentOptions extends AgentOptions {
