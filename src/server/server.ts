@@ -149,7 +149,7 @@ export const startServer = async ({
 }: ServerOptions) => {
   console.log(
     `\n😎 ${chalk.yellow(
-      `Bazed.ai Agent Framework`
+      `Sagentic.ai Agent Framework`
     )}\n   dev server ${chalk.gray("v" + version)}\n`
   );
 
@@ -188,7 +188,7 @@ export const startServer = async ({
 
   server.get("/", async (_request, _reply) => {
     return {
-      service: "bazed.ai server",
+      service: "sagentic.ai server",
       version,
       agents: registry.list(),
     };
