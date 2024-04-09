@@ -1,4 +1,4 @@
-import { OneShotAgent, AgentOptions, ModelType } from "{{BAZED_PACKAGE}}";
+import { OneShotAgent, AgentOptions, ModelType } from "{{SAGENTIC_PACKAGE}}";
 
 // Define input type for the agent
 interface HelloAgentOptions extends AgentOptions {
