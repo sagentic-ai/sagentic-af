@@ -4,7 +4,8 @@
 import Fastify from "fastify";
 import path from "path";
 import fs from "fs";
-import { ClientMux } from "../client";
+import { ClientMux } from "../client_mux";
+import { Provider } from "../models";
 import { version } from "../../package.json";
 import { AgentOptions } from "../agent";
 import { Registry } from "../registry";
@@ -155,15 +156,14 @@ export const startServer = async ({
 
   const server = Fastify({ logger: true });
 
-  const apiKey = openaiApiKey;
-
-  if (!apiKey) {
-    throw new Error("No OpenAI API key provided");
-  }
+  //TODO: add check for provider keys
 
   const sessions: Session[] = [];
 
-  const clientMux = new ClientMux(apiKey);
+  const clientMux = new ClientMux({
+    [Provider.OpenAI]: openaiApiKey,
+  });
+
   const registry = new Registry();
 
   await importAgents(registry, imports || []);

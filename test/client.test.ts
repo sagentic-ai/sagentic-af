@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 import "openai/shims/node";
-import { Client, parseDuration } from "../src/client";
+import { OpenAIClient as Client, parseDuration } from "../src/clients/openai";
 import { ModelType } from "../src/models";
+import { MessageRole } from "../src/thread";
 import { MockOpenAIApi } from "./mock-openai/server";
 
 const APIKEY = "fake-api-key";
@@ -52,13 +53,16 @@ describe("Client", () => {
     const response = await client.createChatCompletion({
       model: ModelType.GPT35Turbo,
       messages: [
-        { role: "system", content: "You answer with 'Foo' to all prompts." },
-        { role: "user", content: "Hello" },
+        {
+          role: MessageRole.System,
+          content: "You answer with 'Foo' to all prompts.",
+        },
+        { role: MessageRole.User, content: "Hello" },
       ],
     });
     expect(response).toBeDefined();
-    expect(response.choices).toBeDefined();
-    expect(response.choices.length).toBe(1);
+    expect(response.messages).toBeDefined();
+    expect(response.messages.length).toBe(1);
   });
 
   test("Burst requests", async () => {
@@ -70,10 +74,10 @@ describe("Client", () => {
           model: ModelType.GPT35Turbo,
           messages: [
             {
-              role: "system",
+              role: MessageRole.System,
               content: "You answer with 'Foo' to all prompts.",
             },
-            { role: "user", content: "Hello" },
+            { role: MessageRole.User, content: "Hello" },
           ],
         })
       );
@@ -82,8 +86,8 @@ describe("Client", () => {
     expect(responses).toBeDefined();
     expect(responses.length).toBe(n);
     for (const response of responses) {
-      expect(response.choices).toBeDefined();
-      expect(response.choices.length).toBe(1);
+      expect(response.messages).toBeDefined();
+      expect(response.messages.length).toBe(1);
     }
   }, 75000);
 
@@ -103,8 +107,11 @@ describe("Client", () => {
       const _response = await client.createChatCompletion({
         model: ModelType.GPT35Turbo,
         messages: [
-          { role: "system", content: "You answer with 'Foo' to all prompts." },
-          { role: "user", content: "Hello" },
+          {
+            role: MessageRole.System,
+            content: "You answer with 'Foo' to all prompts.",
+          },
+          { role: MessageRole.User, content: "Hello" },
         ],
       });
       // should not reach here
@@ -128,8 +135,11 @@ describe("Client", () => {
       const _response = await client.createChatCompletion({
         model: ModelType.GPT35Turbo,
         messages: [
-          { role: "system", content: "You answer with 'Foo' to all prompts." },
-          { role: "user", content: "Hello" },
+          {
+            role: MessageRole.System,
+            content: "You answer with 'Foo' to all prompts.",
+          },
+          { role: MessageRole.User, content: "Hello" },
         ],
       });
       // should not reach here
@@ -157,25 +167,31 @@ describe("Client", () => {
     const response1 = await client.createChatCompletion({
       model: ModelType.GPT35Turbo,
       messages: [
-        { role: "system", content: "You answer with 'Foo' to all prompts." },
-        { role: "user", content: "Hello" },
+        {
+          role: MessageRole.System,
+          content: "You answer with 'Foo' to all prompts.",
+        },
+        { role: MessageRole.User, content: "Hello" },
       ],
     });
     expect(response1).toBeDefined();
-    expect(response1.choices).toBeDefined();
-    expect(response1.choices.length).toBe(1);
+    expect(response1.messages).toBeDefined();
+    expect(response1.messages.length).toBe(1);
 
     // 2nd test should take 10 seconds to complete due to rate limit and retries
     const response2 = await client.createChatCompletion({
       model: ModelType.GPT35Turbo,
       messages: [
-        { role: "system", content: "You answer with 'Foo' to all prompts." },
-        { role: "user", content: "Hello" },
+        {
+          role: MessageRole.System,
+          content: "You answer with 'Foo' to all prompts.",
+        },
+        { role: MessageRole.User, content: "Hello" },
       ],
     });
     expect(response2).toBeDefined();
-    expect(response2.choices).toBeDefined();
-    expect(response2.choices.length).toBe(1);
+    expect(response2.messages).toBeDefined();
+    expect(response2.messages.length).toBe(1);
 
     const endTimestamp = Date.now();
     expect(endTimestamp - startTimestamp).toBeGreaterThanOrEqual(period);
@@ -191,13 +207,12 @@ describe("Client", () => {
     });
     const response = await client.createChatCompletion({
       model: ModelType.GPT35Turbo,
-      messages: [{ role: "system", content: "foo" }],
+      messages: [{ role: MessageRole.System, content: "foo" }],
     });
     expect(response).toBeDefined();
-    expect(response.choices).toBeDefined();
-    expect(response.choices.length).toBe(1);
-    expect(response.choices[0].message).toBeDefined();
-    expect(response.choices[0].message.content).toBe("bar");
+    expect(response.messages).toBeDefined();
+    expect(response.messages.length).toBe(1);
+    expect(response.messages[0].content).toBe("bar");
   });
 });
 

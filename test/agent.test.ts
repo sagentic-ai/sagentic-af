@@ -3,7 +3,7 @@
 
 import "openai/shims/node";
 import { Agent, AgentOptions, BaseAgent } from "../src/agent";
-import { ClientMux } from "../src/client";
+import { ClientMux } from "../src/client_mux";
 import { Session } from "../src/session";
 import dotenv from "dotenv";
 import { Thread } from "../src/thread";
@@ -20,7 +20,7 @@ describe("Basic Agent", () => {
   let session: Session;
 
   beforeAll(() => {
-    clients = new ClientMux(apiKey);
+    clients = new ClientMux({ openai: apiKey });
     clients.start();
     session = new Session(clients, {});
   });
@@ -101,7 +101,7 @@ describe("Agent with tools", () => {
   let session: Session;
 
   beforeAll(() => {
-    clients = new ClientMux(apiKey);
+    clients = new ClientMux({ openai: apiKey });
     clients.start();
     session = new Session(clients, {});
   });
@@ -191,7 +191,7 @@ describe("Agent conserving tokens", () => {
   let session: Session;
 
   beforeAll(() => {
-    clients = new ClientMux(apiKey);
+    clients = new ClientMux({ openai: apiKey });
     clients.start();
     session = new Session(clients, {});
   });

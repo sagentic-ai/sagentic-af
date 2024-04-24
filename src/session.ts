@@ -10,17 +10,18 @@ import {
   meta,
 } from "./common";
 import { Ledger, LedgerEntry, PCT } from "./ledger";
-import { ClientMux } from "./client";
+import { ClientMux } from "./client_mux";
+import {
+  ChatCompletionRequest,
+  ChatCompletionResponse,
+} from "./clients/common";
 import { Agent, AgentOptions } from "./agent";
 import { ModelType } from "./models";
 import { Message } from "./thread";
-import {
-  ChatCompletionCreateParams,
-  ChatCompletionCreateParamsNonStreaming,
-  ChatCompletionMessageParam,
-} from "openai/resources";
 import { LoggerFunction } from "./logging";
 import { EventEmitter } from "events";
+
+export type ModelInvocationOptions = any; //TODO: define options
 
 /**
  * SessionOptions is used to create a new session
@@ -54,9 +55,6 @@ export interface SessionReport {
   /** tokens used by each model in the session */
   tokens: Record<ModelType, number>;
 }
-
-export type ModelInvocationOptions =
-  Partial<ChatCompletionCreateParamsNonStreaming>;
 
 interface AgentListeners {
   start: any;
@@ -254,12 +252,13 @@ export class Session
 
     const timing = new Timing();
 
-    const invocation: ChatCompletionCreateParams = {
-      ...(options ?? {}),
-      messages: messages as ChatCompletionMessageParam[],
+    const invocation: ChatCompletionRequest = {
+      options: options,
+      messages: messages,
       model: type,
     };
-    const response = await this.#clients.createChatCompletion(invocation);
+    const response: ChatCompletionResponse =
+      await this.#clients.createChatCompletion(invocation);
     const pct = new PCT({
       prompt: response.usage?.prompt_tokens || 0,
       completion: response.usage?.completion_tokens || 0,
@@ -267,7 +266,7 @@ export class Session
     timing.finish();
     this.ledger.add(caller.metadata.ID, type, timing, pct);
 
-    return response.choices[0].message as Message;
+    return response.messages[0];
   }
 
   report(): SessionReport {
