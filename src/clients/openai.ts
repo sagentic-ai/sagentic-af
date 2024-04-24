@@ -2,10 +2,20 @@
 // SPDX-License-Identifier: MIT
 
 import OpenAI, { ClientOptions } from "openai";
-import { ModelType, availableModels, pricing } from "./models";
-import { countTokens } from "./common";
+import { ModelType, pricing } from "../models";
+import {
+  Client,
+  OpenAIClientOptions,
+  ChatCompletionRequest,
+  ChatCompletionResponse,
+} from "./common";
+import { Message } from "../thread";
 import moment from "moment";
 import fetch, { RequestInfo, RequestInit, Response, Headers } from "node-fetch";
+
+import { get_encoding } from "tiktoken";
+
+const encoding = get_encoding("cl100k_base");
 
 /** Maximum number of attempts to retry a failed request before giving up */
 const DEFAULT_MAX_RETRIES = 5;
@@ -36,16 +46,15 @@ const estimateTokens = (
   return countTokens(text);
 };
 
-/** Options for monkaf Client */
-interface ClientOptionsExteded extends ClientOptions {
-  /** Maximum number of attempts to retry a failed request before giving up */
-  maxRetries?: number;
-  /** Interval for fallback clearing limit counters */
-  resetInterval?: number;
-}
+/** Counts the number of tokens in a string
+ * @param text the string to count the tokens of
+ */
+export const countTokens = (text: string): number => {
+  return encoding.encode(text).length;
+};
 
 /** OpenAI Client wrapper */
-export class Client {
+export class OpenAIClient implements Client {
   /** OpenAI client */
   #openai: OpenAI;
   /** Model to use */
@@ -101,7 +110,7 @@ export class Client {
   constructor(
     openAIKey: string,
     model: ModelType,
-    options?: ClientOptionsExteded
+    options?: OpenAIClientOptions
   ) {
     this.model = model;
 
@@ -267,14 +276,27 @@ export class Client {
    * @returns Promise<ChatCompletion>
    */
   async createChatCompletion(
-    request: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming
-  ): Promise<OpenAI.Chat.Completions.ChatCompletion> {
+    request: ChatCompletionRequest
+  ): Promise<ChatCompletionResponse> {
+    const openaiRequest: OpenAI.Chat.ChatCompletionCreateParams = {
+      ...(request.options
+        ? (request.options as OpenAI.Chat.ChatCompletionCreateParamsNonStreaming)
+        : {}),
+      model: request.model,
+      messages: request.messages as OpenAI.Chat.ChatCompletionMessageParam[],
+    };
+    var response: OpenAI.Chat.Completions.ChatCompletion;
     if (pricing[this.model].supportsImages) {
       // FIXME count tokens without base64 images
-      return this.enqueue(1000, request);
+      response = await this.enqueue(1000, openaiRequest);
+    } else {
+      const tokens = estimateTokens(openaiRequest);
+      response = await this.enqueue(tokens, openaiRequest);
     }
-    const tokens = estimateTokens(request);
-    return this.enqueue(tokens, request);
+    return {
+      usage: response.usage,
+      messages: response.choices.map((choice) => choice.message as Message),
+    } as ChatCompletionResponse;
   }
 
   /**
@@ -411,54 +433,6 @@ export class Client {
       });
 
     this.tick("recursive");
-  }
-}
-
-interface ClientMuxOptions extends ClientOptionsExteded {
-  models?: ModelType[];
-}
-
-/**
- * ClientMux is a multiplexer for clients of multiple OpenAI models.
- * @param openAIKey OpenAI API Key
- * @param options ClientOptions
- * @returns ClientMux
- */
-export class ClientMux {
-  private clients: Record<ModelType, Client>;
-
-  constructor(openAIKey: string, options?: ClientMuxOptions) {
-    const models = options?.models || availableModels;
-    if (models.length === 0) {
-      throw new Error("Must provide at least one model");
-    }
-    this.clients = {} as Record<ModelType, Client>;
-    for (const model of models) {
-      this.clients[model] = new Client(openAIKey, model, options);
-    }
-  }
-
-  start(): void {
-    for (const client of Object.values(this.clients)) {
-      client.start();
-    }
-  }
-
-  stop(): void {
-    for (const client of Object.values(this.clients)) {
-      client.stop();
-    }
-  }
-
-  async createChatCompletion(
-    request: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming
-  ): Promise<OpenAI.Chat.Completions.ChatCompletion> {
-    const model = request.model as ModelType;
-    const client = this.clients[model];
-    if (client === undefined) {
-      throw new Error(`Unknown model: ${model}`);
-    }
-    return client.createChatCompletion(request);
   }
 }
 

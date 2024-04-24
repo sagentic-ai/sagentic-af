@@ -3,13 +3,10 @@
 
 import moment, { Moment } from "moment";
 import shortUUID from "short-uuid";
-import { get_encoding } from "tiktoken";
 import { z } from "zod";
 import zodToJsonSchema from "zod-to-json-schema";
 
 const randomUUID = () => shortUUID.generate();
-
-const encoding = get_encoding("cl100k_base");
 
 /** Used to identify objects */
 export type ID = string;
@@ -147,13 +144,6 @@ export interface ParentOf<T extends Identified> {
    * @throws Error throw if child object is not adopted. */
   abandon(child: T): void;
 }
-
-/** Counts the number of tokens in a string
- * @param text the string to count the tokens of
- */
-export const countTokens = (text: string): number => {
-  return encoding.encode(text).length;
-};
 
 /// --- utils
 
