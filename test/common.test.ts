@@ -2,14 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 import moment from "moment";
-import {
-  Timing,
-  countTokens,
-  meta,
-  delay,
-  Identified,
-  Metadata,
-} from "../src/common";
+import { Timing, meta, delay, Identified, Metadata } from "../src/common";
+import { countTokens } from "../src/clients/openai";
 
 class TestObject implements Identified {
   metadata: Metadata = {} as Metadata;

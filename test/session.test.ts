@@ -4,12 +4,12 @@
 import "openai/shims/node";
 import { Session } from "../src/session";
 import { AgentOptions, BaseAgent } from "../src/agent";
-import { ClientMux } from "../src/client";
+import { ClientMux } from "../src/client_mux";
 
 class TestAgent extends BaseAgent<AgentOptions, undefined, undefined> {}
 
 describe("Session", () => {
-  const clients = new ClientMux("fake-key");
+  const clients = new ClientMux({ openai: "fake-key" });
 
   test("Create Session", async () => {
     const session = new Session(clients, { topic: "testing session" });
