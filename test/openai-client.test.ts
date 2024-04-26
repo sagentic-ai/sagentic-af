@@ -221,7 +221,7 @@ describe("OpenAI Client with real API", () => {
   let client: Client;
 
   beforeAll(() => {
-    client = new Client(REAL_APIKEY, ModelType.GPT35);
+    client = new Client(REAL_APIKEY, ModelType.GPT35Turbo);
     client.start();
   });
 
@@ -231,7 +231,7 @@ describe("OpenAI Client with real API", () => {
 
   test("Simple Request", async () => {
     const response = await client.createChatCompletion({
-      model: ModelType.GPT35,
+      model: ModelType.GPT35Turbo,
       messages: [
         {
           role: MessageRole.System,
