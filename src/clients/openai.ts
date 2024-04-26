@@ -4,11 +4,11 @@
 import OpenAI, { ClientOptions } from "openai";
 import { ModelType, pricing } from "../models";
 import {
-  Client,
   OpenAIClientOptions,
   ChatCompletionRequest,
   ChatCompletionResponse,
 } from "./common";
+import { BaseClient, RejectionReason } from "./base";
 import { Message } from "../thread";
 import moment from "moment";
 import fetch, { RequestInfo, RequestInit, Response, Headers } from "node-fetch";
@@ -16,27 +16,6 @@ import fetch, { RequestInfo, RequestInit, Response, Headers } from "node-fetch";
 import { get_encoding } from "tiktoken";
 
 const encoding = get_encoding("cl100k_base");
-
-/** Maximum number of attempts to retry a failed request before giving up */
-const DEFAULT_MAX_RETRIES = 5;
-/** Interval for fallback clearing limit counters */
-const DEFAULT_RESET_INTERVAL = 60 * 1000;
-
-let ids = 0;
-
-/** Ticket is a request waiting to be fulfilled */
-interface Ticket {
-  id: number;
-  tokens: number;
-  retries: number;
-  request: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming;
-  resolve: (
-    value:
-      | OpenAI.Chat.Completions.ChatCompletion
-      | PromiseLike<OpenAI.Chat.Completions.ChatCompletion>
-  ) => void;
-  reject: (reason?: any) => void;
-}
 
 /** Estimate the number of tokens in a request */
 const estimateTokens = (
@@ -54,51 +33,13 @@ export const countTokens = (text: string): number => {
 };
 
 /** OpenAI Client wrapper */
-export class OpenAIClient implements Client {
+export class OpenAIClient extends BaseClient<
+  OpenAI.Chat.ChatCompletionCreateParamsNonStreaming,
+  OpenAI.Chat.Completions.ChatCompletion,
+  OpenAIClientOptions
+> {
   /** OpenAI client */
-  #openai: OpenAI;
-  /** Model to use */
-  private model: ModelType;
-
-  /** Queue of requests to be sent */
-  private queue: Ticket[] = [];
-
-  /** Number of tokens available for use */
-  private tokenPool: number = 0;
-  /** Maximum number of tokens available for use */
-  private tokenPoolMax: number = 0;
-  /** Number of requests available for use */
-  private requestPool: number = 0;
-  /** Maximum number of requests available for use */
-  private requestPoolMax: number = 0;
-
-  /** Timer for clearing limit counters */
-  private resetTimer?: NodeJS.Timeout;
-  /** Timer for resetting request pool */
-  private requestTimer?: NodeJS.Timeout;
-  /** Timer for resetting token pool */
-  private tokenTimer?: NodeJS.Timeout;
-
-  /** Maximum number of attempts to retry a failed request before giving up */
-  private maxRetries: number = DEFAULT_MAX_RETRIES;
-  /** Interval for fallback clearing limit counters */
-  private resetInterval: number = DEFAULT_RESET_INTERVAL;
-
-  /** Set of inflight tickets */
-  private inflightTickets: Set<number> = new Set();
-
-  /** Enable debug logging */
-  private debug: boolean = false;
-
-  /** Number of allowed tokens per minute */
-  get TPM(): number {
-    return pricing[this.model].tpm;
-  }
-
-  /** Number of allowed requests per minute */
-  get RPM(): number {
-    return pricing[this.model].rpm;
-  }
+  private openai: OpenAI;
 
   /**
    * Create a new Client.
@@ -112,15 +53,7 @@ export class OpenAIClient implements Client {
     model: ModelType,
     options?: OpenAIClientOptions
   ) {
-    this.model = model;
-
-    if (options && options.maxRetries) {
-      this.maxRetries = options.maxRetries;
-    }
-
-    if (options && options.resetInterval) {
-      this.resetInterval = options.resetInterval;
-    }
+    super(model, options);
 
     const openAIOptions = options || {};
     const origFetch = openAIOptions.fetch || fetch;
@@ -134,56 +67,10 @@ export class OpenAIClient implements Client {
       });
     };
 
-    this.#openai = new OpenAI({
+    this.openai = new OpenAI({
       ...openAIOptions,
       apiKey: openAIKey,
     });
-
-    this.tokenPool = this.TPM;
-    this.tokenPoolMax = this.TPM;
-    this.requestPool = this.RPM;
-    this.requestPoolMax = this.RPM;
-  }
-
-  /**
-   * Start the client. Must be called before using the client.
-   * @returns void
-   */
-  start(): void {
-    this.resetTimer = setInterval(() => {
-      // fallback to clear/reset pools if for some reason the request headers don't have the rate limit info
-      // TODO make this more robust
-      if (this.requestPoolMax <= 0) {
-        this.requestPoolMax = this.RPM;
-      }
-
-      if (this.tokenPoolMax <= 0) {
-        this.tokenPoolMax = this.TPM;
-      }
-
-      if (!this.requestTimer && this.requestPool < this.requestPoolMax) {
-        this.requestPool = this.requestPoolMax;
-      }
-
-      if (!this.tokenTimer && this.tokenPool < this.tokenPoolMax) {
-        this.tokenPool = this.tokenPoolMax;
-      }
-
-      this.tick("timer reset");
-    }, this.resetInterval);
-  }
-
-  /**
-   * Stop the client. Must be called when done using the client.
-   * @returns void
-   */
-  stop(): void {
-    clearInterval(this.resetTimer);
-    this.resetTimer = undefined;
-    clearTimeout(this.requestTimer);
-    this.requestTimer = undefined;
-    clearTimeout(this.tokenTimer);
-    this.tokenTimer = undefined;
   }
 
   /**
@@ -301,139 +188,36 @@ export class OpenAIClient implements Client {
   }
 
   /**
-   * Enqueue a request.
-   * @param tokens Number of tokens in the request
-   * @param request ChatCompletionCreateParamsNonStreaming
-   * @returns Promise<ChatCompletion>
+   * Make a request to the OpenAI API
    */
-  private enqueue(
-    tokens: number,
+  protected async makeAPIRequest(
     request: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming
   ): Promise<OpenAI.Chat.Completions.ChatCompletion> {
-    const promise = new Promise<OpenAI.Chat.Completions.ChatCompletion>(
-      (resolve, reject) => {
-        const id = ids++;
-        this.queue.push({ id, tokens, request, resolve, reject, retries: 0 });
-      }
-    );
-    this.tick("enqueue");
-    return promise;
+    return this.openai.chat.completions.create(request);
   }
 
   /**
-   * Tick the queue.
-   * @returns void
+   * Parse an error from the API
+   * @param error Error from the API
+   * @returns RejectionReason
+   * @override
+   * @protected
    */
-  private tick(caller: string): void {
-    if (this.debug)
-      console.log(
-        "tick",
-        caller,
-        this.model,
-        this.queue.length,
-        this.inflightTickets,
-        this.requestPool,
-        this.tokenPool,
-        "timers",
-        !!this.requestTimer,
-        !!this.tokenTimer
-      );
-    if (this.queue.length === 0) {
-      return;
-    }
-
-    if (this.requestPool <= 0) {
-      return;
-    }
-
-    const ticket = this.queue.shift();
-    if (ticket === undefined) {
-      return;
-    }
-
-    if (this.tokenPool < ticket.tokens) {
-      // reject request if its tokens are greater than the maximum allowed so it could never be fulfilled
-      if (ticket.tokens > this.tokenPoolMax) {
-        ticket.reject(new Error("Request exceeds maximum allowed tokens"));
-        return;
-      }
-
-      this.queue.unshift(ticket);
-      return;
-    }
-
-    this.tokenPool -= ticket.tokens;
-    this.requestPool -= 1;
-
-    if (this.debug)
-      console.log("processing ticket", ticket.id, "tokens", ticket.tokens);
-    this.inflightTickets.add(ticket.id);
-    this.#openai.chat.completions
-      .create(ticket.request)
-      .then((response) => {
-        if (this.debug) console.log("ticket resolved", ticket.id);
-        this.inflightTickets.delete(ticket.id);
-        ticket.resolve(response);
-      })
-      .catch((reason) => {
-        if (ticket.retries >= this.maxRetries) {
-          // too many retries, give up
-          if (this.debug) {
-            console.log("ticket rejected: too many retries", ticket.id);
-            console.log("reason:", reason);
-          }
-          this.inflightTickets.delete(ticket.id);
-          ticket.reject(reason);
-          return;
+  protected parseError(error: any): RejectionReason {
+    switch (error.status) {
+      case 400:
+        return RejectionReason.BAD_REQUEST;
+      case 429:
+        // rate limit or quota
+        if (error.error && error.error.code === "insufficient_quota") {
+          return RejectionReason.INSUFFICIENT_QUOTA;
         }
-
-        switch (reason.status) {
-          case 400:
-            // bad request
-            if (this.debug) {
-              console.log("ticket rejected: bad request", ticket.id);
-              console.log("reason:", reason);
-            }
-            this.inflightTickets.delete(ticket.id);
-            ticket.reject(reason);
-            return;
-          case 429:
-            // rate limit or quota
-            // reject if we exceeded quota as we can't recover from that
-            // otherwise retry
-            if (reason.error && reason.error.code === "insufficient_quota") {
-              if (this.debug) {
-                console.log("ticket rejected: insufficient quota", ticket.id);
-                console.log("reason:", reason);
-              }
-              this.inflightTickets.delete(ticket.id);
-              ticket.reject(reason);
-              return;
-            }
-            // retry
-            break;
-          case 500:
-            // server error
-            // retry
-            break;
-          default:
-            // unknown error
-            if (this.debug) {
-              console.log("ticket rejected: unknown error", ticket.id);
-              console.log("reason:", reason);
-            }
-            this.inflightTickets.delete(ticket.id);
-            ticket.reject(reason);
-            return;
-        }
-
-        // retry
-        ticket.retries += 1;
-        this.queue.push(ticket);
-        if (this.debug) console.log("ticket retrying", ticket.id);
-      });
-
-    this.tick("recursive");
+        return RejectionReason.TOO_MANY_REQUESTS;
+      case 500:
+        return RejectionReason.SERVER_ERROR;
+      default:
+        return RejectionReason.UNKNOWN;
+    }
   }
 }
 

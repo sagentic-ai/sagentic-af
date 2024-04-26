@@ -31,15 +31,22 @@ export interface Client {
   ): Promise<ChatCompletionResponse>;
 }
 
-/** Options for sagentic OpenAI Client */
-export interface OpenAIClientOptions extends OpenAIClientOptionsBase {
+export interface BaseClientOptions {
   /** Maximum number of attempts to retry a failed request before giving up */
   maxRetries?: number;
   /** Interval for fallback clearing limit counters */
   resetInterval?: number;
 }
 
-/** Options for sagentic Google Client */
-export type GoogleClientOptions = any; //TODO define GoogleClientOptions
+/** Options for sagentic OpenAI Client */
+export interface OpenAIClientOptions
+  extends OpenAIClientOptionsBase,
+    BaseClientOptions {}
 
-export type ClientOptions = OpenAIClientOptions | any; //TODO get rid of any
+/** Options for sagentic Google Client */
+type GoogleClientOptionsBase = any; //TODO: define GoogleClientOptionsBase
+export interface GoogleClientOptions
+  extends GoogleClientOptionsBase,
+    BaseClientOptions {}
+
+export type ClientOptions = OpenAIClientOptions | GoogleClientOptions;
