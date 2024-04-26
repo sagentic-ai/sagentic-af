@@ -7,7 +7,7 @@ import { ClientMux } from "../src/client_mux";
 import { Session } from "../src/session";
 import dotenv from "dotenv";
 import { Thread } from "../src/thread";
-import { ModelType } from "../src/models";
+import { Provider, ModelType } from "../src/models";
 import { FunctionTool, Tool } from "../src/tool";
 import { z } from "zod";
 import zodToJsonSchema from "zod-to-json-schema";
@@ -20,7 +20,7 @@ describe("Basic Agent", () => {
   let session: Session;
 
   beforeAll(() => {
-    clients = new ClientMux({ openai: apiKey });
+    clients = new ClientMux({ [Provider.OpenAI]: apiKey });
     clients.start();
     session = new Session(clients, {});
   });
@@ -101,7 +101,7 @@ describe("Agent with tools", () => {
   let session: Session;
 
   beforeAll(() => {
-    clients = new ClientMux({ openai: apiKey });
+    clients = new ClientMux({ [Provider.OpenAI]: apiKey });
     clients.start();
     session = new Session(clients, {});
   });
@@ -191,7 +191,7 @@ describe("Agent conserving tokens", () => {
   let session: Session;
 
   beforeAll(() => {
-    clients = new ClientMux({ openai: apiKey });
+    clients = new ClientMux({ [Provider.OpenAI]: apiKey });
     clients.start();
     session = new Session(clients, {});
   });

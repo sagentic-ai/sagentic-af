@@ -278,11 +278,12 @@ export class OpenAIClient implements Client {
   async createChatCompletion(
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
-    const openaiRequest: OpenAI.Chat.ChatCompletionCreateParams = {
-      ...(request.options
-        ? (request.options as OpenAI.Chat.ChatCompletionCreateParamsNonStreaming)
-        : {}),
-      model: request.model,
+    const openaiRequest: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
+      model: this.model,
+      temperature: request.options?.temperature,
+      max_tokens: request.options?.max_tokens,
+      tools: request.options?.tools,
+      response_format: request.options?.response_format,
       messages: request.messages as OpenAI.Chat.ChatCompletionMessageParam[],
     };
     var response: OpenAI.Chat.Completions.ChatCompletion;

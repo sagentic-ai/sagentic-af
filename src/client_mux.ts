@@ -15,6 +15,12 @@ import {
   ChatCompletionResponse,
 } from "./clients/common";
 import { OpenAIClient } from "./clients/openai";
+import { GoogleClient } from "./clients/google";
+
+const clientConstructors = {
+  [Provider.OpenAI]: OpenAIClient,
+  [Provider.Google]: GoogleClient,
+};
 
 interface ClientMuxOptions {
   models?: ModelType[];
@@ -30,7 +36,7 @@ export class ClientMux {
   private clients: Record<ModelType, Client>;
 
   constructor(
-    keys: Record<Provider, string>,
+    keys: Partial<Record<Provider, string>>,
     options?: ClientMuxOptions,
     modelOptions?: Record<ModelType, ClientOptions>
   ) {
@@ -40,19 +46,23 @@ export class ClientMux {
     }
     this.clients = {} as Record<ModelType, Client>;
     for (const model of modelClients) {
-      switch (models[model].provider) {
-        case Provider.OpenAI:
-          this.clients[model] = new OpenAIClient(
-            keys[Provider.OpenAI],
-            model,
-            modelOptions?.[model]
-          );
-          break;
-        default:
-          throw new Error(
-            `Unknown provider: ${models[model].provider} for model: ${model}`
-          );
+      const provider = models[model].provider;
+      const clientConstructor = clientConstructors[provider];
+      if (clientConstructor === undefined) {
+        throw new Error(`Unknown provider: ${provider} for model: ${model}`);
       }
+      const key = keys[provider];
+      if (key === undefined) {
+        console.warn(
+          `No API key provided for provider: ${provider} for model: ${model}`
+        );
+        continue;
+      }
+      this.clients[model] = new clientConstructor(
+        key,
+        model,
+        modelOptions?.[model]
+      );
     }
   }
 
