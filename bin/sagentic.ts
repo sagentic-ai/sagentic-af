@@ -9,7 +9,7 @@ import { version } from "../package.json";
 import prompts from "prompts";
 import chalk from "chalk";
 import { startServer } from "../src/server/server";
-import { ModelType } from "../src/models";
+import { Provider, ModelType } from "../src/models";
 import { SessionReport } from "../src/session";
 import dotenv from "dotenv";
 import axios, { AxiosResponse } from "axios";
@@ -281,7 +281,10 @@ program
       }
       await startServer({
         port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
-        openaiApiKey: process.env.OPENAI_API_KEY || "",
+        keys: {
+          [Provider.OpenAI]: process.env.OPENAI_API_KEY || "",
+          [Provider.Google]: process.env.GOOGLE_API_KEY || "",
+        },
         imports: importPaths,
       });
     } catch (e: any) {

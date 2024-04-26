@@ -17,7 +17,7 @@ import chokidar from "chokidar";
 
 export interface ServerOptions {
   port?: number;
-  openaiApiKey: string;
+  keys: Partial<Record<Provider, string>>;
   imports?: string[];
 }
 
@@ -143,11 +143,7 @@ const importAgents = async (registry: Registry, imports: string[]) => {
   }
 };
 
-export const startServer = async ({
-  port,
-  openaiApiKey,
-  imports,
-}: ServerOptions) => {
+export const startServer = async ({ port, keys, imports }: ServerOptions) => {
   console.log(
     `\n😎 ${chalk.yellow(
       `Sagentic.ai Agent Framework`
@@ -160,9 +156,7 @@ export const startServer = async ({
 
   const sessions: Session[] = [];
 
-  const clientMux = new ClientMux({
-    [Provider.OpenAI]: openaiApiKey,
-  });
+  const clientMux = new ClientMux(keys);
 
   const registry = new Registry();
 

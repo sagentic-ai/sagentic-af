@@ -5,6 +5,7 @@ import "openai/shims/node";
 import { AgentOptions, BaseAgent } from "../src/agent";
 import { ClientMux } from "../src/client_mux";
 import { Session } from "../src/session";
+import { Provider } from "../src/models";
 import {
   Interaction,
   TextAssistantContent,
@@ -191,7 +192,7 @@ describe("Interaction with tools", () => {
 class TestAgent extends BaseAgent<AgentOptions, undefined, undefined> {}
 
 describe("Thread", () => {
-  const clients = new ClientMux({ openai: "fake-key" });
+  const clients = new ClientMux({ [Provider.OpenAI]: "fake-key" });
   const session = new Session(clients, { topic: "test" });
   let agent: TestAgent;
 

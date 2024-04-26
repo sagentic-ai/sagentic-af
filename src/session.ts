@@ -14,14 +14,13 @@ import { ClientMux } from "./client_mux";
 import {
   ChatCompletionRequest,
   ChatCompletionResponse,
+  ModelInvocationOptions,
 } from "./clients/common";
 import { Agent, AgentOptions } from "./agent";
 import { ModelType } from "./models";
 import { Message } from "./thread";
 import { LoggerFunction } from "./logging";
 import { EventEmitter } from "events";
-
-export type ModelInvocationOptions = any; //TODO: define options
 
 /**
  * SessionOptions is used to create a new session
@@ -242,6 +241,7 @@ export class Session
     messages: Message[],
     options?: ModelInvocationOptions
   ): Promise<Message> {
+    console.log("invokeModel", caller, type, messages, options);
     if (this.hasBeenAborted) {
       throw new Error("Session has been aborted");
     }

@@ -8,9 +8,10 @@ import { MessageRole } from "../src/thread";
 import { MockOpenAIApi } from "./mock-openai/server";
 
 const APIKEY = "fake-api-key";
+const REAL_APIKEY = process.env.OPENAI_API_KEY || "";
 const BASEPATH = "http://localhost:4010";
 
-describe("Client", () => {
+describe("OpenAI Client with mock API", () => {
   let client: Client;
   let api: MockOpenAIApi;
 
@@ -213,6 +214,36 @@ describe("Client", () => {
     expect(response.messages).toBeDefined();
     expect(response.messages.length).toBe(1);
     expect(response.messages[0].content).toBe("bar");
+  });
+});
+
+describe("OpenAI Client with real API", () => {
+  let client: Client;
+
+  beforeAll(() => {
+    client = new Client(REAL_APIKEY, ModelType.GPT35);
+    client.start();
+  });
+
+  afterAll(() => {
+    client.stop();
+  });
+
+  test("Simple Request", async () => {
+    const response = await client.createChatCompletion({
+      model: ModelType.GPT35,
+      messages: [
+        {
+          role: MessageRole.System,
+          content: "You answer with 'Foo' to all prompts.",
+        },
+        { role: MessageRole.User, content: "Hello" },
+      ],
+    });
+    expect(response).toBeDefined();
+    expect(response.messages).toBeDefined();
+    expect(response.messages.length).toBe(1);
+    console.log(response.messages[0].content);
   });
 });
 

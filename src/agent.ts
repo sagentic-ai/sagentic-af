@@ -12,7 +12,8 @@ import {
   meta,
 } from "./common";
 import { ModelType, pricing, ModelPricing } from "./models";
-import { ModelInvocationOptions, Session } from "./session";
+import { Session } from "./session";
+import { ModelInvocationOptions } from "./clients/common";
 import { Thread, ToolAssistantContent, ToolCall } from "./thread";
 import { Tool, ToolSpec } from "./tool";
 import { EventEmitter } from "events";
@@ -342,14 +343,15 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
    * Contains tools to use and other options accepted by OpenAI.
    */
   get modelInvocationOptions(): ModelInvocationOptions | undefined {
-    const options: ModelInvocationOptions = {};
+    const options: ModelInvocationOptions = {
+      temperature: this.temperature,
+    };
     if (this.tools.length > 0) {
       options.tools = this.describeTools();
     }
     if (this.expectsJSON) {
       options.response_format = { type: "json_object" };
     }
-    options.temperature = this.temperature;
 
     if (this.maxTokens !== undefined) {
       options.max_tokens = this.maxTokens;
