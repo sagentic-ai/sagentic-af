@@ -44,9 +44,6 @@ export interface OpenAIClientOptions
     BaseClientOptions {}
 
 /** Options for sagentic Google Client */
-type GoogleClientOptionsBase = any; //TODO: define GoogleClientOptionsBase
-export interface GoogleClientOptions
-  extends GoogleClientOptionsBase,
-    BaseClientOptions {}
+export interface GoogleClientOptions extends BaseClientOptions {}
 
 export type ClientOptions = OpenAIClientOptions | GoogleClientOptions;

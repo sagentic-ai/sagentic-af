@@ -17,8 +17,8 @@ export enum ModelType {
   GPT35Turbo = "gpt-3.5-turbo-0125",
 
   GEMINI15 = "gemini-1.5-pro-latest",
-  GEMINI10 = "gemini-pro",
-  GEMINI10Vision = "gemini-pro-vision",
+  GEMINI10 = "gemini-1.0-pro",
+  GEMINI10Vision = "gemini-1.0-pro-vision",
 }
 
 /** Describes model pricing and limits */
