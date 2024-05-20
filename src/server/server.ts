@@ -157,6 +157,7 @@ export const startServer = async ({ port, keys, imports }: ServerOptions) => {
   const sessions: Session[] = [];
 
   const clientMux = new ClientMux(keys);
+  clientMux.start();
 
   const registry = new Registry();
 
