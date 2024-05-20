@@ -73,7 +73,7 @@ export abstract class BaseClient<
   private inflightTickets: Set<number> = new Set();
 
   /** Enable debug logging */
-  protected debug: boolean = false;
+  protected debug: boolean = true;
 
   /** Number of allowed tokens per minute */
   get TPM(): number {
