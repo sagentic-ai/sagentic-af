@@ -1,4 +1,3 @@
-// Copyright 2024 Ahyve AI Inc.
 // SPDX-License-Identifier: MIT
 
 import {
@@ -7,6 +6,9 @@ import {
   GenerateContentResult,
   Content,
   TextPart,
+  FunctionCallPart,
+  FunctionResponsePart,
+  FunctionCallingMode,
 } from "@google/generative-ai";
 import { ModelType, pricing } from "../models";
 import {
@@ -52,6 +54,16 @@ function parseContents(
             } as TextPart;
         }
       });
+    const toolCalls =
+      message.tool_calls?.map((tool_call: any) => {
+        return {
+          functionCall: {
+            name: tool_call.function.name,
+            args: JSON.parse(tool_call.function.arguments),
+          },
+        } as FunctionCallPart;
+      }) || [];
+
     switch (message.role) {
       case MessageRole.System:
         systemPrompt.parts = parts;
@@ -65,7 +77,22 @@ function parseContents(
       case MessageRole.Assistant:
         contents.push({
           role: "model",
-          parts: parts,
+          parts: [...parts, ...toolCalls],
+        });
+        break;
+      case MessageRole.Tool:
+        contents.push({
+          role: "user",
+          parts: [
+            {
+              functionResponse: {
+                name: message.tool_call_id,
+                response: {
+                  content: JSON.parse(message.content as string),
+                },
+              },
+            } as FunctionResponsePart,
+          ],
         });
         break;
       default:
@@ -113,28 +140,65 @@ export class GoogleClient extends BaseClient<
       request.messages,
       this.model === ModelType.GEMINI15
     );
+    const tools = request.options?.tools?.map((tool: any) => {
+      const parameters = tool.function.parameters;
+      delete parameters["additionalProperties"];
+      return {
+        name: tool.function.name,
+        description: tool.function.description,
+        parameters: parameters,
+      };
+    });
     const googleRequest: GenerateContentRequest = {
       contents: contents,
     };
     if (systemPrompt) {
       googleRequest.systemInstruction = systemPrompt;
     }
+    if (tools && tools.length > 0) {
+      googleRequest.tools = [
+        {
+          functionDeclarations: tools,
+        },
+      ];
+    }
 
     console.log("googleRequest", JSON.stringify(googleRequest, null, 2));
     // const tokens = estimateTokens(googleRequest);
     // const response = await this.enqueue(tokens, googleRequest);
     const response = await this.enqueue(1000, googleRequest);
-    console.log("raw response", JSON.stringify(response, null, 2));
-    const chatResponse = {
-      //TODO usage
-      messages: [
-        {
-          content: response.response.text(),
-          role: MessageRole.Assistant,
-        } as Message,
-      ],
-    } as ChatCompletionResponse;
-    console.log("sagentic response", JSON.stringify(chatResponse, null, 2));
+    const functionCall =
+      response.response?.candidates?.[0].content.parts?.[0].functionCall;
+    let chatResponse: ChatCompletionResponse;
+    if (functionCall) {
+      const toolCall = {
+        id: functionCall.name,
+        type: "function",
+        function: {
+          name: functionCall.name,
+          arguments: JSON.stringify(functionCall.args),
+        },
+      };
+      chatResponse = {
+        //TODO usage
+        messages: [
+          {
+            tool_calls: [toolCall],
+            role: MessageRole.Assistant,
+          } as Message,
+        ],
+      } as ChatCompletionResponse;
+    } else {
+      chatResponse = {
+        //TODO usage
+        messages: [
+          {
+            content: response.response.text(),
+            role: MessageRole.Assistant,
+          } as Message,
+        ],
+      } as ChatCompletionResponse;
+    }
     return chatResponse;
   }
 
@@ -148,7 +212,13 @@ export class GoogleClient extends BaseClient<
 
   protected parseError(error: any): RejectionReason {
     //TODO actually check and parse error
-    console.log("parseError", error);
+    // if contains 429 Too Many Requests, return RejectionReason.RATE_LIMIT
+    if (error.message.includes("429 Too Many Requests")) {
+      return RejectionReason.TOO_MANY_REQUESTS;
+    }
+
+    console.log("unknown Google error", error);
+
     return RejectionReason.UNKNOWN;
   }
 }

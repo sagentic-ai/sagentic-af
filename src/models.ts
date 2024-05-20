@@ -93,8 +93,8 @@ export const pricing: Record<ModelType, ModelPricing> = {
     prompt: 0.000007,
     completion: 0.000021,
     contextSize: 1_048_576 + 8192, //double check (should it include output?)
-    rpm: 5,
-    tpm: 10_000_000,
+    rpm: 2,
+    tpm: 32_000,
     supportsImages: true,
   },
   [ModelType.GEMINI10]: {

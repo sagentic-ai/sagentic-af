@@ -241,7 +241,6 @@ export class Session
     messages: Message[],
     options?: ModelInvocationOptions
   ): Promise<Message> {
-    console.log("invokeModel", caller, type, messages, options);
     if (this.hasBeenAborted) {
       throw new Error("Session has been aborted");
     }
