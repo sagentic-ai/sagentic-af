@@ -8,7 +8,6 @@ export enum ModelType {
   GPT4Vision = "gpt-4-vision-preview",
   GPT4o = "gpt-4o",
 
-  GPT35 = "gpt-3.5-turbo-16k",
   GPT35Turbo = "gpt-3.5-turbo-1106",
 }
 
@@ -65,13 +64,6 @@ export const pricing: Record<ModelType, ModelPricing> = {
     supportsImages: true,
     supportsVideo: true,
     supportsAudio: false, //NB audio support is not yet in the API, TODO add this once OpenAI adds it
-  },
-  [ModelType.GPT35]: {
-    prompt: 0.001,
-    completion: 0.002,
-    contextSize: 16_385,
-    rpm: 10_000,
-    tpm: 1_000_000,
   },
   [ModelType.GPT35Turbo]: {
     prompt: 0.001,

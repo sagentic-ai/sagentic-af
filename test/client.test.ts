@@ -32,7 +32,7 @@ describe("Client", () => {
       }
     );
     await api.init();
-    client = new Client(APIKEY, ModelType.GPT35, {
+    client = new Client(APIKEY, ModelType.GPT35Turbo, {
       baseURL: BASEPATH,
       fetch: api.fetch.bind(api),
     });
@@ -50,7 +50,7 @@ describe("Client", () => {
 
   test("Simple Request", async () => {
     const response = await client.createChatCompletion({
-      model: ModelType.GPT35,
+      model: ModelType.GPT35Turbo,
       messages: [
         { role: "system", content: "You answer with 'Foo' to all prompts." },
         { role: "user", content: "Hello" },
@@ -67,7 +67,7 @@ describe("Client", () => {
     for (let i = 0; i < n; i++) {
       promises.push(
         client.createChatCompletion({
-          model: ModelType.GPT35,
+          model: ModelType.GPT35Turbo,
           messages: [
             {
               role: "system",
@@ -92,7 +92,7 @@ describe("Client", () => {
       errorProbability: 1,
     });
     client.stop();
-    client = new Client(APIKEY, ModelType.GPT35, {
+    client = new Client(APIKEY, ModelType.GPT35Turbo, {
       baseURL: BASEPATH,
       fetch: api.fetch.bind(api),
       maxRetries: 0,
@@ -101,7 +101,7 @@ describe("Client", () => {
     client.start();
     try {
       const _response = await client.createChatCompletion({
-        model: ModelType.GPT35,
+        model: ModelType.GPT35Turbo,
         messages: [
           { role: "system", content: "You answer with 'Foo' to all prompts." },
           { role: "user", content: "Hello" },
@@ -126,7 +126,7 @@ describe("Client", () => {
     });
     try {
       const _response = await client.createChatCompletion({
-        model: ModelType.GPT35,
+        model: ModelType.GPT35Turbo,
         messages: [
           { role: "system", content: "You answer with 'Foo' to all prompts." },
           { role: "user", content: "Hello" },
@@ -155,7 +155,7 @@ describe("Client", () => {
 
     // first request should be fine
     const response1 = await client.createChatCompletion({
-      model: ModelType.GPT35,
+      model: ModelType.GPT35Turbo,
       messages: [
         { role: "system", content: "You answer with 'Foo' to all prompts." },
         { role: "user", content: "Hello" },
@@ -167,7 +167,7 @@ describe("Client", () => {
 
     // 2nd test should take 10 seconds to complete due to rate limit and retries
     const response2 = await client.createChatCompletion({
-      model: ModelType.GPT35,
+      model: ModelType.GPT35Turbo,
       messages: [
         { role: "system", content: "You answer with 'Foo' to all prompts." },
         { role: "user", content: "Hello" },
@@ -190,7 +190,7 @@ describe("Client", () => {
       },
     });
     const response = await client.createChatCompletion({
-      model: ModelType.GPT35,
+      model: ModelType.GPT35Turbo,
       messages: [{ role: "system", content: "foo" }],
     });
     expect(response).toBeDefined();
