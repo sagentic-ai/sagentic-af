@@ -116,8 +116,8 @@ export class Ledger extends EventEmitter {
     this.tokensPerModel[model].add(tokens);
 
     const cost: PCT = new PCT({
-      prompt: (tokens.prompt / 1000.0) * pricing[model].prompt,
-      completion: (tokens.completion / 1000.0) * pricing[model].completion,
+      prompt: (tokens.prompt / 1000000.0) * pricing[model].prompt,
+      completion: (tokens.completion / 1000000.0) * pricing[model].completion,
     });
 
     this.totalCost.add(cost);

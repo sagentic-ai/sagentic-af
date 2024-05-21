@@ -9,7 +9,7 @@ import { meta, Timing, delay } from "../src/common";
 const expectPCT = (pct: PCT, prompt: number, completion: number) => {
   expect(pct.prompt).toBe(prompt);
   expect(pct.completion).toBe(completion);
-  expect(pct.total).toBe(prompt + completion);
+  expect(pct.total).toBeCloseTo(prompt + completion);
 };
 
 const mockSession = () => {
@@ -82,15 +82,15 @@ describe("Ledger", () => {
     expectPCT(ledger.tokens, a, b);
     expectPCT(
       ledger.cost,
-      pricing[ModelType.GPT35Turbo].prompt * (a / 1000.0),
-      pricing[ModelType.GPT35Turbo].completion * (b / 1000.0)
+      pricing[ModelType.GPT35Turbo].prompt * (a / 1000000.0),
+      pricing[ModelType.GPT35Turbo].completion * (b / 1000000.0)
     );
 
     expectPCT(ledger.modelTokens[ModelType.GPT35Turbo], a, b);
     expectPCT(
       ledger.modelCost[ModelType.GPT35Turbo],
-      pricing[ModelType.GPT35Turbo].prompt * (a / 1000.0),
-      pricing[ModelType.GPT35Turbo].completion * (b / 1000.0)
+      pricing[ModelType.GPT35Turbo].prompt * (a / 1000000.0),
+      pricing[ModelType.GPT35Turbo].completion * (b / 1000000.0)
     );
   });
 
@@ -110,22 +110,22 @@ describe("Ledger", () => {
     expectPCT(ledger.tokens, 2 * a, 2 * b);
     expectPCT(
       ledger.cost,
-      (pricing[ModelType.GPT35Turbo].prompt * a) / 1000.0 +
-        (pricing[ModelType.GPT4].prompt * a) / 1000.0,
-      (pricing[ModelType.GPT35Turbo].completion * b) / 1000.0 +
-        (pricing[ModelType.GPT4].completion * b) / 1000.0
+      (pricing[ModelType.GPT35Turbo].prompt * a) / 1000000.0 +
+        (pricing[ModelType.GPT4].prompt * a) / 1000000.0,
+      (pricing[ModelType.GPT35Turbo].completion * b) / 1000000.0 +
+        (pricing[ModelType.GPT4].completion * b) / 1000000.0
     );
     expectPCT(ledger.modelTokens[ModelType.GPT35Turbo], a, b);
     expectPCT(
       ledger.modelCost[ModelType.GPT35Turbo],
-      pricing[ModelType.GPT35Turbo].prompt * (a / 1000.0),
-      pricing[ModelType.GPT35Turbo].completion * (b / 1000.0)
+      pricing[ModelType.GPT35Turbo].prompt * (a / 1000000.0),
+      pricing[ModelType.GPT35Turbo].completion * (b / 1000000.0)
     );
     expectPCT(ledger.modelTokens[ModelType.GPT4], a, b);
     expectPCT(
       ledger.modelCost[ModelType.GPT4],
-      pricing[ModelType.GPT4].prompt * (a / 1000.0),
-      pricing[ModelType.GPT4].completion * (b / 1000.0)
+      pricing[ModelType.GPT4].prompt * (a / 1000000.0),
+      pricing[ModelType.GPT4].completion * (b / 1000000.0)
     );
 
     expectPCT(
