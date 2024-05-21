@@ -26,6 +26,14 @@ export class OneShotAgent<
     return undefined;
   }
 
+  async inputAudio(): Promise<string | undefined> {
+    return undefined;
+  }
+
+  async inputVideo(): Promise<string | undefined> {
+    return undefined;
+  }
+
   async output(_answer: string): Promise<ResultType> {
     throw new Error("Method not implemented.");
   }
@@ -39,6 +47,20 @@ export class OneShotAgent<
         for (const image of images) {
           this.thread.appendUserImage(image);
         }
+      }
+    }
+
+    if (this.modelDetails?.supportsAudio) {
+      const audio = await this.inputAudio();
+      if (audio) {
+        this.thread.appendUserAudio(audio);
+      }
+    }
+
+    if (this.modelDetails?.supportsVideo) {
+      const video = await this.inputVideo();
+      if (video) {
+        this.thread.appendUserVideo(video);
       }
     }
   }

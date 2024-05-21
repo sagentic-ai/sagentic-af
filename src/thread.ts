@@ -402,6 +402,45 @@ export class Thread implements Identified, Conclusible, ChildOf<Agent> {
     }
   }
 
+  /** Append a video to this thread.
+   * Beware: this method mutates the thread when it's incomplete. Always use the return value.
+   * It is only legal to append video if the thread is not complete.
+   * @throws Error if the thread is complete
+   * @param message Message to append
+   * @param images Images to append
+   * @returns new Thread object with the image appended
+   */
+  appendUserVideo(
+    //TODO finalize this
+    video: any,
+    options?: any
+  ): Thread {
+    if (!this.parent.modelDetails?.supportsVideo) {
+      throw new Error("This agent does not support images");
+    }
+    //TODO implement this; need to process video into frames and append them as images
+    //audio needs to be extracted and appended as well
+    throw new Error("Video is not supported yet");
+  }
+
+  /** Append an audio file to this thread.
+   * Beware: this method mutates the thread when it's incomplete. Always use the return value.
+   * It is only legal to append image if the thread is not complete.
+   * @throws Error if the thread is complete
+   * @returns new Thread object with the audio appended
+   */
+  appendUserAudio(
+    //TODO finalize this
+    audio: any,
+    options?: any
+  ): Thread {
+    if (!this.parent.modelDetails?.supportsAudio) {
+      throw new Error("This agent does not support audio");
+    }
+    //TODO add this once OpenAI supports audio
+    throw new Error("Audio is not supported yet");
+  }
+
   /** Append a tool result to this thread.
    * Beware: this method mutates the thread when it's incomplete. Always use the return value.
    * It is only legal if the thread is complete and the last message in the thread is a tool call.

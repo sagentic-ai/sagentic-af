@@ -118,14 +118,32 @@ export class ReactiveAgent<
 
   respond(
     message: string,
-    images?: string[],
-    options?: { detail: "auto" | "high" | "low" }
+    files?: {
+      images?: string[];
+      imageOptions?: { detail: "auto" | "high" | "low" };
+      videos?: string[];
+      videoOptions?: { detail: "auto" | "high" | "low" };
+      audios?: string[];
+      audioOptions?: { detail: "auto" | "high" | "low" }; //TODO placeholder until OpenAI supports audio
+    }
   ): void {
     this.abandon(this.thread);
     this.thread = this.thread.appendUserMessage(message);
-    if (images && this.modelDetails?.supportsImages) {
-      for (const image of images) {
-        this.thread = this.thread.appendUserImage(image, options);
+    if (files) {
+      if (files!.images && this.modelDetails?.supportsImages) {
+        for (const image of files!.images) {
+          this.thread = this.thread.appendUserImage(image, files!.imageOptions);
+        }
+      }
+      if (files!.videos && this.modelDetails?.supportsVideo) {
+        for (const video of files!.videos) {
+          this.thread = this.thread.appendUserVideo(video, files!.videoOptions);
+        }
+      }
+      if (files!.audios && this.modelDetails?.supportsAudio) {
+        for (const audio of files!.audios) {
+          this.thread = this.thread.appendUserAudio(audio, files!.audioOptions);
+        }
       }
     }
     this.adopt(this.thread);
