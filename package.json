@@ -27,6 +27,7 @@
     "package:publish": "pnpm build && npm publish --access private"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.21.1",
     "@fastify/middie": "^8.3.0",
     "@fastify/multipart": "^8.1.0",
     "@google/generative-ai": "^0.8.0",

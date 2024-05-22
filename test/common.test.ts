@@ -3,7 +3,7 @@
 
 import moment from "moment";
 import { Timing, meta, delay, Identified, Metadata } from "../src/common";
-import { countTokens } from "../src/clients/openai";
+import { countTokens } from "../src/clients/common";
 
 class TestObject implements Identified {
   metadata: Metadata = {} as Metadata;

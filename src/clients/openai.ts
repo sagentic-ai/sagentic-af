@@ -7,15 +7,12 @@ import {
   OpenAIClientOptions,
   ChatCompletionRequest,
   ChatCompletionResponse,
+  countTokens,
 } from "./common";
 import { BaseClient, RejectionReason } from "./base";
 import { Message } from "../thread";
 import moment from "moment";
 import fetch, { RequestInfo, RequestInit, Response, Headers } from "node-fetch";
-
-import { get_encoding } from "tiktoken";
-
-const encoding = get_encoding("cl100k_base");
 
 /** Estimate the number of tokens in a request */
 const estimateTokens = (
@@ -23,13 +20,6 @@ const estimateTokens = (
 ): number => {
   const text = JSON.stringify(request.messages);
   return countTokens(text);
-};
-
-/** Counts the number of tokens in a string
- * @param text the string to count the tokens of
- */
-export const countTokens = (text: string): number => {
-  return encoding.encode(text).length;
 };
 
 /** OpenAI Client wrapper */

@@ -2,6 +2,14 @@ import { ModelType } from "../models";
 import { Message } from "../thread";
 import { ClientOptions as OpenAIClientOptionsBase } from "openai";
 
+import { get_encoding } from "tiktoken";
+
+const encoding = get_encoding("cl100k_base");
+
+export const countTokens = (text: string): number => {
+  return encoding.encode(text).length;
+};
+
 export type ModelInvocationOptions = {
   tools?: any; //TODO: define tools
   response_format?: any; //TODO: define response_format
@@ -46,4 +54,10 @@ export interface OpenAIClientOptions
 /** Options for sagentic Google Client */
 export interface GoogleClientOptions extends BaseClientOptions {}
 
-export type ClientOptions = OpenAIClientOptions | GoogleClientOptions;
+/** Options for sagentic Anthropic Client */
+export interface AnthropicClientOptions extends BaseClientOptions {}
+
+export type ClientOptions =
+  | OpenAIClientOptions
+  | GoogleClientOptions
+  | AnthropicClientOptions;
