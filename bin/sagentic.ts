@@ -284,6 +284,7 @@ program
         keys: {
           [Provider.OpenAI]: process.env.OPENAI_API_KEY || "",
           [Provider.Google]: process.env.GOOGLE_API_KEY || "",
+          [Provider.Anthropic]: process.env.ANTHROPIC_API_KEY || "",
         },
         imports: importPaths,
       });

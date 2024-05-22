@@ -16,10 +16,12 @@ import {
 } from "./clients/common";
 import { OpenAIClient } from "./clients/openai";
 import { GoogleClient } from "./clients/google";
+import { AnthropicClient } from "./clients/anthropic";
 
 const clientConstructors = {
   [Provider.OpenAI]: OpenAIClient,
   [Provider.Google]: GoogleClient,
+  [Provider.Anthropic]: AnthropicClient,
 };
 
 interface ClientMuxOptions {

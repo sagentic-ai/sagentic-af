@@ -3,7 +3,7 @@
 
 import OpenAI from "openai";
 import { v4 as uuidv4 } from "uuid";
-import { countTokens } from "../../src/clients/openai";
+import { countTokens } from "../../src/clients/common";
 import moment from "moment";
 
 export type ChatCompletionRequest =
