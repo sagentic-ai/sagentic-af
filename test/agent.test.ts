@@ -13,14 +13,16 @@ import { z } from "zod";
 import zodToJsonSchema from "zod-to-json-schema";
 
 dotenv.config();
-const apiKey = process.env.OPENAI_API_KEY || "";
+const openaiApiKey = process.env.OPENAI_API_KEY || "";
+const googleApiKey = process.env.GOOGLE_API_KEY || "";
+const anthropicApiKey = process.env.ANTHROPIC_API_KEY || "";
 
 describe("Basic Agent", () => {
   let clients: ClientMux;
   let session: Session;
 
   beforeAll(() => {
-    clients = new ClientMux({ [Provider.OpenAI]: apiKey });
+    clients = new ClientMux({ [Provider.OpenAI]: openaiApiKey });
     clients.start();
     session = new Session(clients, {});
   });
@@ -101,7 +103,11 @@ describe("Agent with tools", () => {
   let session: Session;
 
   beforeAll(() => {
-    clients = new ClientMux({ [Provider.OpenAI]: apiKey });
+    clients = new ClientMux({
+      [Provider.OpenAI]: openaiApiKey,
+      [Provider.Google]: googleApiKey,
+      [Provider.Anthropic]: anthropicApiKey,
+    });
     clients.start();
     session = new Session(clients, {});
   });
@@ -140,12 +146,16 @@ describe("Agent with tools", () => {
 
   class AdderAgent extends BaseAgent<AdderAgentOptions, void, string> {
     model: ModelType = ModelType.GPT35Turbo;
-    systemPrompt: string = "You will be asked to add numbers.";
+    systemPrompt: string =
+      "You will be asked to add numbers. Use available tools to compute the answer. Do not send any messages other than tool calls and the final answer.";
     thread: Thread;
     tools: Tool[] = [adder];
 
     constructor(session: Session, options: AdderAgentOptions) {
       super(session, { topic: "Add numbers.", ...options });
+      if (options.model) {
+        this.model = options.model;
+      }
       this.thread = this.createThread();
     }
 
@@ -165,12 +175,17 @@ describe("Agent with tools", () => {
     }
   }
 
-  test("Adding numbers with AI", async () => {
+  test.each([
+    ["OpenAI", ModelType.GPT35Turbo],
+    ["Google", ModelType.GEMINI15],
+    ["Anthropic", ModelType.CLAUDE3Haiku],
+  ])("Adding numbers with %s", async (provider, model) => {
     const a = Math.floor(Math.random() * 1000000);
     const b = Math.floor(Math.random() * 1000000);
     const sum = a + b;
 
     const agent: AdderAgent = session.spawnAgent(AdderAgent, {
+      model: model,
       prompt: `Add ${a} and ${b}`,
     } as AdderAgentOptions);
 
@@ -191,7 +206,7 @@ describe("Agent conserving tokens", () => {
   let session: Session;
 
   beforeAll(() => {
-    clients = new ClientMux({ [Provider.OpenAI]: apiKey });
+    clients = new ClientMux({ [Provider.OpenAI]: openaiApiKey });
     clients.start();
     session = new Session(clients, {});
   });
