@@ -10,6 +10,7 @@ import { BaseClient, RejectionReason } from "./base";
 import { Message, MessageRole, ContentPart, TextContentPart } from "../thread";
 import moment from "moment";
 
+/** Parse messages from sagentic format into anthropic format */
 function parseMessages(
   messages: Message[]
 ): [string, Anthropic.Beta.Tools.ToolsBetaMessageParam[]] {
@@ -98,6 +99,7 @@ function estimateTokens(
   return countTokens(text);
 }
 
+/** Anthropic client */
 export class AnthropicClient extends BaseClient<
   Anthropic.Beta.Tools.MessageCreateParams,
   Anthropic.Beta.Tools.ToolsBetaMessage,
@@ -106,6 +108,12 @@ export class AnthropicClient extends BaseClient<
   /** Anthropic client */
   private anthropic: Anthropic;
 
+  /**
+   * Create a new Anthropic client
+   * @param anthropicKey - API key for the Anthropic API
+   * @param model - Model to use
+   * @param options - Options for the client
+   */
   constructor(
     anthropicKey: string,
     model: ModelType,
@@ -124,6 +132,9 @@ export class AnthropicClient extends BaseClient<
     });
   }
 
+  /**
+   * Create a new chat completion
+   */
   async createChatCompletion(
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
@@ -185,6 +196,9 @@ export class AnthropicClient extends BaseClient<
     return chatResponse;
   }
 
+  /**
+   * Make request to the API
+   */
   protected async makeAPIRequest(
     request: Anthropic.MessageCreateParams
   ): Promise<Anthropic.Message> {
@@ -277,6 +291,9 @@ export class AnthropicClient extends BaseClient<
     }
   };
 
+  /**
+   * Parse error from API
+   */
   protected parseError(error: any): RejectionReason {
     if (error instanceof Anthropic.APIError) {
       switch (error.status) {
@@ -296,6 +313,11 @@ export class AnthropicClient extends BaseClient<
   }
 }
 
+/**
+ * Parse duration from RFC 3339 timestamp
+ * @param resetTime - RFC 3339 timestamp
+ * @returns duration from now
+ */
 const parseDuration = (resetTime: string): moment.Duration => {
   // Anthropic API returns time when the rate limit will reset in RFC 3339 format
   // we need to parse it and convert to duration from now

@@ -20,6 +20,9 @@ import {
 import { BaseClient, RejectionReason } from "./base";
 import { Message, MessageRole, ContentPart, TextContentPart } from "../thread";
 
+/**
+ * Parse the messages from sagentic format to google format
+ */
 function parseContents(
   messages: Message[],
   makeSystemPrompt: boolean
@@ -116,6 +119,12 @@ export class GoogleClient extends BaseClient<
 > {
   private googleConfig;
 
+  /**
+   * Constructor for GoogleClient
+   * @param googleAPIKey Google API Key
+   * @param model ModelType
+   * @param options GoogleClientOptions
+   */
   constructor(
     googleAPIKey: string,
     model: ModelType,
@@ -202,6 +211,9 @@ export class GoogleClient extends BaseClient<
     return chatResponse;
   }
 
+  /**
+   * Make request to the API
+   */
   protected async makeAPIRequest(
     request: GenerateContentRequest
   ): Promise<GenerateContentResult> {
@@ -210,6 +222,9 @@ export class GoogleClient extends BaseClient<
       .generateContent(request);
   }
 
+  /**
+   * Parse the error from the API
+   */
   protected parseError(error: any): RejectionReason {
     //TODO actually check and parse error
     // if contains 429 Too Many Requests, return RejectionReason.RATE_LIMIT
