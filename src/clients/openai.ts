@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import OpenAI, { ClientOptions } from "openai";
-import { ModelType, pricing } from "../models";
+import { ModelType } from "../models";
 import {
   OpenAIClientOptions,
   ChatCompletionRequest,
@@ -40,7 +40,7 @@ export class OpenAIClient extends BaseClient<
    */
   constructor(
     openAIKey: string,
-    model: ModelType,
+    model: ModelMetadata,
     options?: OpenAIClientOptions
   ) {
     super(model, options);
@@ -57,9 +57,11 @@ export class OpenAIClient extends BaseClient<
       });
     };
 
+		const url = options?.url || model.provider.url;
     this.openai = new OpenAI({
       ...openAIOptions,
       apiKey: openAIKey,
+			baseURL: url,
     });
   }
 
@@ -114,7 +116,7 @@ export class OpenAIClient extends BaseClient<
           console.log(
             "WARNING: request reset time is greater than 10 seconds",
             timeToReset.asSeconds(),
-            this.model
+            this.model.id,
           );
       }
     }
@@ -141,7 +143,7 @@ export class OpenAIClient extends BaseClient<
           console.log(
             "WARNING: token reset time is greater than 10 seconds",
             timeToReset.asSeconds(),
-            this.model
+            this.model.id,
           );
       }
     }
@@ -156,7 +158,7 @@ export class OpenAIClient extends BaseClient<
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
     const openaiRequest: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
-      model: this.model,
+      model: this.model.card.checkpoint,
       temperature: request.options?.temperature,
       max_tokens: request.options?.max_tokens,
       tools: request.options?.tools,
@@ -164,7 +166,7 @@ export class OpenAIClient extends BaseClient<
       messages: request.messages as OpenAI.Chat.ChatCompletionMessageParam[],
     };
     var response: OpenAI.Chat.Completions.ChatCompletion;
-    if (pricing[this.model].supportsImages) {
+    if (this.model.card.supportsImages) {
       // FIXME count tokens without base64 images
       response = await this.enqueue(1000, openaiRequest);
     } else {

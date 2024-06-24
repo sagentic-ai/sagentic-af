@@ -1,7 +1,7 @@
 // Copyright 2024 Ahyve AI Inc.
 // SPDX-License-Identifier: MIT
 
-import { ModelType, pricing } from "../models";
+import { ModelMetadata } from "../models";
 import {
   Client,
   ChatCompletionRequest,
@@ -40,7 +40,7 @@ export abstract class BaseClient<
 > implements Client
 {
   /** Model to use */
-  protected model: ModelType;
+  protected model: ModelMetadata;
 
   /** Ticket IDs */
   private ids: number = 0;
@@ -77,12 +77,12 @@ export abstract class BaseClient<
 
   /** Number of allowed tokens per minute */
   get TPM(): number {
-    return pricing[this.model].tpm;
+		return this.model.card.tpm;
   }
 
   /** Number of allowed requests per minute */
   get RPM(): number {
-    return pricing[this.model].rpm;
+		return this.model.card.rpm;
   }
 
   /**
@@ -91,7 +91,7 @@ export abstract class BaseClient<
    * @param options ClientOptions
    * @returns Client
    */
-  constructor(model: ModelType, options?: OptionsType) {
+  constructor(model: ModelMetadata, options?: OptionsType) {
     this.model = model;
 
     if (options && options.maxRetries) {
@@ -206,7 +206,7 @@ export abstract class BaseClient<
       console.log(
         "tick",
         caller,
-        this.model,
+        this.model.id,
         this.queue.length,
         this.inflightTickets,
         this.requestPool,

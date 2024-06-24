@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: MIT
 
 import {
-  ModelType,
-  Provider,
-  availableModels,
-  models,
-  pricing,
+	ModelID,
+  ModelMetadata,
+  BuiltinProvider,
+	ClientType,
+  models as availableModels,
 } from "./models";
 import {
   Client,
@@ -19,13 +19,13 @@ import { GoogleClient } from "./clients/google";
 import { AnthropicClient } from "./clients/anthropic";
 
 const clientConstructors = {
-  [Provider.OpenAI]: OpenAIClient,
-  [Provider.Google]: GoogleClient,
-  [Provider.Anthropic]: AnthropicClient,
+  [ClientType.OpenAI]: OpenAIClient,
+  [ClientType.Google]: GoogleClient,
+  [ClientType.Anthropic]: AnthropicClient,
 };
 
 interface ClientMuxOptions {
-  models?: ModelType[];
+  models?: ModelMetadata[];
 }
 
 /**
@@ -35,35 +35,36 @@ interface ClientMuxOptions {
  * @returns ClientMux
  */
 export class ClientMux {
-  private clients: Record<ModelType, Client>;
+  private clients: Record<ModelID, Client>;
 
   constructor(
-    keys: Partial<Record<Provider, string>>,
+    keys: Partial<Record<ProviderID, string>>,
     options?: ClientMuxOptions,
-    modelOptions?: Record<ModelType, ClientOptions>
+    modelOptions?: Record<ModelID, ClientOptions>
   ) {
-    const modelClients = options?.models || availableModels;
-    if (modelClients.length === 0) {
+    const models = options?.models || availableModels;
+    if (models.length === 0) {
       throw new Error("Must provide at least one model");
     }
-    this.clients = {} as Record<ModelType, Client>;
-    for (const model of modelClients) {
-      const provider = models[model].provider;
-      const clientConstructor = clientConstructors[provider];
+    this.clients = {} as Record<ModelID, Client>;
+    for (const model of models) {
+      const provider = model.provider.id;
+			const clientType = model.provider.clientType;
+      const clientConstructor = clientConstructors[clientType];
       if (clientConstructor === undefined) {
-        throw new Error(`Unknown provider: ${provider} for model: ${model}`);
+        throw new Error(`Unknown provider: ${provider} for model: ${model.id}`);
       }
       const key = keys[provider];
       if (key === undefined) {
         console.warn(
-          `No API key provided for provider: ${provider} for model: ${model}`
+          `No API key provided for provider: ${provider} for model: ${model.id}`
         );
         continue;
       }
-      this.clients[model] = new clientConstructor(
+      this.clients[model.id] = new clientConstructor(
         key,
-        model,
-        modelOptions?.[model]
+        model.id,
+        modelOptions?.[model.id]
       );
     }
   }
@@ -83,10 +84,9 @@ export class ClientMux {
   async createChatCompletion(
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
-    const model = request.model as ModelType;
-    const client = this.clients[model];
+    const client = this.clients[request.model];
     if (client === undefined) {
-      throw new Error(`Unknown model: ${model}`);
+      throw new Error(`Unknown model: ${request.model}`);
     }
     return client.createChatCompletion(request);
   }

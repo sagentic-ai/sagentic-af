@@ -17,7 +17,7 @@ import {
   ModelInvocationOptions,
 } from "./clients/common";
 import { Agent, AgentOptions } from "./agent";
-import { ModelType } from "./models";
+import { ModelID, ModelMetadata } from "./models";
 import { Message } from "./thread";
 import { LoggerFunction } from "./logging";
 import { EventEmitter } from "events";
@@ -50,9 +50,9 @@ export interface SessionReport {
   /** total time elapsed in the session in seconds */
   elapsed: number;
   /** cost of each model used in the session */
-  cost: Record<ModelType, number>;
+  cost: Record<ModelID, number>;
   /** tokens used by each model in the session */
-  tokens: Record<ModelType, number>;
+  tokens: Record<ModelID, number>;
 }
 
 interface AgentListeners {
@@ -237,7 +237,7 @@ export class Session
    */
   async invokeModel(
     caller: Identified,
-    type: ModelType,
+    model: ModelMetadata,
     messages: Message[],
     options?: ModelInvocationOptions
   ): Promise<Message> {
@@ -254,7 +254,7 @@ export class Session
     const invocation: ChatCompletionRequest = {
       options: options,
       messages: messages,
-      model: type,
+      model: model,
     };
     const response: ChatCompletionResponse =
       await this.#clients.createChatCompletion(invocation);
@@ -263,7 +263,7 @@ export class Session
       completion: response.usage?.completion_tokens || 0,
     });
     timing.finish();
-    this.ledger.add(caller.metadata.ID, type, timing, pct);
+    this.ledger.add(caller.metadata.ID, model, timing, pct);
 
     return response.messages[0];
   }
@@ -273,17 +273,17 @@ export class Session
       totalCost: this.totalCost(),
       totalTokens: this.totalTokens(),
       elapsed: this.metadata.timing.elapsed.asSeconds(),
-      cost: {} as Record<ModelType, number>,
-      tokens: {} as Record<ModelType, number>,
+      cost: {} as Record<ModelID, number>,
+      tokens: {} as Record<ModelID, number>,
     };
     for (const [model, cost] of Object.entries(this.ledger.modelCost)) {
       if (cost.total > 0) {
-        report.cost[model as ModelType] = cost.total;
+        report.cost[model as ModelID] = cost.total;
       }
     }
     for (const [model, tokens] of Object.entries(this.ledger.modelTokens)) {
       if (tokens.total > 0) {
-        report.tokens[model as ModelType] = tokens.total;
+        report.tokens[model as ModelID] = tokens.total;
       }
     }
     return report;

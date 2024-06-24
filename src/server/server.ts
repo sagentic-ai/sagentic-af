@@ -97,13 +97,20 @@ const constructorsFromModule = (module: any): any[] => {
   return constructors;
 };
 
+const keysFromModule = (module: any): Record<ProviderID, string> => {
+	if (module.ProviderApiKeys) {
+		return module.ProviderApiKeys;
+	}
+	return {};
+}
+
 const namespaceFromPackage = (imp: string): string => {
   const packageJsonPath = path.join(path.dirname(imp), "package.json");
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
   return packageJson.name;
 };
 
-const importAgents = async (registry: Registry, imports: string[]) => {
+const handleImports = async (registry: Registry, imports: string[]) => {
   try {
     await compileTypescript(path.join(process.cwd(), "cache"));
   } catch (e) {
@@ -152,6 +159,9 @@ export const startServer = async ({ port, keys, imports }: ServerOptions) => {
 
   const server = Fastify({ logger: true });
 
+  const importedKeys = await handleImports(registry, imports || []);
+	keys = { ...keys, ...importedKeys };
+
   //TODO: add check for provider keys
 
   const sessions: Session[] = [];
@@ -160,8 +170,6 @@ export const startServer = async ({ port, keys, imports }: ServerOptions) => {
   clientMux.start();
 
   const registry = new Registry();
-
-  await importAgents(registry, imports || []);
 
   const watcher = chokidar.watch(process.cwd(), {
     ignoreInitial: true,
