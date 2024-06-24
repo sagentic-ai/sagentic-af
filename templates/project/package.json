@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "{{SAGENTIC_PACKAGE}}": "^{{SAGENTIC_VERSION}}",
+    "dotenv": ">=16.4.7",
     "zod": "^3.22.4"
   },
   "devDependencies": {

@@ -11,7 +11,14 @@ import {
   ParentOf,
   meta,
 } from "./common";
-import { ModelType, pricing, ModelPricing } from "./models";
+import {
+  ModelID,
+  BuiltinModel,
+  ModelMetadata,
+  models,
+  resolveModelMetadata,
+  ModelCard,
+} from "./models";
 import { Session } from "./session";
 import { ModelInvocationOptions } from "./clients/common";
 import { Thread, ToolAssistantContent, ToolCall } from "./thread";
@@ -23,7 +30,7 @@ import log from "loglevel";
 /** Basic options for an agent */
 export interface AgentOptions {
   /** Model type for the agent to use */
-  model?: ModelType;
+  model?: BuiltinModel | ModelMetadata;
   /** Topic for the agent */
   topic?: string;
   /** Tools for the agent to use */
@@ -95,8 +102,10 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
   /** System prompt, can be undefined if the agent does not need one. */
   systemPrompt?: string;
 
-  /** Model to use for the agent, can be undefined if the agent does not need to talk to any model. */
-  model?: ModelType;
+  /** Model to use for the agent, can be undefined if the agent does not need to talk to any model.
+   * Can be a built-in model type or a custom model card (possibly extending an existing one).
+   */
+  model?: BuiltinModel | ModelMetadata;
 
   /** State of the agent, initial state is obtained by calling `initialize` */
   state?: StateType = undefined;
@@ -138,9 +147,9 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
   }
 
   /** Model details */
-  get modelDetails(): ModelPricing | undefined {
+  get modelDetails(): ModelCard | undefined {
     if (this.model) {
-      return pricing[this.model];
+      return resolveModelMetadata(this.model).card;
     }
     return undefined;
   }
@@ -277,7 +286,7 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
     const messages = thread.messages;
     const response = await this.session.invokeModel(
       this,
-      this.model,
+      resolveModelMetadata(this.model),
       messages,
       this.modelInvocationOptions
     );

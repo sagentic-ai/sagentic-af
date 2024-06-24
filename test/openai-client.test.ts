@@ -3,7 +3,7 @@
 
 import "openai/shims/node";
 import { OpenAIClient as Client, parseDuration } from "../src/clients/openai";
-import { ModelType } from "../src/models";
+import { BuiltinModel, models } from "../src/models";
 import { MessageRole } from "../src/thread";
 import { MockOpenAIApi } from "./mock-openai/server";
 
@@ -34,8 +34,13 @@ describe("OpenAI Client with mock API", () => {
       }
     );
     await api.init();
-    client = new Client(APIKEY, ModelType.GPT35Turbo, {
-      baseURL: BASEPATH,
+    const model = {
+      id: "mock-open-ai",
+      provider: { ...models[BuiltinModel.GPT35Turbo].provider },
+      card: { ...models[BuiltinModel.GPT35Turbo].card },
+    };
+    model.provider.url = BASEPATH;
+    client = new Client(APIKEY, model, {
       fetch: api.fetch.bind(api),
     });
     client.start();
@@ -52,7 +57,7 @@ describe("OpenAI Client with mock API", () => {
 
   test("Simple Request", async () => {
     const response = await client.createChatCompletion({
-      model: ModelType.GPT35Turbo,
+      model: BuiltinModel.GPT35Turbo,
       messages: [
         {
           role: MessageRole.System,
@@ -72,7 +77,7 @@ describe("OpenAI Client with mock API", () => {
     for (let i = 0; i < n; i++) {
       promises.push(
         client.createChatCompletion({
-          model: ModelType.GPT35Turbo,
+          model: BuiltinModel.GPT35Turbo,
           messages: [
             {
               role: MessageRole.System,
@@ -97,7 +102,7 @@ describe("OpenAI Client with mock API", () => {
       errorProbability: 1,
     });
     client.stop();
-    client = new Client(APIKEY, ModelType.GPT35Turbo, {
+    client = new Client(APIKEY, models[BuiltinModel.GPT35Turbo], {
       baseURL: BASEPATH,
       fetch: api.fetch.bind(api),
       maxRetries: 0,
@@ -106,7 +111,7 @@ describe("OpenAI Client with mock API", () => {
     client.start();
     try {
       const _response = await client.createChatCompletion({
-        model: ModelType.GPT35Turbo,
+        model: BuiltinModel.GPT35Turbo,
         messages: [
           {
             role: MessageRole.System,
@@ -134,7 +139,7 @@ describe("OpenAI Client with mock API", () => {
     });
     try {
       const _response = await client.createChatCompletion({
-        model: ModelType.GPT35Turbo,
+        model: BuiltinModel.GPT35Turbo,
         messages: [
           {
             role: MessageRole.System,
@@ -166,7 +171,7 @@ describe("OpenAI Client with mock API", () => {
 
     // first request should be fine
     const response1 = await client.createChatCompletion({
-      model: ModelType.GPT35Turbo,
+      model: BuiltinModel.GPT35Turbo,
       messages: [
         {
           role: MessageRole.System,
@@ -181,7 +186,7 @@ describe("OpenAI Client with mock API", () => {
 
     // 2nd test should take 10 seconds to complete due to rate limit and retries
     const response2 = await client.createChatCompletion({
-      model: ModelType.GPT35Turbo,
+      model: BuiltinModel.GPT35Turbo,
       messages: [
         {
           role: MessageRole.System,
@@ -207,7 +212,7 @@ describe("OpenAI Client with mock API", () => {
       },
     });
     const response = await client.createChatCompletion({
-      model: ModelType.GPT35Turbo,
+      model: BuiltinModel.GPT35Turbo,
       messages: [{ role: MessageRole.System, content: "foo" }],
     });
     expect(response).toBeDefined();
@@ -221,7 +226,7 @@ describe("OpenAI Client with real API", () => {
   let client: Client;
 
   beforeAll(() => {
-    client = new Client(REAL_APIKEY, ModelType.GPT35Turbo);
+    client = new Client(REAL_APIKEY, models[BuiltinModel.GPT35Turbo]);
     client.start();
   });
 
@@ -231,7 +236,7 @@ describe("OpenAI Client with real API", () => {
 
   test("Simple Request", async () => {
     const response = await client.createChatCompletion({
-      model: ModelType.GPT35Turbo,
+      model: BuiltinModel.GPT35Turbo,
       messages: [
         {
           role: MessageRole.System,

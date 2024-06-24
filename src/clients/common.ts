@@ -1,4 +1,4 @@
-import { ModelType } from "../models";
+import { ModelID } from "../models";
 import { Message } from "../thread";
 import { ClientOptions as OpenAIClientOptionsBase } from "openai";
 
@@ -30,7 +30,7 @@ export type ModelInvocationOptions = {
  */
 export interface ChatCompletionRequest {
   options?: ModelInvocationOptions;
-  model: ModelType;
+  model: ModelID;
   messages: Message[];
 }
 
@@ -60,6 +60,8 @@ export interface Client {
  * Base options for API clients
  */
 export interface BaseClientOptions {
+  /** API endpoint URL */
+  endpointURL?: string;
   /** Maximum number of attempts to retry a failed request before giving up */
   maxRetries?: number;
   /** Interval for fallback clearing limit counters */

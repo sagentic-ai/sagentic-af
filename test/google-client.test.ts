@@ -3,7 +3,7 @@
 
 import "openai/shims/node";
 import { GoogleClient as Client } from "../src/clients/google";
-import { ModelType } from "../src/models";
+import { BuiltinModel, models } from "../src/models";
 import { MessageRole } from "../src/thread";
 
 const REAL_APIKEY = process.env.GOOGLE_API_KEY || "";
@@ -12,7 +12,7 @@ describe("Google Client with real API", () => {
   let client: Client;
 
   beforeAll(() => {
-    client = new Client(REAL_APIKEY, ModelType.GEMINI15);
+    client = new Client(REAL_APIKEY, models[BuiltinModel.GEMINI10]);
     client.start();
   });
 
@@ -22,7 +22,7 @@ describe("Google Client with real API", () => {
 
   test("Simple Request", async () => {
     const response = await client.createChatCompletion({
-      model: ModelType.GEMINI15,
+      model: BuiltinModel.GEMINI10,
       messages: [
         {
           role: MessageRole.System,
