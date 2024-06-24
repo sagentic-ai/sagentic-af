@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import { ID, Timing } from "./common";
-import { ModelType, pricing } from "./models";
+import { ModelID, ModelMetadata } from "./models";
 import moment from "moment";
 import { Session } from "./session";
 import { EventEmitter } from "events";
@@ -48,7 +48,7 @@ export class PCT {
 export interface LedgerEntry {
   callerID: ID;
   timing: Timing;
-  model: ModelType;
+  model: ModelID;
   tokens: PCT;
   cost: PCT;
 }
@@ -74,11 +74,11 @@ export class Ledger extends EventEmitter {
   private log: LedgerEntry[];
 
   private totalTokens: PCT;
-  private tokensPerModel: Record<ModelType, PCT>;
+  private tokensPerModel: Record<ModelID, PCT>;
   private tokensPerCaller: Record<ID, PCT>;
 
   private totalCost: PCT;
-  private costPerModel: Record<ModelType, PCT>;
+  private costPerModel: Record<ModelID, PCT>;
   private costPerCaller: Record<ID, PCT>;
 
   /** Create a new Ledger for the given session
@@ -92,12 +92,8 @@ export class Ledger extends EventEmitter {
     this.totalTokens = new PCT();
     this.totalCost = new PCT();
 
-    this.costPerModel = {} as Record<ModelType, PCT>;
-    this.tokensPerModel = {} as Record<ModelType, PCT>;
-    for (const model of Object.values(ModelType)) {
-      this.costPerModel[model] = new PCT();
-      this.tokensPerModel[model] = new PCT();
-    }
+    this.costPerModel = {} as Record<ModelID, PCT>;
+    this.tokensPerModel = {} as Record<ModelID, PCT>;
 
     this.costPerCaller = {} as Record<ID, PCT>;
     this.tokensPerCaller = {} as Record<ID, PCT>;
@@ -109,19 +105,27 @@ export class Ledger extends EventEmitter {
    * @param timing the timing information as reported by the LLM
    * @param tokens the number of tokens used as reported by the LLM
    */
-  add(callerID: ID, model: ModelType, timing: Timing, tokens: PCT): void {
+  add(callerID: ID, model: ModelMetadata, timing: Timing, tokens: PCT): void {
     if (!timing.hasEnded) throw new Error("Timing has not ended");
 
+    // late init
+    if (!this.costPerModel[model.id]) {
+      this.costPerModel[model.id] = new PCT();
+    }
+    if (!this.tokensPerModel[model.id]) {
+      this.tokensPerModel[model.id] = new PCT();
+    }
+
     this.totalTokens.add(tokens);
-    this.tokensPerModel[model].add(tokens);
+    this.tokensPerModel[model.id].add(tokens);
 
     const cost: PCT = new PCT({
-      prompt: (tokens.prompt / 1000000.0) * pricing[model].prompt,
-      completion: (tokens.completion / 1000000.0) * pricing[model].completion,
+      prompt: (tokens.prompt / 1000000.0) * model.card.prompt,
+      completion: (tokens.completion / 1000000.0) * model.card.completion,
     });
 
     this.totalCost.add(cost);
-    this.costPerModel[model].add(cost);
+    this.costPerModel[model.id].add(cost);
 
     if (!this.tokensPerCaller[callerID]) {
       this.tokensPerCaller[callerID] = new PCT();
@@ -136,7 +140,7 @@ export class Ledger extends EventEmitter {
     const entry = {
       callerID: callerID,
       timing: timing,
-      model: model,
+      model: model.id,
       tokens: tokens,
       cost: cost,
     };
@@ -177,12 +181,12 @@ export class Ledger extends EventEmitter {
   }
 
   /** Return the total cost per model */
-  get modelCost(): Record<ModelType, PCT> {
+  get modelCost(): Record<ModelID, PCT> {
     return this.costPerModel;
   }
 
   /** Return the total number of tokens used per model */
-  get modelTokens(): Record<ModelType, PCT> {
+  get modelTokens(): Record<ModelID, PCT> {
     return this.tokensPerModel;
   }
 

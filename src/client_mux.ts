@@ -2,11 +2,12 @@
 // SPDX-License-Identifier: MIT
 
 import {
-  ModelType,
-  Provider,
-  availableModels,
-  models,
-  pricing,
+  ModelID,
+  ProviderID,
+  ModelMetadata,
+  BuiltinProvider,
+  ClientType,
+  models as availableModels,
 } from "./models";
 import {
   Client,
@@ -21,14 +22,14 @@ import { AnthropicClient } from "./clients/anthropic";
 import log from "loglevel";
 
 const clientConstructors = {
-  [Provider.OpenAI]: OpenAIClient,
-  [Provider.AzureOpenAI]: AzureOpenAIClient,
-  [Provider.Google]: GoogleClient,
-  [Provider.Anthropic]: AnthropicClient,
+  [ClientType.OpenAI]: OpenAIClient,
+  [ClientType.AzureOpenAI]: AzureOpenAIClient,
+  [ClientType.Google]: GoogleClient,
+  [ClientType.Anthropic]: AnthropicClient,
 };
 
 interface ClientMuxOptions {
-  models?: ModelType[];
+  models?: ModelMetadata[];
 }
 
 /**
@@ -38,35 +39,42 @@ interface ClientMuxOptions {
  * @returns ClientMux
  */
 export class ClientMux {
-  private clients: Record<ModelType, Client>;
+  private clients: Record<ModelID, Client>;
 
   constructor(
-    keys: Partial<Record<Provider, string>>,
+    keys: Partial<Record<ProviderID, string>>,
     options?: ClientMuxOptions,
-    modelOptions?: Partial<Record<ModelType, ClientOptions>>
+    modelOptions?: Partial<Record<ModelID, ClientOptions>>
   ) {
-    const modelClients = options?.models || availableModels;
-    if (modelClients.length === 0) {
+    const models = options?.models || [];
+    // populate missing builtin models
+    for (const model of Object.values(availableModels)) {
+      if (!models.find((m) => m.id === model.id)) {
+        models.push(model);
+      }
+    }
+    if (models.length === 0) {
       throw new Error("Must provide at least one model");
     }
-    this.clients = {} as Record<ModelType, Client>;
-    for (const model of modelClients) {
-      const provider = models[model].provider;
-      const clientConstructor = clientConstructors[provider];
+    this.clients = {} as Record<ModelID, Client>;
+    for (const model of models) {
+      const provider = model.provider.id;
+      const clientType = model.provider.clientType;
+      const clientConstructor = clientConstructors[clientType];
       if (clientConstructor === undefined) {
-        throw new Error(`Unknown provider: ${provider} for model: ${model}`);
+        throw new Error(`Unknown provider: ${provider} for model: ${model.id}`);
       }
       const key = keys[provider];
       if (key === undefined) {
         log.warn(
-          `No API key provided for provider: ${provider} for model: ${model}`
+          `No API key provided for provider: ${provider} for model: ${model.id}`
         );
         continue;
       }
-      this.clients[model] = new clientConstructor(
+      this.clients[model.id] = new clientConstructor(
         key,
         model,
-        modelOptions?.[model]
+        modelOptions?.[model.id]
       );
     }
   }
@@ -83,13 +91,35 @@ export class ClientMux {
     }
   }
 
+  // late initialization of clients for models added at runtime
+  async ensureClient(
+    model: ModelMetadata,
+    key?: string,
+    modelOptions?: ClientOptions
+  ): Promise<void> {
+    if (this.clients[model.id] === undefined) {
+      const provider = model.provider.id;
+      const clientType = model.provider.clientType;
+      const clientConstructor = clientConstructors[clientType];
+      if (clientConstructor === undefined) {
+        throw new Error(`Unknown provider: ${provider} for model: ${model.id}`);
+      }
+      this.clients[model.id] = new clientConstructor(
+        key || "",
+        model,
+        modelOptions
+      );
+      this.clients[model.id].start();
+    }
+  }
+
   async createChatCompletion(
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
-    const model = request.model as ModelType;
-    const client = this.clients[model];
+    let client = this.clients[request.model];
     if (client === undefined) {
-      throw new Error(`Unknown model: ${model}`);
+      // try late initialization for the model
+      throw new Error(`Unknown model: ${request.model}`);
     }
     return client.createChatCompletion(request);
   }

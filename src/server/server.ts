@@ -6,7 +6,8 @@ import path from "path";
 import fs from "fs";
 import { ClientMux } from "../client_mux";
 import { ClientOptions } from "../clients/common";
-import { Provider, ModelType } from "../models";
+import { ProviderID } from "../models";
+import { Provider, ModelID, ModelMetadata } from "../models";
 import { version } from "../../package.json";
 import { AgentOptions } from "../agent";
 import { Registry } from "../registry";
@@ -20,9 +21,9 @@ import log from "loglevel";
 
 export interface ServerOptions {
   port?: number;
-  keys: Partial<Record<Provider, string>>;
+  keys: Partial<Record<ProviderID, string>>;
   imports?: string[];
-  modelOptions?: Partial<Record<ModelType, ClientOptions>>;
+  modelOptions?: Partial<Record<ModelID, ClientOptions>>;
 }
 
 const compileTypescript = async (outputDir: string) => {
@@ -103,17 +104,48 @@ const constructorsFromModule = (module: any): any[] => {
   return constructors;
 };
 
+const keysFromModule = (module: any): Record<ProviderID, string> => {
+  if (module.ProviderApiKeys) {
+    return module.ProviderApiKeys;
+  }
+  return {};
+};
+
+const modelsFromModule = (module: any): ModelMetadata[] => {
+  if (module.Models) {
+    return module.Models;
+  }
+  return [];
+};
+
+const modelsOptionsFromModule = (
+  module: any
+): Record<ModelID, ClientOptions> => {
+  if (module.ModelOptions) {
+    return module.ModelOptions;
+  }
+  return {};
+};
+
 const namespaceFromPackage = (imp: string): string => {
   const packageJsonPath = path.join(path.dirname(imp), "package.json");
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
   return packageJson.name;
 };
 
-const importAgents = async (registry: Registry, imports: string[]) => {
+const handleImports = async (
+  registry: Registry,
+  imports: string[]
+): Promise<
+  [Record<ProviderID, string>, ModelMetadata[], Record<ModelID, ClientOptions>]
+> => {
+  let keys: Record<ProviderID, string> = {};
+  let models: ModelMetadata[] = [];
+  let modelOptions: Record<ModelID, ClientOptions> = {};
   try {
     await compileTypescript(path.join(process.cwd(), "cache"));
   } catch (e) {
-    return;
+    return [keys, models, modelOptions];
   }
   clearRequireCache();
   for (const impRaw of imports) {
@@ -130,6 +162,9 @@ const importAgents = async (registry: Registry, imports: string[]) => {
         throw new Error(`Module ${impRaw} has no default export`);
       }
       const constructors = constructorsFromModule(module);
+      keys = { ...keys, ...keysFromModule(module) };
+      models = [...models, ...modelsFromModule(module)];
+      modelOptions = { ...modelOptions, ...modelsOptionsFromModule(module) };
       const namespace = namespaceFromPackage(impRaw);
 
       for (const constructor of constructors) {
@@ -145,6 +180,8 @@ const importAgents = async (registry: Registry, imports: string[]) => {
       continue;
     }
   }
+
+  return [keys, models, modelOptions];
 };
 
 export const startServer = async ({
@@ -161,16 +198,25 @@ export const startServer = async ({
 
   const server = Fastify({ logger: true });
 
+  const registry = new Registry();
+
+  const [importedKeys, importedModels, importedModelOptions] =
+    await handleImports(registry, imports || []);
+  keys = { ...keys, ...importedKeys };
+  modelOptions = { ...modelOptions, ...importedModelOptions };
+
   //TODO: add check for provider keys
 
   const sessions: Session[] = [];
 
-  const clientMux = new ClientMux(keys, undefined, modelOptions);
+  const clientMux = new ClientMux(
+    keys,
+    {
+      models: importedModels,
+    },
+    modelOptions
+  );
   clientMux.start();
-
-  const registry = new Registry();
-
-  await importAgents(registry, imports || []);
 
   const watcher = chokidar.watch(process.cwd(), {
     ignoreInitial: true,
@@ -186,7 +232,7 @@ export const startServer = async ({
       clearTimeout(timer);
     }
     timer = setTimeout(async () => {
-      await importAgents(registry, imports || []);
+      await handleImports(registry, imports || []);
     }, 1000);
   });
 

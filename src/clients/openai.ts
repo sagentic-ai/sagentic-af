@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import OpenAI, { AzureOpenAI, ClientOptions } from "openai";
-import { ModelType, pricing } from "../models";
+import { ModelMetadata, BuiltinModel } from "../models";
 import {
   OpenAIClientOptions,
   AzureOpenAIClientOptions,
@@ -18,9 +18,16 @@ import fetch, { RequestInfo, RequestInit, Response, Headers } from "node-fetch";
 
 type OpenAIBase = OpenAI | AzureOpenAI;
 
-const makeAzureOpenAIEndpoint = (resource: string): string =>
-  `https://${resource}.openai.azure.com/openai`;
+const defaultAzureEndpointTemplate =
+  "https://<resource>.openai.azure.com/openai";
 const DEFAULT_AZURE_API_VERSION = "2024-08-01-preview";
+
+const makeAzureOpenAIEndpoint = function (
+  endpoint: string,
+  resource: string
+): string {
+  return endpoint.replace(/<resource>/, resource);
+};
 
 /** Estimate the number of tokens in a request */
 const estimateTokens = (
@@ -48,7 +55,7 @@ export abstract class OpenAIClientBase<
    * @param options ClientOptions
    * @returns Client
    */
-  constructor(model: ModelType, options?: Options) {
+  constructor(model: ModelMetadata, options?: Options) {
     super(model, options);
   }
 
@@ -102,7 +109,7 @@ export abstract class OpenAIClientBase<
         log.debug(
           "WARNING: request reset time is greater than 10 seconds",
           timeToReset.asSeconds(),
-          this.model
+          this.model.id
         );
       }
     }
@@ -128,7 +135,7 @@ export abstract class OpenAIClientBase<
         log.debug(
           "WARNING: token reset time is greater than 10 seconds",
           timeToReset.asSeconds(),
-          this.model
+          this.model.id
         );
       }
     }
@@ -142,7 +149,10 @@ export abstract class OpenAIClientBase<
   async createChatCompletion(
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
-    if (this.model === ModelType.O1 || this.model === ModelType.O1mini) {
+    if (
+      this.model.id === BuiltinModel.O1 ||
+      this.model.id === BuiltinModel.O1mini
+    ) {
       for (const message of request.messages) {
         if (message.role === MessageRole.System) {
           message.role = MessageRole.User;
@@ -151,18 +161,21 @@ export abstract class OpenAIClientBase<
     }
 
     const openaiRequest: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
-      model: this.model,
+      model: this.model.card.checkpoint,
       temperature: request.options?.temperature,
       max_tokens: request.options?.max_tokens,
       tools: request.options?.tools,
       response_format: request.options?.response_format,
       messages: request.messages as OpenAI.Chat.ChatCompletionMessageParam[],
     };
-    if (this.model === ModelType.O1 || this.model === ModelType.O1mini) {
+    if (
+      this.model.id === BuiltinModel.O1 ||
+      this.model.id === BuiltinModel.O1mini
+    ) {
       delete openaiRequest.temperature;
     }
     var response: OpenAI.Chat.Completions.ChatCompletion;
-    if (pricing[this.model].supportsImages) {
+    if (this.model.card.supportsImages) {
       // FIXME count tokens without base64 images
       response = await this.enqueue(1000, openaiRequest);
     } else {
@@ -271,7 +284,7 @@ export class OpenAIClient extends OpenAIClientBase<OpenAIClientOptions> {
 
   constructor(
     openAIKey: string,
-    model: ModelType,
+    model: ModelMetadata,
     options?: OpenAIClientOptions
   ) {
     super(model, options);
@@ -288,9 +301,11 @@ export class OpenAIClient extends OpenAIClientBase<OpenAIClientOptions> {
       });
     };
 
+    const url = options?.endpointURL || model.provider.url;
     this.openai = new OpenAI({
       ...openAIOptions,
       apiKey: openAIKey,
+      baseURL: url,
     });
   }
 }
@@ -300,7 +315,7 @@ export class AzureOpenAIClient extends OpenAIClientBase<AzureOpenAIClientOptions
 
   constructor(
     openAIKey: string,
-    model: ModelType,
+    model: ModelMetadata,
     options?: AzureOpenAIClientOptions
   ) {
     super(model, options);
@@ -321,7 +336,11 @@ export class AzureOpenAIClient extends OpenAIClientBase<AzureOpenAIClientOptions
       openAIOptions.apiVersion = DEFAULT_AZURE_API_VERSION;
     }
 
-    const endpoint = makeAzureOpenAIEndpoint(openAIOptions.resource || "");
+    const url =
+      options?.endpointURL ||
+      model.provider.url ||
+      defaultAzureEndpointTemplate;
+    const endpoint = makeAzureOpenAIEndpoint(url, openAIOptions.resource || "");
     this.openai = new AzureOpenAI({
       ...openAIOptions,
       apiKey: openAIKey,
@@ -333,7 +352,7 @@ export class AzureOpenAIClient extends OpenAIClientBase<AzureOpenAIClientOptions
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
     const openaiRequest: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
-      model: this.model.replace(/^azure\//, ""),
+      model: this.model.card.checkpoint.replace(/^azure\//, ""),
       temperature: request.options?.temperature,
       max_tokens: request.options?.max_tokens,
       tools: request.options?.tools,
@@ -341,7 +360,7 @@ export class AzureOpenAIClient extends OpenAIClientBase<AzureOpenAIClientOptions
       messages: request.messages as OpenAI.Chat.ChatCompletionMessageParam[],
     };
     var response: OpenAI.Chat.Completions.ChatCompletion;
-    if (pricing[this.model].supportsImages) {
+    if (this.model.card.supportsImages) {
       // FIXME count tokens without base64 images
       response = await this.enqueue(1000, openaiRequest);
     } else {

@@ -9,7 +9,7 @@ import { version } from "../package.json";
 import prompts from "prompts";
 import chalk from "chalk";
 import { startServer } from "../src/server/server";
-import { Provider, ModelType } from "../src/models";
+import { BuiltinProvider, BuiltinModel, ModelID } from "../src/models";
 import { SessionReport } from "../src/session";
 import dotenv from "dotenv";
 import axios, { AxiosResponse } from "axios";
@@ -286,14 +286,14 @@ program
       await startServer({
         port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
         keys: {
-          [Provider.OpenAI]: process.env.OPENAI_API_KEY || "",
-          [Provider.AzureOpenAI]: process.env.AZURE_OPENAI_API_KEY || "",
-          [Provider.Google]: process.env.GOOGLE_API_KEY || "",
-          [Provider.Anthropic]: process.env.ANTHROPIC_API_KEY || "",
+          [BuiltinProvider.OpenAI]: process.env.OPENAI_API_KEY,
+          [BuiltinProvider.AzureOpenAI]: process.env.AZURE_OPENAI_API_KEY,
+          [BuiltinProvider.Google]: process.env.GOOGLE_API_KEY,
+          [BuiltinProvider.Anthropic]: process.env.ANTHROPIC_API_KEY,
         },
         imports: importPaths,
         modelOptions: {
-          [ModelType.AZURE_GPT4o]: {
+          [BuiltinModel.AZURE_GPT4o]: {
             resource: process.env.AZURE_OPENAI_RESOURCE_NAME,
             deployment: process.env.AZURE_OPENAI_DEPLOYMENT,
           },
@@ -691,17 +691,15 @@ program
           for (const model in response.data.session.cost) {
             console.log(
               `\t\t${model}: $${response.data.session.cost[
-                model as ModelType
+                model as ModelID
               ].toFixed(2)}`,
-              chalk.gray(`(${response.data.session.cost[model as ModelType]})`)
+              chalk.gray(`(${response.data.session.cost[model as ModelID]})`)
             );
           }
           console.log("\tTokens per model:");
           for (const model in response.data.session.tokens) {
             console.log(
-              `\t\t${model}: ${
-                response.data.session.tokens[model as ModelType]
-              }`
+              `\t\t${model}: ${response.data.session.tokens[model as ModelID]}`
             );
           }
         }
