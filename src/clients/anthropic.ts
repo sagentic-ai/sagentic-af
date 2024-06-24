@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { ModelType, pricing } from "../models";
+import { ModelMetadata } from "../models";
 import {
   AnthropicClientOptions,
   ChatCompletionRequest,
@@ -124,12 +124,14 @@ export class AnthropicClient extends BaseClient<
    */
   constructor(
     anthropicKey: string,
-    model: ModelType,
+    model: ModelMetadata,
     options?: AnthropicClientOptions
   ) {
     super(model, options);
 
+		const url = options?.endpointURL || model.provider.url;
     this.anthropic = new Anthropic({
+			baseURL: url,
       fetch: (url: RequestInfo, opts?: RequestInit): Promise<Response> => {
         return fetch(url, opts).then((response) => {
           this.updatePools(response.headers);
@@ -148,7 +150,7 @@ export class AnthropicClient extends BaseClient<
   ): Promise<ChatCompletionResponse> {
     const [systemPrompt, messages] = parseMessages(request.messages);
     const apiRequest = {
-      model: this.model,
+      model: this.model.card.checkpoint,
       max_tokens: 1024,
       messages: messages,
       system: systemPrompt,
@@ -162,7 +164,7 @@ export class AnthropicClient extends BaseClient<
     } as Anthropic.Beta.Tools.MessageCreateParams;
 
     let response: Anthropic.Beta.Tools.ToolsBetaMessage;
-    if (pricing[this.model].supportsImages) {
+    if (this.model.card.supportsImages) {
       // FIXME count tokens without base64 images
       response = await this.enqueue(1000, apiRequest);
     } else {
@@ -265,7 +267,7 @@ export class AnthropicClient extends BaseClient<
         log.debug(
           "WARNING: request reset time is greater than 10 seconds",
           timeToReset.asSeconds(),
-          this.model
+          this.model.id
         );
       }
     }
@@ -291,7 +293,7 @@ export class AnthropicClient extends BaseClient<
         log.debug(
           "WARNING: token reset time is greater than 10 seconds",
           timeToReset.asSeconds(),
-          this.model
+          this.model.id
         );
       }
     }

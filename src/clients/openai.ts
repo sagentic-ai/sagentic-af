@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import OpenAI, { AzureOpenAI, ClientOptions } from "openai";
-import { ModelType, pricing } from "../models";
+import { ModelMetadata } from "../models";
 import {
   OpenAIClientOptions,
   AzureOpenAIClientOptions,
@@ -48,8 +48,10 @@ export abstract class OpenAIClientBase<
    * @param options ClientOptions
    * @returns Client
    */
-  constructor(model: ModelType, options?: Options) {
+  constructor(model: ModelMetadata, options?: Options) {
     super(model, options);
+		const url = options?.endpointURL || model.provider.url;
+			baseURL: url,
   }
 
   /**
@@ -102,7 +104,7 @@ export abstract class OpenAIClientBase<
         log.debug(
           "WARNING: request reset time is greater than 10 seconds",
           timeToReset.asSeconds(),
-          this.model
+          this.model.id,
         );
       }
     }
@@ -128,7 +130,7 @@ export abstract class OpenAIClientBase<
         log.debug(
           "WARNING: token reset time is greater than 10 seconds",
           timeToReset.asSeconds(),
-          this.model
+          this.model.id,
         );
       }
     }
@@ -151,7 +153,7 @@ export abstract class OpenAIClientBase<
     }
 
     const openaiRequest: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
-      model: this.model,
+      model: this.model.card.checkpoint,
       temperature: request.options?.temperature,
       max_tokens: request.options?.max_tokens,
       tools: request.options?.tools,
@@ -162,7 +164,7 @@ export abstract class OpenAIClientBase<
       delete openaiRequest.temperature;
     }
     var response: OpenAI.Chat.Completions.ChatCompletion;
-    if (pricing[this.model].supportsImages) {
+    if (this.model.card.supportsImages) {
       // FIXME count tokens without base64 images
       response = await this.enqueue(1000, openaiRequest);
     } else {

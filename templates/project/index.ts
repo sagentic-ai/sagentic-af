@@ -5,3 +5,9 @@ import HelloAgent from "./agents/hello";
 export default [
   HelloAgent, //
 ];
+
+// If you are using custom provider endpoints and need to provider API keys to them, define them here
+// and provide them as env variables in the .env file, e.g.:
+// "myProviderID": process.env.MY_PROVIDER_API_KEY
+export const ProviderApiKeys = {
+}
