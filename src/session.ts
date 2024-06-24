@@ -254,7 +254,7 @@ export class Session
     const invocation: ChatCompletionRequest = {
       options: options,
       messages: messages,
-      model: model,
+      model: model.id,
     };
     const response: ChatCompletionResponse =
       await this.#clients.createChatCompletion(invocation);

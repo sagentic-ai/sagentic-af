@@ -5,7 +5,7 @@ import Fastify from "fastify";
 import path from "path";
 import fs from "fs";
 import { ClientMux } from "../client_mux";
-import { Provider } from "../models";
+import { ProviderID } from "../models";
 import { version } from "../../package.json";
 import { AgentOptions } from "../agent";
 import { Registry } from "../registry";
@@ -17,7 +17,7 @@ import chokidar from "chokidar";
 
 export interface ServerOptions {
   port?: number;
-  keys: Partial<Record<Provider, string>>;
+  keys: Partial<Record<ProviderID, string>>;
   imports?: string[];
 }
 
@@ -110,11 +110,12 @@ const namespaceFromPackage = (imp: string): string => {
   return packageJson.name;
 };
 
-const handleImports = async (registry: Registry, imports: string[]) => {
+const handleImports = async (registry: Registry, imports: string[]): Promise<Record<ProviderID, string>> => {
+	let keys: Record<ProviderID, string> = {};
   try {
     await compileTypescript(path.join(process.cwd(), "cache"));
   } catch (e) {
-    return;
+    return keys;
   }
   clearRequireCache();
   for (const impRaw of imports) {
@@ -133,6 +134,7 @@ const handleImports = async (registry: Registry, imports: string[]) => {
         throw new Error(`Module ${impRaw} has no default export`);
       }
       const constructors = constructorsFromModule(module);
+			keys = {...keys, ...keysFromModule(module)};
       const namespace = namespaceFromPackage(impRaw);
 
       for (const constructor of constructors) {
@@ -148,6 +150,8 @@ const handleImports = async (registry: Registry, imports: string[]) => {
       continue;
     }
   }
+
+	return keys;
 };
 
 export const startServer = async ({ port, keys, imports }: ServerOptions) => {
@@ -159,6 +163,8 @@ export const startServer = async ({ port, keys, imports }: ServerOptions) => {
 
   const server = Fastify({ logger: true });
 
+  const registry = new Registry();
+
   const importedKeys = await handleImports(registry, imports || []);
 	keys = { ...keys, ...importedKeys };
 
@@ -168,8 +174,6 @@ export const startServer = async ({ port, keys, imports }: ServerOptions) => {
 
   const clientMux = new ClientMux(keys);
   clientMux.start();
-
-  const registry = new Registry();
 
   const watcher = chokidar.watch(process.cwd(), {
     ignoreInitial: true,
@@ -185,7 +189,7 @@ export const startServer = async ({ port, keys, imports }: ServerOptions) => {
       clearTimeout(timer);
     }
     timer = setTimeout(async () => {
-      await importAgents(registry, imports || []);
+      await handleImports(registry, imports || []);
     }, 1000);
   });
 

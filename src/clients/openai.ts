@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import OpenAI, { ClientOptions } from "openai";
-import { ModelType } from "../models";
+import { ModelMetadata } from "../models";
 import {
   OpenAIClientOptions,
   ChatCompletionRequest,
@@ -57,7 +57,7 @@ export class OpenAIClient extends BaseClient<
       });
     };
 
-		const url = options?.url || model.provider.url;
+		const url = options?.endpointURL || model.provider.url;
     this.openai = new OpenAI({
       ...openAIOptions,
       apiKey: openAIKey,

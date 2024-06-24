@@ -121,7 +121,7 @@ export class AnthropicClient extends BaseClient<
   ) {
     super(model, options);
 
-		const url = options?.url || model.provider.url;
+		const url = options?.endpointURL || model.provider.url;
     this.anthropic = new Anthropic({
 			baseURL: url,
       fetch: (url: RequestInfo, opts?: RequestInit): Promise<Response> => {

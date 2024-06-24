@@ -11,7 +11,7 @@ import {
   ParentOf,
   meta,
 } from "./common";
-import { ModelID, BuiltinModel, ModelMetadata, models, cards, ModelCard } from "./models";
+import { ModelID, BuiltinModel, ModelMetadata, models, resolveModelMetadata, ModelCard } from "./models";
 import { Session } from "./session";
 import { ModelInvocationOptions } from "./clients/common";
 import { Thread, ToolAssistantContent, ToolCall } from "./thread";
@@ -140,10 +140,7 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
   /** Model details */
   get modelDetails(): ModelCard | undefined {
     if (this.model) {
-			if (this.model instanceof ModelMetadata) {
-				return this.model.card;
-			}
-      return cards[this.model];
+			return resolveModelMetadata(this.model).card;
     }
     return undefined;
   }
@@ -280,7 +277,7 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
     const messages = thread.messages;
     const response = await this.session.invokeModel(
       this,
-      this.model instanceof ModelMetadata ? this.model : models[this.model],
+			resolveModelMetadata(this.model),
       messages,
       this.modelInvocationOptions
     );

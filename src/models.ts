@@ -53,12 +53,12 @@ export const providers: Record<Provider, ProviderMetadata> = {
 };
 
 /** Model ID - used to identify models */
-export type ModelID = ModelType | string;
+export type ModelID = BuiltinModel | string;
 
 /** Available default model types */
 export enum BuiltinModel {
   GPT4 = "gpt-4",
-  GPT4Turbo = "gpt-4-turbo"
+  GPT4Turbo = "gpt-4-turbo",
   GPT4Vision = "gpt-4-vision",
   GPT4o = "gpt-4o",
   GPT35Turbo = "gpt-3.5-turbo",
@@ -121,8 +121,8 @@ export interface ModelMetadata {
 }
 
 /** Default model cards for each model */
-export const cards: Record<ModelType, ModelPricing> = {
-  [ModelType.GPT4]: {
+export const cards: Record<BuiltinModel, ModelCard> = {
+  [BuiltinModel.GPT4]: {
 		checkpoint: Checkpoint.GPT4,
     prompt: 30,
     completion: 60,
@@ -130,7 +130,7 @@ export const cards: Record<ModelType, ModelPricing> = {
     rpm: 10_000,
     tpm: 300_000,
   },
-  [ModelType.GPT4Turbo]: {
+  [BuiltinModel.GPT4Turbo]: {
 		checkpoint: Checkpoint.GPT4Turbo,
     prompt: 10,
     completion: 30,
@@ -138,7 +138,7 @@ export const cards: Record<ModelType, ModelPricing> = {
     rpm: 5000,
     tpm: 300_000,
   },
-  [ModelType.GPT4Vision]: {
+  [BuiltinModel.GPT4Vision]: {
 		checkpoint: Checkpoint.GPT4Vision,
     prompt: 10,
     completion: 30,
@@ -147,7 +147,7 @@ export const cards: Record<ModelType, ModelPricing> = {
     tpm: 10_000,
     supportsImages: true,
   },
-  [ModelType.GPT4o]: {
+  [BuiltinModel.GPT4o]: {
 		checkpoint: Checkpoint.GPT4o,
     prompt: 5,
     completion: 15,
@@ -158,7 +158,7 @@ export const cards: Record<ModelType, ModelPricing> = {
     supportsVideo: true,
     supportsAudio: false, //NB audio support is not yet in the API, TODO add this once OpenAI adds it
   },
-  [ModelType.GPT35Turbo]: {
+  [BuiltinModel.GPT35Turbo]: {
 		checkpoint: Checkpoint.GPT35Turbo,
     prompt: 0.5,
     completion: 1.5,
@@ -167,7 +167,7 @@ export const cards: Record<ModelType, ModelPricing> = {
     tpm: 1_000_000,
   },
   //TODO ensure correct pricing for Gemini models
-  [ModelType.GEMINI15]: {
+  [BuiltinModel.GEMINI15]: {
 		checkpoint: Checkpoint.GEMINI15,
     prompt: 0.000007,
     completion: 0.000021,
@@ -176,7 +176,7 @@ export const cards: Record<ModelType, ModelPricing> = {
     tpm: 32_000,
     supportsImages: true,
   },
-  [ModelType.GEMINI10]: {
+  [BuiltinModel.GEMINI10]: {
 		checkpoint: Checkpoint.GEMINI10,
     prompt: 0.0000005,
     completion: 0.0000015,
@@ -184,7 +184,7 @@ export const cards: Record<ModelType, ModelPricing> = {
     rpm: 360,
     tpm: 120_000,
   },
-  [ModelType.GEMINI10Vision]: {
+  [BuiltinModel.GEMINI10Vision]: {
     //TODO couldn't find anything quickly, copied from GEMINI10
 		checkpoint: Checkpoint.GEMINI10Vision,
     prompt: 0.0000005,
@@ -194,7 +194,7 @@ export const cards: Record<ModelType, ModelPricing> = {
     tpm: 120_000,
     supportsImages: true,
   },
-  [ModelType.CLAUDE3Opus]: {
+  [BuiltinModel.CLAUDE3Opus]: {
 		checkpoint: Checkpoint.CLAUDE3Opus,
     prompt: 15,
     completion: 75,
@@ -203,7 +203,7 @@ export const cards: Record<ModelType, ModelPricing> = {
     tpm: 10_000,
     supportsImages: true,
   },
-  [ModelType.CLAUDE3Sonnet]: {
+  [BuiltinModel.CLAUDE3Sonnet]: {
 		checkpoint: Checkpoint.CLAUDE3Sonnet,
     prompt: 3,
     completion: 15,
@@ -212,7 +212,7 @@ export const cards: Record<ModelType, ModelPricing> = {
     tpm: 20_000,
     supportsImages: true,
   },
-  [ModelType.CLAUDE3Haiku]: {
+  [BuiltinModel.CLAUDE3Haiku]: {
 		checkpoint: Checkpoint.CLAUDE3Haiku,
     prompt: 0.25,
     completion: 1.25,
@@ -224,49 +224,74 @@ export const cards: Record<ModelType, ModelPricing> = {
 };
 
 /** Model metadata */
-export const models: Record<ModelType, ModelMetadata> = {
-  [ModelType.GPT4]: {
+export const models: Record<BuiltinModel, ModelMetadata> = {
+  [BuiltinModel.GPT4]: {
+		id: BuiltinModel.GPT4,
     provider: providers[BuiltinProvider.OpenAI],
-    card: cards[ModelType.GPT4],
+    card: cards[BuiltinModel.GPT4],
   },
-  [ModelType.GPT4o]: {
+  [BuiltinModel.GPT4o]: {
+		id: BuiltinModel.GPT4o,
     provider: providers[BuiltinProvider.OpenAI],
-    card: cards[ModelType.GPT4o],
+    card: cards[BuiltinModel.GPT4o],
   },
-  [ModelType.GPT4Turbo]: {
+  [BuiltinModel.GPT4Turbo]: {
+		id: BuiltinModel.GPT4Turbo,
     provider: providers[BuiltinProvider.OpenAI],
-    card: cards[ModelType.GPT4Turbo],
+    card: cards[BuiltinModel.GPT4Turbo],
   },
-  [ModelType.GPT4Vision]: {
+  [BuiltinModel.GPT4Vision]: {
+		id: BuiltinModel.GPT4Vision,
     provider: providers[BuiltinProvider.OpenAI],
-    card: cards[ModelType.GPT4Vision],
+    card: cards[BuiltinModel.GPT4Vision],
   },
-  [ModelType.GPT35Turbo]: {
+  [BuiltinModel.GPT35Turbo]: {
+		id: BuiltinModel.GPT35Turbo,
     provider: providers[BuiltinProvider.OpenAI],
-    card: cards[ModelType.GPT35Turbo],
+    card: cards[BuiltinModel.GPT35Turbo],
   },
-  [ModelType.GEMINI15]: {
+  [BuiltinModel.GEMINI15]: {
+		id: BuiltinModel.GEMINI15,
     provider: providers[BuiltinProvider.Google],
-    card: cards[ModelType.GEMINI15],
+    card: cards[BuiltinModel.GEMINI15],
   },
-  [ModelType.GEMINI10]: {
+  [BuiltinModel.GEMINI10]: {
+		id: BuiltinModel.GEMINI10,
     provider: providers[BuiltinProvider.Google],
-    card: cards[ModelType.GEMINI10],
+    card: cards[BuiltinModel.GEMINI10],
   },
-  [ModelType.GEMINI10Vision]: {
+  [BuiltinModel.GEMINI10Vision]: {
+		id: BuiltinModel.GEMINI10Vision,
     provider: providers[BuiltinProvider.Google],
-    card: cards[ModelType.GEMINI10Vision],
+    card: cards[BuiltinModel.GEMINI10Vision],
   },
-  [ModelType.CLAUDE3Opus]: {
+  [BuiltinModel.CLAUDE3Opus]: {
+		id: BuiltinModel.CLAUDE3Opus,
     provider: providers[BuiltinProvider.Anthropic],
-    card: cards[ModelType.CLAUDE3Opus],
+    card: cards[BuiltinModel.CLAUDE3Opus],
   },
-  [ModelType.CLAUDE3Sonnet]: {
+  [BuiltinModel.CLAUDE3Sonnet]: {
+		id: BuiltinModel.CLAUDE3Sonnet,
     provider: providers[BuiltinProvider.Anthropic],
-    card: cards[ModelType.CLAUDE3Sonnet],
+    card: cards[BuiltinModel.CLAUDE3Sonnet],
   },
-  [ModelType.CLAUDE3Haiku]: {
+  [BuiltinModel.CLAUDE3Haiku]: {
+		id: BuiltinModel.CLAUDE3Haiku,
     provider: providers[BuiltinProvider.Anthropic],
-    card: cards[ModelType.CLAUDE3Haiku],
+    card: cards[BuiltinModel.CLAUDE3Haiku],
   },
 };
+
+/** Resolves model metadata
+ * Agents store models as either a reference to a builtin model or a custom model metadata object.
+ * This function resolves the model metadata from either of these representations.
+ * @param model - model reference or metadata object
+ * @returns model metadata object
+ * */
+export const resolveModelMetadata = function (model: BuiltinModel | ModelMetadata): ModelMetadata {
+	if (typeof model === "string") {
+		return models[model as BuiltinModel];
+	}
+	return model;
+}
+

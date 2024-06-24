@@ -3,6 +3,7 @@
 
 import {
 	ModelID,
+	ProviderID,
   ModelMetadata,
   BuiltinProvider,
 	ClientType,
@@ -42,7 +43,7 @@ export class ClientMux {
     options?: ClientMuxOptions,
     modelOptions?: Record<ModelID, ClientOptions>
   ) {
-    const models = options?.models || availableModels;
+    const models = options?.models || Object.values(availableModels) as ModelMetadata[];
     if (models.length === 0) {
       throw new Error("Must provide at least one model");
     }
@@ -63,7 +64,7 @@ export class ClientMux {
       }
       this.clients[model.id] = new clientConstructor(
         key,
-        model.id,
+        model,
         modelOptions?.[model.id]
       );
     }

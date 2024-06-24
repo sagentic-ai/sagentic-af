@@ -10,7 +10,7 @@ import {
   FunctionResponsePart,
   FunctionCallingMode,
 } from "@google/generative-ai";
-import { ModelMetadata } from "../models";
+import { ModelMetadata, BuiltinModel } from "../models";
 import {
   Client,
   GoogleClientOptions,
@@ -133,7 +133,7 @@ export class GoogleClient extends BaseClient<
   ) {
     super(model, options);
 
-		this.url = options?.url || model.provider.url;
+		this.url = options?.endpointURL || model.provider.url;
     this.googleConfig = new GoogleGenerativeAI(googleAPIKey);
   }
 
@@ -149,7 +149,7 @@ export class GoogleClient extends BaseClient<
     // system instruction is only available in Gemini 1.5, so we just pass it as normal user input for older models
     const [contents, systemPrompt] = parseContents(
       request.messages,
-      this.model.id === ModelType.GEMINI15
+      this.model.id === BuiltinModel.GEMINI15
     );
     const tools = request.options?.tools?.map((tool: any) => {
       const parameters = tool.function.parameters;
