@@ -7,7 +7,7 @@ import { ClientMux } from "../src/client_mux";
 import { Session } from "../src/session";
 import dotenv from "dotenv";
 import { Thread } from "../src/thread";
-import { Provider, ModelType } from "../src/models";
+import { BuiltinModel, BuiltinProvider, ModelMetadata } from "../src/models";
 import { FunctionTool, Tool } from "../src/tool";
 import { z } from "zod";
 import zodToJsonSchema from "zod-to-json-schema";
@@ -22,7 +22,7 @@ describe("Basic Agent", () => {
   let session: Session;
 
   beforeAll(() => {
-    clients = new ClientMux({ [Provider.OpenAI]: openaiApiKey });
+    clients = new ClientMux({ [BuiltinProvider.OpenAI]: openaiApiKey });
     clients.start();
     session = new Session(clients, {});
   });
@@ -32,7 +32,7 @@ describe("Basic Agent", () => {
   });
 
   class GreeterAgent extends BaseAgent<AgentOptions, void, string> {
-    model: ModelType = ModelType.GPT35Turbo;
+    model: BuiltinModel | ModelMetadata = BuiltinModel.GPT35Turbo;
     systemPrompt: string = "You always respond with 'World' to 'Hello'.";
     thread: Thread;
 
@@ -104,9 +104,9 @@ describe("Agent with tools", () => {
 
   beforeAll(() => {
     clients = new ClientMux({
-      [Provider.OpenAI]: openaiApiKey,
-      [Provider.Google]: googleApiKey,
-      [Provider.Anthropic]: anthropicApiKey,
+      [BuiltinProvider.OpenAI]: openaiApiKey,
+      [BuiltinProvider.Google]: googleApiKey,
+      [BuiltinProvider.Anthropic]: anthropicApiKey,
     });
     clients.start();
     session = new Session(clients, {});
@@ -145,7 +145,7 @@ describe("Agent with tools", () => {
   }
 
   class AdderAgent extends BaseAgent<AdderAgentOptions, void, string> {
-    model: ModelType = ModelType.GPT35Turbo;
+    model: BuiltinModel | ModelMetadata = BuiltinModel.GPT35Turbo;
     systemPrompt: string =
       "You will be asked to add numbers. Use available tools to compute the answer. Do not send any messages other than tool calls and the final answer.";
     thread: Thread;
@@ -176,9 +176,9 @@ describe("Agent with tools", () => {
   }
 
   test.each([
-    ["OpenAI", ModelType.GPT35Turbo],
-    ["Google", ModelType.GEMINI15],
-    ["Anthropic", ModelType.CLAUDE3Haiku],
+    ["OpenAI", BuiltinModel.GPT35Turbo],
+    ["Google", BuiltinModel.GEMINI15],
+    ["Anthropic", BuiltinModel.CLAUDE3Haiku],
   ])("Adding numbers with %s", async (provider, model) => {
     const a = Math.floor(Math.random() * 1000000);
     const b = Math.floor(Math.random() * 1000000);
@@ -206,7 +206,7 @@ describe("Agent conserving tokens", () => {
   let session: Session;
 
   beforeAll(() => {
-    clients = new ClientMux({ [Provider.OpenAI]: openaiApiKey });
+    clients = new ClientMux({ [BuiltinProvider.OpenAI]: openaiApiKey });
     clients.start();
     session = new Session(clients, {});
   });
@@ -280,7 +280,7 @@ describe("Agent conserving tokens", () => {
     string[],
     string[]
   > {
-    model: ModelType = ModelType.GPT4Turbo;
+    model: BuiltinModel | ModelMetadata = BuiltinModel.GPT4Turbo;
     systemPrompt: string = [
       "Your task is to fetch a list of words from a database using the `get-words` tool.",
       "I want you to return only the names of fashion brands. You must find all the words that meet this requirement.",

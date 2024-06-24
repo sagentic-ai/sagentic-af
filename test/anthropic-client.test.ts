@@ -3,7 +3,7 @@
 
 import "openai/shims/node";
 import { AnthropicClient as Client } from "../src/clients/anthropic";
-import { ModelType } from "../src/models";
+import { BuiltinModel, models } from "../src/models";
 import { MessageRole } from "../src/thread";
 
 const REAL_APIKEY = process.env.ANTHROPIC_API_KEY || "";
@@ -12,7 +12,7 @@ describe("Anthropic Client with real API", () => {
   let client: Client;
 
   beforeAll(() => {
-    client = new Client(REAL_APIKEY, ModelType.CLAUDE3Haiku);
+    client = new Client(REAL_APIKEY, models[BuiltinModel.CLAUDE3Haiku]);
     client.start();
   });
 
@@ -22,7 +22,7 @@ describe("Anthropic Client with real API", () => {
 
   test("Simple Request", async () => {
     const response = await client.createChatCompletion({
-      model: ModelType.CLAUDE3Haiku,
+      model: BuiltinModel.CLAUDE3Haiku,
       messages: [
         {
           role: MessageRole.System,

@@ -8,7 +8,7 @@ export enum BuiltinProvider {
   Anthropic = "anthropic",
 }
 /** Deprecated identifier for builtin providers */
-export type Provider = BuiltinProvider;
+export const Provider = BuiltinProvider;
 
 /** Provider identifier */
 export type ProviderID = BuiltinProvider | string;
@@ -34,7 +34,7 @@ export interface ProviderMetadata {
 	clientType: ClientType; /** type of client to use */
 }
 
-export const providers: Record<Provider, ProviderMetadata> = {
+export const providers: Record<ProviderID, ProviderMetadata> = {
 	[BuiltinProvider.OpenAI]: {
 		id: BuiltinProvider.OpenAI,
 		url: endpoints[BuiltinProvider.OpenAI],
@@ -72,7 +72,7 @@ export enum BuiltinModel {
   CLAUDE3Haiku = "claude-3-haiku",
 }
 /** Deprecated identifier for builtin models */
-export type ModelType = BuiltinModel;
+export const ModelType = BuiltinModel;
 
 /** default model checkpoints for each model */
 enum Checkpoint {
