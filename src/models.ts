@@ -8,7 +8,7 @@ export enum BuiltinProvider {
   Anthropic = "anthropic",
 }
 /** Deprecated identifier for builtin providers */
-export const Provider = BuiltinProvider;
+export import Provider = BuiltinProvider;
 
 /** Provider identifier */
 export type ProviderID = BuiltinProvider | string;
@@ -72,7 +72,7 @@ export enum BuiltinModel {
   CLAUDE3Haiku = "claude-3-haiku",
 }
 /** Deprecated identifier for builtin models */
-export const ModelType = BuiltinModel;
+export import ModelType = BuiltinModel;
 
 /** default model checkpoints for each model */
 enum Checkpoint {
