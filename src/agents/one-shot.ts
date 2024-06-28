@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import { AgentOptions, BaseAgent } from "../agent";
-import { BuiltinModel } from "../models";
+import { BuiltinModel, ModelMetadata } from "../models";
 import { Session } from "../session";
 import { Thread } from "../thread";
 
@@ -10,7 +10,7 @@ export class OneShotAgent<
   OptionsType extends AgentOptions,
   ResultType,
 > extends BaseAgent<OptionsType, void, ResultType> {
-  model: BuiltinModel = BuiltinModel.GPT35Turbo;
+  model: BuiltinModel | ModelMetadata = BuiltinModel.GPT35Turbo;
   thread: Thread;
 
   constructor(session: Session, options: OptionsType) {

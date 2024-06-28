@@ -82,11 +82,33 @@ export class ClientMux {
     }
   }
 
+	// late initialization of clients for models added at runtime
+	async ensureClient(model: ModelMetadata, modelOptions?: ClientOptions): Promise<void> {
+		if (this.clients[model.id] === undefined) {
+			console.log("Initializing client for model", model.id);
+			const provider = model.provider.id;
+			const clientType = model.provider.clientType;
+			const clientConstructor = clientConstructors[clientType];
+			if (clientConstructor === undefined) {
+				throw new Error(`Unknown provider: ${provider} for model: ${model.id}`);
+			}
+			//TODO IMPORTANT handle provider keys
+			const key = "";
+			this.clients[model.id] = new clientConstructor(
+				key,
+				model,
+				modelOptions
+			);
+		}
+	}
+
   async createChatCompletion(
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
-    const client = this.clients[request.model];
+    let client = this.clients[request.model];
     if (client === undefined) {
+			// try late initialization for the model
+			console.log("request", request);
       throw new Error(`Unknown model: ${request.model}`);
     }
     return client.createChatCompletion(request);

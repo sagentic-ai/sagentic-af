@@ -256,6 +256,15 @@ export class Session
       messages: messages,
       model: model.id,
     };
+
+		// ensure client for model is available
+		try {
+			await this.#clients.ensureClient(model);
+		} catch (err) {
+			console.error("Error ensuring client for model", err);
+			throw err;
+		}
+
     const response: ChatCompletionResponse =
       await this.#clients.createChatCompletion(invocation);
     const pct = new PCT({
