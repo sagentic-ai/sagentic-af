@@ -13,7 +13,13 @@ export enum ModelType {
   GPT4 = "gpt-4",
   GPT4Turbo = "gpt-4-turbo-preview",
   GPT4Vision = "gpt-4-vision-preview",
+
   GPT4o = "gpt-4o",
+  GPT4o240513 = "gpt-4o-2024-05-13",
+  GPT4o240806 = "gpt-4o-2024-08-06",
+  GPT4oMini = "gpt-4o-mini",
+  GPT4oMini240718 = "gpt-4o-mini-2024-07-18",
+
   GPT35Turbo = "gpt-3.5-turbo-0125",
 
   GEMINI15 = "gemini-1.5-pro-latest",
@@ -78,6 +84,46 @@ export const pricing: Record<ModelType, ModelPricing> = {
   [ModelType.GPT4o]: {
     prompt: 5,
     completion: 15,
+    contextSize: 128_000,
+    rpm: 500,
+    tpm: 30_000,
+    supportsImages: true,
+    supportsVideo: true,
+    supportsAudio: false, //NB audio support is not yet in the API, TODO add this once OpenAI adds it
+  },
+  [ModelType.GPT4o240513]: {
+    prompt: 5,
+    completion: 15,
+    contextSize: 128_000,
+    rpm: 500,
+    tpm: 30_000,
+    supportsImages: true,
+    supportsVideo: true,
+    supportsAudio: false, //NB audio support is not yet in the API, TODO add this once OpenAI adds it
+  },
+  [ModelType.GPT4o240806]: {
+    prompt: 5,
+    completion: 15,
+    contextSize: 128_000,
+    rpm: 500,
+    tpm: 30_000,
+    supportsImages: true,
+    supportsVideo: true,
+    supportsAudio: false, //NB audio support is not yet in the API, TODO add this once OpenAI adds it
+  },
+  [ModelType.GPT4oMini]: {
+    prompt: 0.15,
+    completion: 0.6,
+    contextSize: 128_000,
+    rpm: 500,
+    tpm: 30_000,
+    supportsImages: true,
+    supportsVideo: true,
+    supportsAudio: false, //NB audio support is not yet in the API, TODO add this once OpenAI adds it
+  },
+  [ModelType.GPT4oMini240718]: {
+    prompt: 0.15,
+    completion: 0.6,
     contextSize: 128_000,
     rpm: 500,
     tpm: 30_000,
@@ -152,6 +198,22 @@ export const models: Record<ModelType, ModelMetadata> = {
   [ModelType.GPT4o]: {
     provider: Provider.OpenAI,
     pricing: pricing[ModelType.GPT4o],
+  },
+  [ModelType.GPT4o240513]: {
+    provider: Provider.OpenAI,
+    pricing: pricing[ModelType.GPT4o240513],
+  },
+  [ModelType.GPT4o240806]: {
+    provider: Provider.OpenAI,
+    pricing: pricing[ModelType.GPT4o240806],
+  },
+  [ModelType.GPT4oMini]: {
+    provider: Provider.OpenAI,
+    pricing: pricing[ModelType.GPT4oMini],
+  },
+  [ModelType.GPT4oMini240718]: {
+    provider: Provider.OpenAI,
+    pricing: pricing[ModelType.GPT4oMini240718],
   },
   [ModelType.GPT4Turbo]: {
     provider: Provider.OpenAI,

@@ -22,6 +22,12 @@ jobs:
       - name: Enable corepack
         run: corepack enable
 
+      - name: Enable corepack pnpm
+        run: corepack enable pnpm
+
+      - name: Use latest pnpm
+        run: corepack use pnpm@latest
+
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
@@ -32,6 +38,12 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Set env
+        run: |
+          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
+          echo "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" >> $GITHUB_ENV
+          echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" >> $GITHUB_ENV
 
       - name: Run tests
         run: pnpm test --silent
