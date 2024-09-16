@@ -83,7 +83,7 @@ export class ClientMux {
   }
 
 	// late initialization of clients for models added at runtime
-	async ensureClient(model: ModelMetadata, modelOptions?: ClientOptions): Promise<void> {
+	async ensureClient(model: ModelMetadata, key?: string, modelOptions?: ClientOptions): Promise<void> {
 		if (this.clients[model.id] === undefined) {
 			console.log("Initializing client for model", model.id);
 			const provider = model.provider.id;
@@ -92,13 +92,12 @@ export class ClientMux {
 			if (clientConstructor === undefined) {
 				throw new Error(`Unknown provider: ${provider} for model: ${model.id}`);
 			}
-			//TODO IMPORTANT handle provider keys
-			const key = "";
 			this.clients[model.id] = new clientConstructor(
 				key,
 				model,
 				modelOptions
 			);
+			this.clients[model.id].start();
 		}
 	}
 
