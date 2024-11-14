@@ -21,12 +21,16 @@ import { getToolInterface } from "../src/tool";
 import zodToJsonSchema from "zod-to-json-schema";
 import { cliTable } from "./utils";
 import { lockDeps, getLocalDeps, checkDeps } from "./lock-deps";
+import log from "loglevel";
 
 dotenv.config();
 
 const PACKAGE_PATH = Path.resolve(__dirname, "..");
 const PACKAGE_NAME = "@sagentic-ai/sagentic-af";
 const PACKAGE_VERSION = version;
+
+const LOGLEVEL = process.env.LOGLEVEL || "info";
+log.setLevel(LOGLEVEL as log.LogLevelDesc);
 
 const SAGENTIC_API_KEY = process.env.SAGENTIC_API_KEY;
 const SAGENTIC_API_URL =
@@ -97,7 +101,7 @@ const copyTemplate = (
       }
     }
   } catch (e: any) {
-    console.error("Error copying template", e.message);
+    log.error("Error copying template", e.message);
     throw e;
   }
 };
@@ -115,7 +119,7 @@ const copySrcTemplate = (
     }
     FS.writeFileSync(targetPath, content);
   } catch (e: any) {
-    console.error("Error copying src template", e.message);
+    log.error("Error copying src template", e.message);
     throw e;
   }
 };
@@ -169,7 +173,7 @@ program
 
       // if path doesn't exist, create it
       if (!targetPathExists) {
-        console.log(`Directory ${chalk.blue(path)} doesn't exist.`);
+        log.warn(`Directory ${chalk.blue(path)} doesn't exist.`);
         const { ok } = await prompts({
           type: "confirm",
           name: "ok",
@@ -220,7 +224,7 @@ const addExport = (path: string, name: string, importPath: string) => {
 
     FS.writeFileSync(path, lines.join("\n"));
   } catch (e: any) {
-    console.error("Error adding export", e.message);
+    log.error("Error adding export", e.message);
     throw e;
   }
 };
@@ -317,7 +321,7 @@ const tarProject = (path: string): Promise<[string, () => void]> => {
 
 const checkAPIKey = async (): Promise<boolean> => {
   if (!SAGENTIC_API_KEY) {
-    console.log(
+    log.error(
       `No ${chalk.cyan(
         "SAGENTIC_API_KEY"
       )} environment variable found. Please set your API key.`
@@ -334,7 +338,7 @@ const checkAPIKey = async (): Promise<boolean> => {
       return true;
     }
   } catch (e) {
-    console.log("Error when checking SAGENTIC_API_KEY", e);
+    log.error("Error when checking SAGENTIC_API_KEY", e);
   }
   return false;
 };
@@ -351,7 +355,7 @@ const constructorsFromModule = (module: any): any[] => {
     }
     return constructors;
   } catch (e: any) {
-    console.error("Error getting constructors", e.message);
+    log.error("Error getting constructors", e.message);
     return [];
   }
 };
@@ -412,7 +416,7 @@ program
       const path = process.cwd();
       const distPath = Path.join(path, "dist");
       if (!FS.existsSync(distPath)) {
-        console.log(
+        log.error(
           `No ${chalk.cyan("dist")} folder found in ${chalk.blue(
             path
           )}. Please build your project first.`
@@ -421,8 +425,8 @@ program
       }
 
       if (!(await checkAPIKey())) {
-        console.log(chalk.red("Error: No valid Sagentic API key found\n"));
-        console.log(
+        log.error(chalk.red("Error: No valid Sagentic API key found\n"));
+        log.error(
           `Please set your Sagentic API key in ${chalk.cyan(
             "SAGENTIC_API_KEY"
           )}.`
@@ -447,7 +451,7 @@ program
       // check for local dependencies
       const localDeps = getLocalDeps(packageJson, _options.verbose);
       if (localDeps.length > 0) {
-        console.log(
+        log.error(
           "The following local dependencies are not allowed in the deployment:\n",
           localDeps.join("\n")
         );
@@ -462,7 +466,7 @@ program
       // check for undeclared dependencies
       const undeclaredDeps = await checkDeps(distPath, _options.verbose);
       if (undeclaredDeps.length > 0) {
-        console.log(
+        log.error(
           "The following dependencies are used in your project but not declared in the package.json file:\n",
           undeclaredDeps.join("\n")
         );
@@ -550,7 +554,7 @@ program
       progress.stop();
       response = e.response!;
       if (axios.isAxiosError(e)) {
-        console.log(chalk.red(`Error: ${response.data.error}`));
+        log.error(chalk.red(`Error: ${response.data.error}`));
         program.error(`Aborting due to an error`, { exitCode: 1 });
       } else {
         program.error(`Aborting due to an error: ${e.message}`, {
@@ -603,8 +607,8 @@ program
       }
 
       if (!_options.local && !(await checkAPIKey())) {
-        console.log(chalk.red("Error: No valid Sagentic API key found\n"));
-        console.log(
+        log.error(chalk.red("Error: No valid Sagentic API key found\n"));
+        log.error(
           `Please set your Sagentic API key in ${chalk.cyan(
             "SAGENTIC_API_KEY"
           )}.`
@@ -645,9 +649,9 @@ program
         response = e.response!;
         if (axios.isAxiosError(e)) {
           if (_options.verbose && response.data.trace) {
-            console.log(chalk.red(`Stack trace: \n${response.data.trace}`));
+            log.error(chalk.red(`Stack trace: \n${response.data.trace}`));
           } else {
-            console.log(chalk.red(`Error: ${response.data.error}`));
+            log.error(chalk.red(`Error: ${response.data.error}`));
           }
           program.error(`Aborting due to an error`, { exitCode: 1 });
         } else {
@@ -696,7 +700,7 @@ program
         }
       }
     } catch (e: any) {
-      console.log(e);
+      log.error(e);
       program.error(`Aborting due to an error: ${e.message}`, { exitCode: 1 });
     }
   });
