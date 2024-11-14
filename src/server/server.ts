@@ -15,6 +15,8 @@ import chalk from "chalk";
 import child_process from "child_process";
 import chokidar from "chokidar";
 
+import log from "loglevel";
+
 export interface ServerOptions {
   port?: number;
   keys: Partial<Record<Provider, string>>;
@@ -29,14 +31,14 @@ const compileTypescript = async (outputDir: string) => {
       ["tsc", "--outDir", outputDir],
       (error, stdout, stderr) => {
         if (error) {
-          console.log(chalk.red("Failed to compile typescript\n"));
-          console.log(
+          log.error(chalk.red("Failed to compile typescript\n"));
+          log.error(
             stdout
               .split("\n")
               .map((line) => `|\t${line}`)
               .join("\n")
           );
-          console.log(
+          log.error(
             stderr
               .split("\n")
               .map((line) => `|\t${line}`)
@@ -45,7 +47,7 @@ const compileTypescript = async (outputDir: string) => {
           reject(error);
         } else {
           const elapsed = moment().diff(start);
-          console.log(
+          log.info(
             `${chalk.green("Compiled typescript")} ${chalk.gray(
               "(took " +
                 moment.duration(elapsed).as("seconds").toFixed(2) +
@@ -117,9 +119,7 @@ const importAgents = async (registry: Registry, imports: string[]) => {
     imp = indexed;
     imp = computeFileLocationInCache(imp);
 
-    console.log(
-      `  imported ${chalk.cyan(path.relative(process.cwd(), indexed))}`
-    );
+    log.info(`  imported ${chalk.cyan(path.relative(process.cwd(), indexed))}`);
     try {
       const module = await import(imp);
       if (!module.default) {
@@ -129,7 +129,7 @@ const importAgents = async (registry: Registry, imports: string[]) => {
       const namespace = namespaceFromPackage(impRaw);
 
       for (const constructor of constructors) {
-        console.log(
+        log.info(
           `    ${
             registry.has(namespace, constructor.name) ? "updated" : "registered"
           } agent ${chalk.cyan(constructor.name)}`
@@ -137,14 +137,14 @@ const importAgents = async (registry: Registry, imports: string[]) => {
         registry.register(namespace, constructor.name, constructor);
       }
     } catch (e: any) {
-      console.log(`Failed to import ${impRaw}: ${e.message}`);
+      log.warn(`Failed to import ${impRaw}: ${e.message}`);
       continue;
     }
   }
 };
 
 export const startServer = async ({ port, keys, imports }: ServerOptions) => {
-  console.log(
+  log.info(
     `\n😎 ${chalk.yellow(
       `Sagentic.ai Agent Framework`
     )}\n   dev server ${chalk.gray("v" + version)}\n`
@@ -240,7 +240,7 @@ export const startServer = async ({ port, keys, imports }: ServerOptions) => {
       process.exit(1);
     }
 
-    console.log(
+    log.info(
       `\nListening on ${chalk.cyan(`http://localhost:${listenPort}`)}\n`
     );
   });

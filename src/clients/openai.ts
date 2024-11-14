@@ -12,6 +12,7 @@ import {
 import { BaseClient, RejectionReason } from "./base";
 import { Message } from "../thread";
 import moment from "moment";
+import log from "loglevel";
 import fetch, { RequestInfo, RequestInit, Response, Headers } from "node-fetch";
 
 /** Estimate the number of tokens in a request */
@@ -110,12 +111,11 @@ export class OpenAIClient extends BaseClient<
       }, timeToReset.asMilliseconds());
 
       if (timeToReset.asMilliseconds() > 10000) {
-        if (this.debug)
-          console.log(
-            "WARNING: request reset time is greater than 10 seconds",
-            timeToReset.asSeconds(),
-            this.model
-          );
+        log.debug(
+          "WARNING: request reset time is greater than 10 seconds",
+          timeToReset.asSeconds(),
+          this.model
+        );
       }
     }
 
@@ -137,12 +137,11 @@ export class OpenAIClient extends BaseClient<
       }, timeToReset.asMilliseconds());
 
       if (timeToReset.asMilliseconds() > 10000) {
-        if (this.debug)
-          console.log(
-            "WARNING: token reset time is greater than 10 seconds",
-            timeToReset.asSeconds(),
-            this.model
-          );
+        log.debug(
+          "WARNING: token reset time is greater than 10 seconds",
+          timeToReset.asSeconds(),
+          this.model
+        );
       }
     }
   };
@@ -220,7 +219,7 @@ export const parseDuration = (duration: string): moment.Duration => {
 
   if (duration.length > 64) {
     // This is a sanity check to prevent (very unlikely) attack on regular expressions
-    console.log(
+    log.warn(
       "WARNING: duration too long when parsing time in client:",
       duration
     );
@@ -230,21 +229,21 @@ export const parseDuration = (duration: string): moment.Duration => {
   duration = duration.toLowerCase();
   const parts = duration.match(/(\d{1,5}(h|ms|m|s))/g);
   if (parts === null) {
-    console.log("WARNING: no parts when parsing time in client:", duration);
+    log.warn("WARNING: no parts when parsing time in client:", duration);
     return moment.duration(0);
   }
   const units: Record<string, number> = parts.reduce(
     (acc, part) => {
       const s = part.match(/(\d{1,5})(h|ms|m|s)/);
       if (s === null) {
-        console.log("WARNING: invalid part format:", part);
+        log.warn("WARNING: invalid part format:", part);
         return acc;
       }
 
       const num = parseInt(s[1], 10);
 
       if (isNaN(num)) {
-        console.log("WARNING: NaN when parsing time in client", s[1], s[2]);
+        log.warn("WARNING: NaN when parsing time in client", s[1], s[2]);
         return acc;
       }
 
@@ -256,7 +255,7 @@ export const parseDuration = (duration: string): moment.Duration => {
       }[s[2]];
 
       if (!unit) {
-        console.log("WARNING: unknown unit when parsing time in client", s[2]);
+        log.warn("WARNING: unknown unit when parsing time in client", s[2]);
         return acc;
       }
 

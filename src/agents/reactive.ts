@@ -7,6 +7,8 @@ import { jsonSchema, parseMultipleObjects } from "../common";
 import { Session } from "../session";
 import { Thread } from "../thread";
 
+import log from "loglevel";
+
 type ReactionFunction<T, S> = (state: S, input: T) => S | Promise<S>;
 
 export interface Reaction<T, S> {
@@ -202,13 +204,13 @@ export class ReactiveAgent<
           );
         }
       }
-      console.log("out");
+      log.debug("step out");
       return lastState;
     } catch (e: any) {
       this.abandon(this.thread);
       this.thread = this.thread.appendUserMessage(e.message);
       this.adopt(this.thread);
-      console.log("error", e.message);
+      log.error("step error", e.message);
       return lastState;
     }
   }

@@ -8,6 +8,7 @@ import {
   ChatCompletionResponse,
   BaseClientOptions,
 } from "./common";
+import log from "loglevel";
 
 export enum RejectionReason {
   BAD_REQUEST = "bad_request",
@@ -202,19 +203,18 @@ export abstract class BaseClient<
    * @returns void
    */
   protected tick(caller: string): void {
-    if (this.debug)
-      console.log(
-        "tick",
-        caller,
-        this.model,
-        this.queue.length,
-        this.inflightTickets,
-        this.requestPool,
-        this.tokenPool,
-        "timers",
-        !!this.requestTimer,
-        !!this.tokenTimer
-      );
+    log.debug(
+      "tick",
+      caller,
+      this.model,
+      this.queue.length,
+      this.inflightTickets,
+      this.requestPool,
+      this.tokenPool,
+      "timers",
+      !!this.requestTimer,
+      !!this.tokenTimer
+    );
     if (this.queue.length === 0) {
       return;
     }
@@ -242,22 +242,19 @@ export abstract class BaseClient<
     this.tokenPool -= ticket.tokens;
     this.requestPool -= 1;
 
-    if (this.debug)
-      console.log("processing ticket", ticket.id, "tokens", ticket.tokens);
+    log.debug("processing ticket", ticket.id, "tokens", ticket.tokens);
     this.inflightTickets.add(ticket.id);
     this.makeAPIRequest(ticket.request)
       .then((response) => {
-        if (this.debug) console.log("ticket resolved", ticket.id);
+        log.debug("ticket resolved", ticket.id);
         this.inflightTickets.delete(ticket.id);
         ticket.resolve(response);
       })
       .catch((reason) => {
         if (ticket.retries >= this.maxRetries) {
           // too many retries, give up
-          if (this.debug) {
-            console.log("ticket rejected: too many retries", ticket.id);
-            console.log("reason:", reason);
-          }
+          log.debug("ticket rejected: too many retries", ticket.id);
+          log.debug("reason:", reason);
           this.inflightTickets.delete(ticket.id);
           ticket.reject(reason);
           return;
@@ -267,10 +264,8 @@ export abstract class BaseClient<
         switch (parsedReason) {
           case RejectionReason.BAD_REQUEST:
             // bad request
-            if (this.debug) {
-              console.log("ticket rejected: bad request", ticket.id);
-              console.log("reason:", reason);
-            }
+            log.debug("ticket rejected: bad request", ticket.id);
+            log.debug("reason:", reason);
             this.inflightTickets.delete(ticket.id);
             ticket.reject(reason);
             return;
@@ -278,10 +273,8 @@ export abstract class BaseClient<
             // retry
             break;
           case RejectionReason.INSUFFICIENT_QUOTA:
-            if (this.debug) {
-              console.log("ticket rejected: insufficient quota", ticket.id);
-              console.log("reason:", reason);
-            }
+            log.debug("ticket rejected: insufficient quota", ticket.id);
+            log.debug("reason:", reason);
             this.inflightTickets.delete(ticket.id);
             ticket.reject(reason);
             return;
@@ -292,10 +285,8 @@ export abstract class BaseClient<
           case RejectionReason.UNKNOWN:
           default:
             // unknown error
-            if (this.debug) {
-              console.log("ticket rejected: unknown error", ticket.id);
-              console.log("reason:", reason);
-            }
+            log.debug("ticket rejected: unknown error", ticket.id);
+            log.debug("reason:", reason);
             this.inflightTickets.delete(ticket.id);
             ticket.reject(reason);
             return;
@@ -304,7 +295,7 @@ export abstract class BaseClient<
         // retry
         ticket.retries += 1;
         this.queue.push(ticket);
-        if (this.debug) console.log("ticket retrying", ticket.id);
+        log.debug("ticket retrying", ticket.id);
       });
 
     this.tick("recursive");

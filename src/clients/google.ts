@@ -19,6 +19,7 @@ import {
 } from "./common";
 import { BaseClient, RejectionReason } from "./base";
 import { Message, MessageRole, ContentPart, TextContentPart } from "../thread";
+import log from "loglevel";
 
 /**
  * Parse the messages from sagentic format to google format
@@ -143,7 +144,6 @@ export class GoogleClient extends BaseClient<
   async createChatCompletion(
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
-    console.log("raw request", JSON.stringify(request, null, 2));
     // system instruction is only available in Gemini 1.5, so we just pass it as normal user input for older models
     const [contents, systemPrompt] = parseContents(
       request.messages,
@@ -172,7 +172,6 @@ export class GoogleClient extends BaseClient<
       ];
     }
 
-    console.log("googleRequest", JSON.stringify(googleRequest, null, 2));
     // const tokens = estimateTokens(googleRequest);
     // const response = await this.enqueue(tokens, googleRequest);
     const response = await this.enqueue(1000, googleRequest);
@@ -232,7 +231,7 @@ export class GoogleClient extends BaseClient<
       return RejectionReason.TOO_MANY_REQUESTS;
     }
 
-    console.log("unknown Google error", error);
+    log.error("unknown Google error", error);
 
     return RejectionReason.UNKNOWN;
   }

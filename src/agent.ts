@@ -18,6 +18,8 @@ import { Thread, ToolAssistantContent, ToolCall } from "./thread";
 import { Tool, ToolSpec } from "./tool";
 import { EventEmitter } from "events";
 
+import log from "loglevel";
+
 /** Basic options for an agent */
 export interface AgentOptions {
   /** Model type for the agent to use */
@@ -170,7 +172,7 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
    * @returns the final result of the agent's work
    */
   async run(): Promise<ResultType> {
-    console.log("Agent", chalk.yellow(this.metadata.ID), chalk.blue("start"));
+    log.info("Agent", chalk.yellow(this.metadata.ID), chalk.blue("start"));
     this.trace(`${this.metadata.ID} run started: ${this.metadata.topic}`);
     this.state = await this.initialize(this.options);
     this.trace("initialize finished", this.state);
@@ -190,7 +192,7 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
     this.result = await this.finalize(this.state);
     this.emit("stop", this.result);
     this.conclude();
-    console.log(
+    log.info(
       "Agent",
       chalk.yellow(this.metadata.ID),
       chalk.green("done"),
@@ -412,7 +414,7 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
     constructor: Constructor<T>,
     options?: AgentOptions
   ): T {
-    console.log(
+    log.info(
       chalk.yellow(this.metadata.ID),
       chalk.blue("spawn"),
       constructor.name

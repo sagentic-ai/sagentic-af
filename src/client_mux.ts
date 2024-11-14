@@ -18,6 +18,8 @@ import { OpenAIClient } from "./clients/openai";
 import { GoogleClient } from "./clients/google";
 import { AnthropicClient } from "./clients/anthropic";
 
+import log from "loglevel";
+
 const clientConstructors = {
   [Provider.OpenAI]: OpenAIClient,
   [Provider.Google]: GoogleClient,
@@ -55,7 +57,7 @@ export class ClientMux {
       }
       const key = keys[provider];
       if (key === undefined) {
-        console.warn(
+        log.warn(
           `No API key provided for provider: ${provider} for model: ${model}`
         );
         continue;

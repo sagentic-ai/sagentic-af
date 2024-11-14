@@ -10,6 +10,8 @@ import chalk from "chalk";
 import { Constructor } from "./common";
 import { OneShotAgent } from "./agents/one-shot";
 
+import log from "loglevel";
+
 export type ToolSpec = ChatCompletionTool;
 
 export interface Tool {
@@ -71,7 +73,7 @@ export class FunctionTool<Args, Returns> implements Tool {
     const result = await this.func(agent, validatedArgs);
     const validatedResults = this.returns.parse(result);
     const elapsed = moment().diff(start);
-    console.log(
+    log.info(
       chalk.yellow(agent.metadata.ID),
       chalk.green("tool"),
       this.name,

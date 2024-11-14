@@ -9,6 +9,7 @@ import {
 import { BaseClient, RejectionReason } from "./base";
 import { Message, MessageRole, ContentPart, TextContentPart } from "../thread";
 import moment from "moment";
+import log from "loglevel";
 
 /** Parse messages from sagentic format into anthropic format */
 function parseMessages(
@@ -254,12 +255,11 @@ export class AnthropicClient extends BaseClient<
       }, timeToReset.asMilliseconds());
 
       if (timeToReset.asMilliseconds() > 10000) {
-        if (this.debug)
-          console.log(
-            "WARNING: request reset time is greater than 10 seconds",
-            timeToReset.asSeconds(),
-            this.model
-          );
+        log.debug(
+          "WARNING: request reset time is greater than 10 seconds",
+          timeToReset.asSeconds(),
+          this.model
+        );
       }
     }
 
@@ -281,12 +281,11 @@ export class AnthropicClient extends BaseClient<
       }, timeToReset.asMilliseconds());
 
       if (timeToReset.asMilliseconds() > 10000) {
-        if (this.debug)
-          console.log(
-            "WARNING: token reset time is greater than 10 seconds",
-            timeToReset.asSeconds(),
-            this.model
-          );
+        log.debug(
+          "WARNING: token reset time is greater than 10 seconds",
+          timeToReset.asSeconds(),
+          this.model
+        );
       }
     }
   };
@@ -304,11 +303,11 @@ export class AnthropicClient extends BaseClient<
         case 500:
           return RejectionReason.SERVER_ERROR;
         default:
-          console.log("unknown anthropic error", error);
+          log.error("unknown anthropic error", error);
           return RejectionReason.UNKNOWN;
       }
     }
-    console.log("unknown error making anthropic API request", error);
+    log.error("unknown error making anthropic API request", error);
     return RejectionReason.UNKNOWN;
   }
 }
