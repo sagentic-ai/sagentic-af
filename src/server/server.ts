@@ -5,7 +5,8 @@ import Fastify from "fastify";
 import path from "path";
 import fs from "fs";
 import { ClientMux } from "../client_mux";
-import { Provider } from "../models";
+import { ClientOptions } from "../clients/common";
+import { Provider, ModelType } from "../models";
 import { version } from "../../package.json";
 import { AgentOptions } from "../agent";
 import { Registry } from "../registry";
@@ -21,6 +22,7 @@ export interface ServerOptions {
   port?: number;
   keys: Partial<Record<Provider, string>>;
   imports?: string[];
+  modelOptions?: Partial<Record<ModelType, ClientOptions>>;
 }
 
 const compileTypescript = async (outputDir: string) => {
@@ -89,7 +91,9 @@ const clearRequireCache = () => {
 
 const constructorsFromModule = (module: any): any[] => {
   const constructors = [];
-  if (Array.isArray(module.default)) {
+  if (Array.isArray(module.default?.default)) {
+    constructors.push(...module.default.default);
+  } else if (Array.isArray(module.default)) {
     constructors.push(...module.default);
   } else if (Array.isArray(module.default.agents)) {
     constructors.push(...module.default.agents);
@@ -143,7 +147,12 @@ const importAgents = async (registry: Registry, imports: string[]) => {
   }
 };
 
-export const startServer = async ({ port, keys, imports }: ServerOptions) => {
+export const startServer = async ({
+  port,
+  keys,
+  imports,
+  modelOptions,
+}: ServerOptions) => {
   log.info(
     `\n😎 ${chalk.yellow(
       `Sagentic.ai Agent Framework`
@@ -156,7 +165,7 @@ export const startServer = async ({ port, keys, imports }: ServerOptions) => {
 
   const sessions: Session[] = [];
 
-  const clientMux = new ClientMux(keys);
+  const clientMux = new ClientMux(keys, undefined, modelOptions);
   clientMux.start();
 
   const registry = new Registry();

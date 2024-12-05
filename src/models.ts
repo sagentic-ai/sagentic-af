@@ -4,6 +4,7 @@
 /** Available providers */
 export enum Provider {
   OpenAI = "openai",
+  AzureOpenAI = "azure-openai",
   Google = "google",
   Anthropic = "anthropic",
 }
@@ -29,6 +30,8 @@ export enum ModelType {
   CLAUDE3Opus = "claude-3-opus-20240229",
   CLAUDE3Sonnet = "claude-3-sonnet-20240229",
   CLAUDE3Haiku = "claude-3-haiku-20240307",
+
+  AZURE_GPT4o = "azure/gpt-4o",
 }
 
 /** Describes model pricing and limits */
@@ -187,6 +190,16 @@ export const pricing: Record<ModelType, ModelPricing> = {
     tpm: 25_000,
     supportsImages: true,
   },
+  [ModelType.AZURE_GPT4o]: {
+    prompt: 5,
+    completion: 15,
+    contextSize: 128_000,
+    rpm: 500,
+    tpm: 30_000,
+    supportsImages: true,
+    supportsVideo: true,
+    supportsAudio: false, //NB audio support is not yet in the API, TODO add this once OpenAI adds it
+  },
 };
 
 /** Model metadata */
@@ -250,6 +263,10 @@ export const models: Record<ModelType, ModelMetadata> = {
   [ModelType.CLAUDE3Haiku]: {
     provider: Provider.Anthropic,
     pricing: pricing[ModelType.CLAUDE3Haiku],
+  },
+  [ModelType.AZURE_GPT4o]: {
+    provider: Provider.AzureOpenAI,
+    pricing: pricing[ModelType.AZURE_GPT4o],
   },
 };
 

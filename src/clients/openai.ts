@@ -1,10 +1,11 @@
 // Copyright 2024 Ahyve AI Inc.
 // SPDX-License-Identifier: MIT
 
-import OpenAI, { ClientOptions } from "openai";
+import OpenAI, { AzureOpenAI, ClientOptions } from "openai";
 import { ModelType, pricing } from "../models";
 import {
   OpenAIClientOptions,
+  AzureOpenAIClientOptions,
   ChatCompletionRequest,
   ChatCompletionResponse,
   countTokens,
@@ -15,6 +16,12 @@ import moment from "moment";
 import log from "loglevel";
 import fetch, { RequestInfo, RequestInit, Response, Headers } from "node-fetch";
 
+type OpenAIBase = OpenAI | AzureOpenAI;
+
+const makeAzureOpenAIEndpoint = (resource: string): string =>
+  `https://${resource}.openai.azure.com/openai`;
+const DEFAULT_AZURE_API_VERSION = "2024-08-01-preview";
+
 /** Estimate the number of tokens in a request */
 const estimateTokens = (
   request: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming
@@ -24,13 +31,15 @@ const estimateTokens = (
 };
 
 /** OpenAI Client wrapper */
-export class OpenAIClient extends BaseClient<
+export abstract class OpenAIClientBase<
+  Options extends ClientOptions,
+> extends BaseClient<
   OpenAI.Chat.ChatCompletionCreateParamsNonStreaming,
   OpenAI.Chat.Completions.ChatCompletion,
-  OpenAIClientOptions
+  Options
 > {
   /** OpenAI client */
-  private openai: OpenAI;
+  protected abstract openai: OpenAIBase;
 
   /**
    * Create a new Client.
@@ -39,36 +48,15 @@ export class OpenAIClient extends BaseClient<
    * @param options ClientOptions
    * @returns Client
    */
-  constructor(
-    openAIKey: string,
-    model: ModelType,
-    options?: OpenAIClientOptions
-  ) {
+  constructor(model: ModelType, options?: Options) {
     super(model, options);
-
-    const openAIOptions = options || {};
-    const origFetch = openAIOptions.fetch || fetch;
-    openAIOptions.fetch = (
-      url: RequestInfo,
-      opts?: RequestInit
-    ): Promise<Response> => {
-      return origFetch(url, opts).then((response) => {
-        this.updatePools(response.headers);
-        return response;
-      });
-    };
-
-    this.openai = new OpenAI({
-      ...openAIOptions,
-      apiKey: openAIKey,
-    });
   }
 
   /**
    * Update pools based on API response.
    * @returns void
    */
-  private updatePools = (headers: Headers): void => {
+  protected updatePools = (headers: Headers): void => {
     if (headers.has("x-ratelimit-limit-requests")) {
       this.requestPoolMax = parseInt(
         headers.get("x-ratelimit-limit-requests") || "0"
@@ -266,3 +254,92 @@ export const parseDuration = (duration: string): moment.Duration => {
   );
   return moment.duration(units);
 };
+
+export class OpenAIClient extends OpenAIClientBase<OpenAIClientOptions> {
+  protected openai: OpenAI;
+
+  constructor(
+    openAIKey: string,
+    model: ModelType,
+    options?: OpenAIClientOptions
+  ) {
+    super(model, options);
+
+    const openAIOptions = options || {};
+    const origFetch = openAIOptions.fetch || fetch;
+    openAIOptions.fetch = (
+      url: RequestInfo,
+      opts?: RequestInit
+    ): Promise<Response> => {
+      return origFetch(url, opts).then((response) => {
+        this.updatePools(response.headers);
+        return response;
+      });
+    };
+
+    this.openai = new OpenAI({
+      ...openAIOptions,
+      apiKey: openAIKey,
+    });
+  }
+}
+
+export class AzureOpenAIClient extends OpenAIClientBase<AzureOpenAIClientOptions> {
+  protected openai: AzureOpenAI;
+
+  constructor(
+    openAIKey: string,
+    model: ModelType,
+    options?: AzureOpenAIClientOptions
+  ) {
+    super(model, options);
+
+    const openAIOptions = options || { deployment: "", resource: "" };
+    const origFetch = openAIOptions.fetch || fetch;
+    openAIOptions.fetch = (
+      url: RequestInfo,
+      opts?: RequestInit
+    ): Promise<Response> => {
+      return origFetch(url, opts).then((response) => {
+        this.updatePools(response.headers);
+        return response;
+      });
+    };
+
+    if (!openAIOptions.apiVersion) {
+      openAIOptions.apiVersion = DEFAULT_AZURE_API_VERSION;
+    }
+
+    const endpoint = makeAzureOpenAIEndpoint(openAIOptions.resource || "");
+    this.openai = new AzureOpenAI({
+      ...openAIOptions,
+      apiKey: openAIKey,
+      baseURL: endpoint,
+    });
+  }
+
+  async createChatCompletion(
+    request: ChatCompletionRequest
+  ): Promise<ChatCompletionResponse> {
+    const openaiRequest: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
+      model: this.model.replace("^azure/", ""),
+      temperature: request.options?.temperature,
+      max_tokens: request.options?.max_tokens,
+      tools: request.options?.tools,
+      response_format: request.options?.response_format,
+      messages: request.messages as OpenAI.Chat.ChatCompletionMessageParam[],
+    };
+    var response: OpenAI.Chat.Completions.ChatCompletion;
+    if (pricing[this.model].supportsImages) {
+      // FIXME count tokens without base64 images
+      response = await this.enqueue(1000, openaiRequest);
+    } else {
+      const tokens = estimateTokens(openaiRequest);
+      response = await this.enqueue(tokens, openaiRequest);
+    }
+    return {
+      usage: response.usage,
+      messages: response.choices.map((choice) => choice.message as Message),
+    } as ChatCompletionResponse;
+  }
+}

@@ -265,6 +265,7 @@ export class MockChatAPI {
           message: {
             role: "assistant",
             content: result,
+            refusal: null,
           },
           logprobs: null,
         },
