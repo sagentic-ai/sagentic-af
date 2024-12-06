@@ -71,6 +71,15 @@ export interface OpenAIClientOptions
   extends OpenAIClientOptionsBase,
     BaseClientOptions {}
 
+/** Options for sagentic Azure OpenAI Client */
+export interface AzureOpenAIClientOptions
+  extends OpenAIClientOptionsBase,
+    BaseClientOptions {
+  resource?: string;
+  deployment?: string;
+  apiVersion?: string;
+}
+
 /** Options for sagentic Google Client */
 export interface GoogleClientOptions extends BaseClientOptions {}
 
@@ -80,5 +89,7 @@ export interface AnthropicClientOptions extends BaseClientOptions {}
 /** Union type for all client options */
 export type ClientOptions =
   | OpenAIClientOptions
+  | AzureOpenAIClientOptions
+  | OpenAIClientOptionsBase
   | GoogleClientOptions
   | AnthropicClientOptions;

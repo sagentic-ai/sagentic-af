@@ -8,6 +8,13 @@ import {
 } from "./common";
 import { BaseClient, RejectionReason } from "./base";
 import { Message, MessageRole, ContentPart, TextContentPart } from "../thread";
+import fetch from "node-fetch";
+import {
+  RequestInfo,
+  RequestInit,
+  Response,
+  Headers,
+} from "@anthropic-ai/sdk/_shims/node-types.mjs";
 import moment from "moment";
 import log from "loglevel";
 

@@ -287,10 +287,17 @@ program
         port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
         keys: {
           [Provider.OpenAI]: process.env.OPENAI_API_KEY || "",
+          [Provider.AzureOpenAI]: process.env.AZURE_OPENAI_API_KEY || "",
           [Provider.Google]: process.env.GOOGLE_API_KEY || "",
           [Provider.Anthropic]: process.env.ANTHROPIC_API_KEY || "",
         },
         imports: importPaths,
+        modelOptions: {
+          [ModelType.AZURE_GPT4o]: {
+            resource: process.env.AZURE_OPENAI_RESOURCE_NAME,
+            deployment: process.env.AZURE_OPENAI_DEPLOYMENT,
+          },
+        },
       });
     } catch (e: any) {
       program.error(`Aborting due to an error: ${e.message}`, { exitCode: 1 });

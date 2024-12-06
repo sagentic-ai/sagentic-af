@@ -14,7 +14,7 @@ import {
   ChatCompletionRequest,
   ChatCompletionResponse,
 } from "./clients/common";
-import { OpenAIClient } from "./clients/openai";
+import { OpenAIClient, AzureOpenAIClient } from "./clients/openai";
 import { GoogleClient } from "./clients/google";
 import { AnthropicClient } from "./clients/anthropic";
 
@@ -22,6 +22,7 @@ import log from "loglevel";
 
 const clientConstructors = {
   [Provider.OpenAI]: OpenAIClient,
+  [Provider.AzureOpenAI]: AzureOpenAIClient,
   [Provider.Google]: GoogleClient,
   [Provider.Anthropic]: AnthropicClient,
 };
@@ -42,7 +43,7 @@ export class ClientMux {
   constructor(
     keys: Partial<Record<Provider, string>>,
     options?: ClientMuxOptions,
-    modelOptions?: Record<ModelType, ClientOptions>
+    modelOptions?: Partial<Record<ModelType, ClientOptions>>
   ) {
     const modelClients = options?.models || availableModels;
     if (modelClients.length === 0) {
