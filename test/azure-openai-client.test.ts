@@ -30,7 +30,7 @@ describe("OpenAI Client with real API", () => {
     client.stop();
   });
 
-  test("Simple Request", async () => {
+  test.skip("Simple Request", async () => {
     const response = await client.createChatCompletion({
       model: ModelType.AZURE_GPT4o,
       messages: [
