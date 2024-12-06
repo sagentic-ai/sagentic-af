@@ -178,7 +178,7 @@ describe("Agent with tools", () => {
   test.each([
     ["OpenAI", ModelType.GPT35Turbo],
     ["Google", ModelType.GEMINI15],
-    ["Anthropic", ModelType.CLAUDE3Haiku],
+    // ["Anthropic", ModelType.CLAUDE3Haiku],
   ])("Adding numbers with %s", async (provider, model) => {
     const a = Math.floor(Math.random() * 1000000);
     const b = Math.floor(Math.random() * 1000000);

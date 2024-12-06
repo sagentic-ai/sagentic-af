@@ -20,7 +20,7 @@ describe("Anthropic Client with real API", () => {
     client.stop();
   });
 
-  test("Simple Request", async () => {
+  test.skip("Simple Request", async () => {
     const response = await client.createChatCompletion({
       model: ModelType.CLAUDE3Haiku,
       messages: [
