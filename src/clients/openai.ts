@@ -50,8 +50,6 @@ export abstract class OpenAIClientBase<
    */
   constructor(model: ModelMetadata, options?: Options) {
     super(model, options);
-		const url = options?.endpointURL || model.provider.url;
-			baseURL: url,
   }
 
   /**
@@ -273,7 +271,7 @@ export class OpenAIClient extends OpenAIClientBase<OpenAIClientOptions> {
 
   constructor(
     openAIKey: string,
-    model: ModelType,
+    model: ModelMetadata,
     options?: OpenAIClientOptions
   ) {
     super(model, options);
@@ -290,9 +288,11 @@ export class OpenAIClient extends OpenAIClientBase<OpenAIClientOptions> {
       });
     };
 
+		const url = options?.endpointURL || model.provider.url;
     this.openai = new OpenAI({
       ...openAIOptions,
       apiKey: openAIKey,
+			baseURL: url,
     });
   }
 }
@@ -302,7 +302,7 @@ export class AzureOpenAIClient extends OpenAIClientBase<AzureOpenAIClientOptions
 
   constructor(
     openAIKey: string,
-    model: ModelType,
+    model: ModelMetadata,
     options?: AzureOpenAIClientOptions
   ) {
     super(model, options);
@@ -335,7 +335,7 @@ export class AzureOpenAIClient extends OpenAIClientBase<AzureOpenAIClientOptions
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
     const openaiRequest: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
-      model: this.model.replace(/^azure\//, ""),
+      model: this.model.card.checkpoint.replace(/^azure\//, ""),
       temperature: request.options?.temperature,
       max_tokens: request.options?.max_tokens,
       tools: request.options?.tools,
@@ -343,7 +343,7 @@ export class AzureOpenAIClient extends OpenAIClientBase<AzureOpenAIClientOptions
       messages: request.messages as OpenAI.Chat.ChatCompletionMessageParam[],
     };
     var response: OpenAI.Chat.Completions.ChatCompletion;
-    if (pricing[this.model].supportsImages) {
+    if (this.model.card.supportsImages) {
       // FIXME count tokens without base64 images
       response = await this.enqueue(1000, openaiRequest);
     } else {

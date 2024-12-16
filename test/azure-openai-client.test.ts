@@ -6,7 +6,7 @@ import {
   AzureOpenAIClient as Client,
   parseDuration,
 } from "../src/clients/openai";
-import { ModelType } from "../src/models";
+import { BuiltinModel, models } from "../src/models";
 import { MessageRole } from "../src/thread";
 import { MockOpenAIApi } from "./mock-openai/server";
 
@@ -19,7 +19,7 @@ describe("OpenAI Client with real API", () => {
   let client: Client;
 
   beforeAll(() => {
-    client = new Client(REAL_APIKEY, ModelType.GPT35Turbo, {
+    client = new Client(REAL_APIKEY, models[BuiltinModel.GPT35Turbo], {
       resource: REAL_RESOURCE,
       deployment: REAL_DEPLOYMENT,
     });
@@ -32,7 +32,7 @@ describe("OpenAI Client with real API", () => {
 
   test.skip("Simple Request", async () => {
     const response = await client.createChatCompletion({
-      model: ModelType.AZURE_GPT4o,
+      model: BuiltinModel.AZURE_GPT4o,
       messages: [
         {
           role: MessageRole.System,

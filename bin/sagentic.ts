@@ -9,7 +9,7 @@ import { version } from "../package.json";
 import prompts from "prompts";
 import chalk from "chalk";
 import { startServer } from "../src/server/server";
-import { BuiltinProvider, ModelID } from "../src/models";
+import { BuiltinProvider, BuiltinModel, ModelID } from "../src/models";
 import { SessionReport } from "../src/session";
 import dotenv from "dotenv";
 import axios, { AxiosResponse } from "axios";
@@ -293,7 +293,7 @@ program
         },
         imports: importPaths,
         modelOptions: {
-          [ModelType.AZURE_GPT4o]: {
+          [BuiltinModel.AZURE_GPT4o]: {
             resource: process.env.AZURE_OPENAI_RESOURCE_NAME,
             deployment: process.env.AZURE_OPENAI_DEPLOYMENT,
           },

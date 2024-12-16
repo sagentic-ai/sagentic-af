@@ -17,6 +17,7 @@ export type ProviderID = BuiltinProvider | string;
 /** Available client types */
 export enum ClientType {
 	OpenAI = "openai",
+	AzureOpenAI = "azure-openai",
 	Google = "google",
 	Anthropic = "anthropic",
 }
@@ -24,6 +25,7 @@ export enum ClientType {
 /** default endpoints for each provider */
 export const endpoints: Record<BuiltinProvider, string> = {
 	[BuiltinProvider.OpenAI]: "https://api.openai.com/v1",
+	[BuiltinProvider.AzureOpenAI]: "FIXME", //TODO add Azure OpenAI endpoint
 	[BuiltinProvider.Google]: "https://generativelanguage.googleapis.com",
 	[BuiltinProvider.Anthropic]: "https://api.anthropic.com",
 };
@@ -40,6 +42,11 @@ export const providers: Record<ProviderID, ProviderMetadata> = {
 		id: BuiltinProvider.OpenAI,
 		url: endpoints[BuiltinProvider.OpenAI],
 		clientType: ClientType.OpenAI,
+	},
+	[BuiltinProvider.AzureOpenAI]: {
+		id: BuiltinProvider.AzureOpenAI,
+		url: endpoints[BuiltinProvider.OpenAI],
+		clientType: ClientType.AzureOpenAI,
 	},
 	[BuiltinProvider.Google]: {
 		id: BuiltinProvider.Google,
@@ -61,7 +68,13 @@ export enum BuiltinModel {
   GPT4 = "gpt-4",
   GPT4Turbo = "gpt-4-turbo",
   GPT4Vision = "gpt-4-vision",
+
   GPT4o = "gpt-4o",
+  GPT4o240513 = "gpt-4o-2024-05-13",
+  GPT4o240806 = "gpt-4o-2024-08-06",
+  GPT4oMini = "gpt-4o-mini",
+  GPT4oMini240718 = "gpt-4o-mini-2024-07-18",
+
   GPT35Turbo = "gpt-3.5-turbo",
 
   GEMINI15 = "gemini-1.5-pro",
@@ -71,6 +84,8 @@ export enum BuiltinModel {
   CLAUDE3Opus = "claude-3-opus",
   CLAUDE3Sonnet = "claude-3-sonnet",
   CLAUDE3Haiku = "claude-3-haiku",
+
+	AZURE_GPT4o = "azure/gpt-4o",
 }
 /** Deprecated identifier for builtin models */
 export import ModelType = BuiltinModel;
@@ -100,7 +115,7 @@ enum Checkpoint {
   CLAUDE3Sonnet = "claude-3-sonnet-20240229",
   CLAUDE3Haiku = "claude-3-haiku-20240307",
 
-  AZURE_GPT4o = "azure/gpt-4o",
+  AZURE_GPT4o = "gpt-4o",
   AZURE_GPT4oMini = "azure/gpt-4o-mini",
 }
 
@@ -172,6 +187,7 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     supportsAudio: false, //NB audio support is not yet in the API, TODO add this once OpenAI adds it
   },
   [BuiltinModel.GPT4o240513]: {
+		checkpoint: Checkpoint.GPT4o240513,
     prompt: 5,
     completion: 15,
     contextSize: 128_000,
@@ -182,6 +198,7 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     supportsAudio: false, //NB audio support is not yet in the API, TODO add this once OpenAI adds it
   },
   [BuiltinModel.GPT4o240806]: {
+		checkpoint: Checkpoint.GPT4o240806,
     prompt: 5,
     completion: 15,
     contextSize: 128_000,
@@ -191,7 +208,8 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     supportsVideo: true,
     supportsAudio: false, //NB audio support is not yet in the API, TODO add this once OpenAI adds it
   },
-  [BultinModel.GPT4oMini]: {
+  [BuiltinModel.GPT4oMini]: {
+		checkpoint: Checkpoint.GPT4oMini,
     prompt: 0.15,
     completion: 0.6,
     contextSize: 128_000,
@@ -202,6 +220,7 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     supportsAudio: false, //NB audio support is not yet in the API, TODO add this once OpenAI adds it
   },
   [BuiltinModel.GPT4oMini240718]: {
+		checkpoint: Checkpoint.GPT4oMini240718,
     prompt: 0.15,
     completion: 0.6,
     contextSize: 128_000,
@@ -212,6 +231,7 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     supportsAudio: false, //NB audio support is not yet in the API, TODO add this once OpenAI adds it
   },
   [BuiltinModel.GPT35Turbo]: {
+		checkpoint: Checkpoint.GPT35Turbo,
     prompt: 0.5,
     completion: 1.5,
     contextSize: 16_385,
@@ -293,7 +313,8 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     tpm: 25_000,
     supportsImages: true,
   },
-  [ModelType.AZURE_GPT4o]: {
+  [BuiltinModel.AZURE_GPT4o]: {
+		checkpoint: Checkpoint.AZURE_GPT4o,
     prompt: 2.5,
     completion: 10,
     contextSize: 128_000,
@@ -331,22 +352,26 @@ export const models: Record<BuiltinModel, ModelMetadata> = {
 		id: BuiltinModel.GPT4Turbo,
     provider: providers[BuiltinProvider.OpenAI],
     card: cards[BuiltinModel.GPT4Turbo],
+	},
   [BuiltinModel.GPT4o240513]: {
-    provider: Provider.OpenAI,
-    pricing: pricing[ModelType.GPT4o240513],
+		id: BuiltinModel.GPT4o240513,
+    provider: providers[BuiltinProvider.OpenAI],
+		card: cards[BuiltinModel.GPT4o240513],
   },
   [BuiltinModel.GPT4o240806]: {
-    provider: Provider.OpenAI,
-    pricing: pricing[ModelType.GPT4o240806],
+		id: BuiltinModel.GPT4o240806,
+    provider: providers[BuiltinProvider.OpenAI],
+		card: cards[BuiltinModel.GPT4o240806],
   },
   [BuiltinModel.GPT4oMini]: {
-    provider: Provider.OpenAI,
-    pricing: pricing[ModelType.GPT4oMini],
+		id: BuiltinModel.GPT4oMini,
+    provider: providers[BuiltinProvider.OpenAI],
+		card: cards[BuiltinModel.GPT4oMini],
   },
   [BuiltinModel.GPT4oMini240718]: {
-    provider: Provider.OpenAI,
-    pricing: pricing[ModelType.GPT4oMini240718],
-  },
+		id: BuiltinModel.GPT4oMini240718,
+    provider: providers[BuiltinProvider.OpenAI],
+		card: cards[BuiltinModel.GPT4oMini240718],
   },
   [BuiltinModel.GPT4Vision]: {
 		id: BuiltinModel.GPT4Vision,
@@ -395,13 +420,15 @@ export const models: Record<BuiltinModel, ModelMetadata> = {
     provider: providers[BuiltinProvider.Anthropic],
     card: cards[BuiltinModel.CLAUDE3Haiku],
   },
-  [ModelType.AZURE_GPT4o]: {
-    provider: Provider.AzureOpenAI,
-    pricing: pricing[ModelType.AZURE_GPT4o],
+  [BuiltinModel.AZURE_GPT4o]: {
+		id: BuiltinModel.AZURE_GPT4o,
+    provider: providers[BuiltinProvider.AzureOpenAI],
+		card: cards[BuiltinModel.AZURE_GPT4o],
   },
   [ModelType.AZURE_GPT4oMini]: {
     provider: Provider.AzureOpenAI,
     pricing: pricing[ModelType.AZURE_GPT4oMini],
+    card: cards[BuiltinModel.AZURE_GPT4oMini],
   },
 };
 

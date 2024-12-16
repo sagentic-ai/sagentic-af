@@ -96,7 +96,7 @@ export class ClientMux {
 				throw new Error(`Unknown provider: ${provider} for model: ${model.id}`);
 			}
 			this.clients[model.id] = new clientConstructor(
-				key,
+				key || "",
 				model,
 				modelOptions
 			);
