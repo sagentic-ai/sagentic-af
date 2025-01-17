@@ -322,7 +322,7 @@ export class AzureOpenAIClient extends OpenAIClientBase<AzureOpenAIClientOptions
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
     const openaiRequest: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
-      model: this.model.replace("^azure/", ""),
+      model: this.model.replace(/^azure\//, ""),
       temperature: request.options?.temperature,
       max_tokens: request.options?.max_tokens,
       tools: request.options?.tools,
