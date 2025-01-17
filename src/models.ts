@@ -192,8 +192,8 @@ export const pricing: Record<ModelType, ModelPricing> = {
     supportsImages: true,
   },
   [ModelType.AZURE_GPT4o]: {
-    prompt: 5,
-    completion: 15,
+    prompt: 2.5,
+    completion: 10,
     contextSize: 128_000,
     rpm: 500,
     tpm: 30_000,
