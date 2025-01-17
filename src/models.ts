@@ -32,6 +32,7 @@ export enum ModelType {
   CLAUDE3Haiku = "claude-3-haiku-20240307",
 
   AZURE_GPT4o = "azure/gpt-4o",
+  AZURE_GPT4oMini = "azure/gpt-4o-mini",
 }
 
 /** Describes model pricing and limits */
@@ -200,6 +201,16 @@ export const pricing: Record<ModelType, ModelPricing> = {
     supportsVideo: true,
     supportsAudio: false, //NB audio support is not yet in the API, TODO add this once OpenAI adds it
   },
+  [ModelType.AZURE_GPT4oMini]: {
+    prompt: 0.15,
+    completion: 0.60,
+    contextSize: 128_000,
+    rpm: 500,
+    tpm: 30_000,
+    supportsImages: true,
+    supportsVideo: true,
+    supportsAudio: false, //NB audio support is not yet in the API, TODO add this once OpenAI adds it
+  },
 };
 
 /** Model metadata */
@@ -267,6 +278,10 @@ export const models: Record<ModelType, ModelMetadata> = {
   [ModelType.AZURE_GPT4o]: {
     provider: Provider.AzureOpenAI,
     pricing: pricing[ModelType.AZURE_GPT4o],
+  },
+  [ModelType.AZURE_GPT4oMini]: {
+    provider: Provider.AzureOpenAI,
+    pricing: pricing[ModelType.AZURE_GPT4oMini],
   },
 };
 
