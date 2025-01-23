@@ -23,6 +23,9 @@ export enum ModelType {
 
   GPT35Turbo = "gpt-3.5-turbo-0125",
 
+  O1 = "o1",
+  O1mini = "o1-mini",
+
   GEMINI15 = "gemini-1.5-pro-latest",
   GEMINI10 = "gemini-1.0-pro",
   GEMINI10Vision = "gemini-1.0-pro-vision",
@@ -142,6 +145,26 @@ export const pricing: Record<ModelType, ModelPricing> = {
     rpm: 10_000,
     tpm: 1_000_000,
   },
+  [ModelType.O1]: {
+    prompt: 15,
+    completion: 60,
+    contextSize: 200_000,
+    rpm: 20,
+    tpm: 30_000_000,
+    supportsImages: false,
+    supportsVideo: false,
+    supportsAudio: false,
+  },
+  [ModelType.O1mini]: {
+    prompt: 3,
+    completion: 12,
+    contextSize: 128_000,
+    rpm: 20,
+    tpm: 150_000_000,
+    supportsImages: false,
+    supportsVideo: false,
+    supportsAudio: false,
+  },
   //TODO ensure correct pricing for Gemini models
   [ModelType.GEMINI15]: {
     prompt: 0.000007,
@@ -203,7 +226,7 @@ export const pricing: Record<ModelType, ModelPricing> = {
   },
   [ModelType.AZURE_GPT4oMini]: {
     prompt: 0.15,
-    completion: 0.60,
+    completion: 0.6,
     contextSize: 128_000,
     rpm: 500,
     tpm: 30_000,
@@ -250,6 +273,14 @@ export const models: Record<ModelType, ModelMetadata> = {
   [ModelType.GPT35Turbo]: {
     provider: Provider.OpenAI,
     pricing: pricing[ModelType.GPT35Turbo],
+  },
+  [ModelType.O1]: {
+    provider: Provider.OpenAI,
+    pricing: pricing[ModelType.O1],
+  },
+  [ModelType.O1mini]: {
+    provider: Provider.OpenAI,
+    pricing: pricing[ModelType.O1mini],
   },
   [ModelType.GEMINI15]: {
     provider: Provider.Google,
