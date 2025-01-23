@@ -11,7 +11,7 @@ import {
   countTokens,
 } from "./common";
 import { BaseClient, RejectionReason } from "./base";
-import { Message } from "../thread";
+import { Message, MessageRole } from "../thread";
 import moment from "moment";
 import log from "loglevel";
 import fetch, { RequestInfo, RequestInit, Response, Headers } from "node-fetch";
@@ -142,6 +142,14 @@ export abstract class OpenAIClientBase<
   async createChatCompletion(
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
+    if (this.model === ModelType.O1 || this.model === ModelType.O1mini) {
+      for (const message of request.messages) {
+        if (message.role === MessageRole.System) {
+          message.role = MessageRole.User;
+        }
+      }
+    }
+
     const openaiRequest: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
       model: this.model,
       temperature: request.options?.temperature,
@@ -150,6 +158,9 @@ export abstract class OpenAIClientBase<
       response_format: request.options?.response_format,
       messages: request.messages as OpenAI.Chat.ChatCompletionMessageParam[],
     };
+    if (this.model === ModelType.O1 || this.model === ModelType.O1mini) {
+      delete openaiRequest.temperature;
+    }
     var response: OpenAI.Chat.Completions.ChatCompletion;
     if (pricing[this.model].supportsImages) {
       // FIXME count tokens without base64 images
