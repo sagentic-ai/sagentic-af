@@ -108,13 +108,13 @@ export class Ledger extends EventEmitter {
   add(callerID: ID, model: ModelMetadata, timing: Timing, tokens: PCT): void {
     if (!timing.hasEnded) throw new Error("Timing has not ended");
 
-		// late init
-		if (!this.costPerModel[model.id]) {
-			this.costPerModel[model.id] = new PCT();
-		}
-		if (!this.tokensPerModel[model.id]) {
-			this.tokensPerModel[model.id] = new PCT();
-		}
+    // late init
+    if (!this.costPerModel[model.id]) {
+      this.costPerModel[model.id] = new PCT();
+    }
+    if (!this.tokensPerModel[model.id]) {
+      this.tokensPerModel[model.id] = new PCT();
+    }
 
     this.totalTokens.add(tokens);
     this.tokensPerModel[model.id].add(tokens);

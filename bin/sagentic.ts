@@ -699,9 +699,7 @@ program
           console.log("\tTokens per model:");
           for (const model in response.data.session.tokens) {
             console.log(
-              `\t\t${model}: ${
-                response.data.session.tokens[model as ModelID]
-              }`
+              `\t\t${model}: ${response.data.session.tokens[model as ModelID]}`
             );
           }
         }

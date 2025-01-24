@@ -102,7 +102,7 @@ export abstract class OpenAIClientBase<
         log.debug(
           "WARNING: request reset time is greater than 10 seconds",
           timeToReset.asSeconds(),
-          this.model.id,
+          this.model.id
         );
       }
     }
@@ -128,7 +128,7 @@ export abstract class OpenAIClientBase<
         log.debug(
           "WARNING: token reset time is greater than 10 seconds",
           timeToReset.asSeconds(),
-          this.model.id,
+          this.model.id
         );
       }
     }
@@ -142,7 +142,10 @@ export abstract class OpenAIClientBase<
   async createChatCompletion(
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
-    if (this.model.id === BuiltinModel.O1 || this.model.id === BuiltinModel.O1mini) {
+    if (
+      this.model.id === BuiltinModel.O1 ||
+      this.model.id === BuiltinModel.O1mini
+    ) {
       for (const message of request.messages) {
         if (message.role === MessageRole.System) {
           message.role = MessageRole.User;
@@ -158,7 +161,10 @@ export abstract class OpenAIClientBase<
       response_format: request.options?.response_format,
       messages: request.messages as OpenAI.Chat.ChatCompletionMessageParam[],
     };
-    if (this.model.id === BuiltinModel.O1 || this.model.id === BuiltinModel.O1mini) {
+    if (
+      this.model.id === BuiltinModel.O1 ||
+      this.model.id === BuiltinModel.O1mini
+    ) {
       delete openaiRequest.temperature;
     }
     var response: OpenAI.Chat.Completions.ChatCompletion;
@@ -288,11 +294,11 @@ export class OpenAIClient extends OpenAIClientBase<OpenAIClientOptions> {
       });
     };
 
-		const url = options?.endpointURL || model.provider.url;
+    const url = options?.endpointURL || model.provider.url;
     this.openai = new OpenAI({
       ...openAIOptions,
       apiKey: openAIKey,
-			baseURL: url,
+      baseURL: url,
     });
   }
 }

@@ -34,12 +34,12 @@ describe("OpenAI Client with mock API", () => {
       }
     );
     await api.init();
-		const model = {
-			id: "mock-open-ai",
-			provider: {...models[BuiltinModel.GPT35Turbo].provider},
-			card: {...models[BuiltinModel.GPT35Turbo].card},
-		};
-		model.provider.url = BASEPATH;
+    const model = {
+      id: "mock-open-ai",
+      provider: { ...models[BuiltinModel.GPT35Turbo].provider },
+      card: { ...models[BuiltinModel.GPT35Turbo].card },
+    };
+    model.provider.url = BASEPATH;
     client = new Client(APIKEY, model, {
       fetch: api.fetch.bind(api),
     });

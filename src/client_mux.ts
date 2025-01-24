@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: MIT
 
 import {
-	ModelID,
-	ProviderID,
+  ModelID,
+  ProviderID,
   ModelMetadata,
   BuiltinProvider,
-	ClientType,
+  ClientType,
   models as availableModels,
 } from "./models";
 import {
@@ -46,14 +46,15 @@ export class ClientMux {
     options?: ClientMuxOptions,
     modelOptions?: Partial<Record<ModelID, ClientOptions>>
   ) {
-    const models = options?.models || Object.values(availableModels) as ModelMetadata[];
+    const models =
+      options?.models || (Object.values(availableModels) as ModelMetadata[]);
     if (models.length === 0) {
       throw new Error("Must provide at least one model");
     }
     this.clients = {} as Record<ModelID, Client>;
     for (const model of models) {
       const provider = model.provider.id;
-			const clientType = model.provider.clientType;
+      const clientType = model.provider.clientType;
       const clientConstructor = clientConstructors[clientType];
       if (clientConstructor === undefined) {
         throw new Error(`Unknown provider: ${provider} for model: ${model.id}`);
@@ -85,32 +86,36 @@ export class ClientMux {
     }
   }
 
-	// late initialization of clients for models added at runtime
-	async ensureClient(model: ModelMetadata, key?: string, modelOptions?: ClientOptions): Promise<void> {
-		if (this.clients[model.id] === undefined) {
-			console.log("Initializing client for model", model.id);
-			const provider = model.provider.id;
-			const clientType = model.provider.clientType;
-			const clientConstructor = clientConstructors[clientType];
-			if (clientConstructor === undefined) {
-				throw new Error(`Unknown provider: ${provider} for model: ${model.id}`);
-			}
-			this.clients[model.id] = new clientConstructor(
-				key || "",
-				model,
-				modelOptions
-			);
-			this.clients[model.id].start();
-		}
-	}
+  // late initialization of clients for models added at runtime
+  async ensureClient(
+    model: ModelMetadata,
+    key?: string,
+    modelOptions?: ClientOptions
+  ): Promise<void> {
+    if (this.clients[model.id] === undefined) {
+      console.log("Initializing client for model", model.id);
+      const provider = model.provider.id;
+      const clientType = model.provider.clientType;
+      const clientConstructor = clientConstructors[clientType];
+      if (clientConstructor === undefined) {
+        throw new Error(`Unknown provider: ${provider} for model: ${model.id}`);
+      }
+      this.clients[model.id] = new clientConstructor(
+        key || "",
+        model,
+        modelOptions
+      );
+      this.clients[model.id].start();
+    }
+  }
 
   async createChatCompletion(
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
     let client = this.clients[request.model];
     if (client === undefined) {
-			// try late initialization for the model
-			console.log("request", request);
+      // try late initialization for the model
+      console.log("request", request);
       throw new Error(`Unknown model: ${request.model}`);
     }
     return client.createChatCompletion(request);

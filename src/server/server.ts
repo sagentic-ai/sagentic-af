@@ -105,11 +105,11 @@ const constructorsFromModule = (module: any): any[] => {
 };
 
 const keysFromModule = (module: any): Record<ProviderID, string> => {
-	if (module.ProviderApiKeys) {
-		return module.ProviderApiKeys;
-	}
-	return {};
-}
+  if (module.ProviderApiKeys) {
+    return module.ProviderApiKeys;
+  }
+  return {};
+};
 
 const namespaceFromPackage = (imp: string): string => {
   const packageJsonPath = path.join(path.dirname(imp), "package.json");
@@ -117,8 +117,11 @@ const namespaceFromPackage = (imp: string): string => {
   return packageJson.name;
 };
 
-const handleImports = async (registry: Registry, imports: string[]): Promise<Record<ProviderID, string>> => {
-	let keys: Record<ProviderID, string> = {};
+const handleImports = async (
+  registry: Registry,
+  imports: string[]
+): Promise<Record<ProviderID, string>> => {
+  let keys: Record<ProviderID, string> = {};
   try {
     await compileTypescript(path.join(process.cwd(), "cache"));
   } catch (e) {
@@ -139,7 +142,7 @@ const handleImports = async (registry: Registry, imports: string[]): Promise<Rec
         throw new Error(`Module ${impRaw} has no default export`);
       }
       const constructors = constructorsFromModule(module);
-			keys = {...keys, ...keysFromModule(module)};
+      keys = { ...keys, ...keysFromModule(module) };
       const namespace = namespaceFromPackage(impRaw);
 
       for (const constructor of constructors) {
@@ -156,7 +159,7 @@ const handleImports = async (registry: Registry, imports: string[]): Promise<Rec
     }
   }
 
-	return keys;
+  return keys;
 };
 
 export const startServer = async ({
@@ -176,7 +179,7 @@ export const startServer = async ({
   const registry = new Registry();
 
   const importedKeys = await handleImports(registry, imports || []);
-	keys = { ...keys, ...importedKeys };
+  keys = { ...keys, ...importedKeys };
 
   //TODO: add check for provider keys
 

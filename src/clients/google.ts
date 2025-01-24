@@ -119,7 +119,7 @@ export class GoogleClient extends BaseClient<
   GoogleClientOptions
 > {
   private googleConfig;
-	private url: string; //endpoint url
+  private url: string; //endpoint url
 
   /**
    * Constructor for GoogleClient
@@ -134,7 +134,7 @@ export class GoogleClient extends BaseClient<
   ) {
     super(model, options);
 
-		this.url = options?.endpointURL || model.provider.url;
+    this.url = options?.endpointURL || model.provider.url;
     this.googleConfig = new GoogleGenerativeAI(googleAPIKey);
   }
 
@@ -219,7 +219,10 @@ export class GoogleClient extends BaseClient<
     request: GenerateContentRequest
   ): Promise<GenerateContentResult> {
     return this.googleConfig
-      .getGenerativeModel({ model: this.model.card.checkpoint }, { baseUrl: this.url })
+      .getGenerativeModel(
+        { model: this.model.card.checkpoint },
+        { baseUrl: this.url }
+      )
       .generateContent(request);
   }
 

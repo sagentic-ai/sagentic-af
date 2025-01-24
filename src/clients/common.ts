@@ -60,8 +60,8 @@ export interface Client {
  * Base options for API clients
  */
 export interface BaseClientOptions {
-	/** API endpoint URL */
-	endpointURL?: string;
+  /** API endpoint URL */
+  endpointURL?: string;
   /** Maximum number of attempts to retry a failed request before giving up */
   maxRetries?: number;
   /** Interval for fallback clearing limit counters */

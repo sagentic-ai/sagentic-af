@@ -29,25 +29,25 @@ export class Registry {
 }
 
 export class KeyRegistry {
-	keys: Record<string, string> = {};
+  keys: Record<string, string> = {};
 
-	constructor() {
-		this.keys = {};
-	}
+  constructor() {
+    this.keys = {};
+  }
 
-	register(namespace: string, id: string, key: string) {
-		this.keys[`${namespace}/${id}`] = key;
-	}
+  register(namespace: string, id: string, key: string) {
+    this.keys[`${namespace}/${id}`] = key;
+  }
 
-	get(id: string): string {
-		return this.keys[id];
-	}
+  get(id: string): string {
+    return this.keys[id];
+  }
 
-	has(namespace: string, id: string): boolean {
-		return `${namespace}/${id}` in this.keys;
-	}
+  has(namespace: string, id: string): boolean {
+    return `${namespace}/${id}` in this.keys;
+  }
 
-	list(): string[] {
-		return Object.keys(this.keys);
-	}
+  list(): string[] {
+    return Object.keys(this.keys);
+  }
 }

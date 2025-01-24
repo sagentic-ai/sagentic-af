@@ -11,7 +11,14 @@ import {
   ParentOf,
   meta,
 } from "./common";
-import { ModelID, BuiltinModel, ModelMetadata, models, resolveModelMetadata, ModelCard } from "./models";
+import {
+  ModelID,
+  BuiltinModel,
+  ModelMetadata,
+  models,
+  resolveModelMetadata,
+  ModelCard,
+} from "./models";
 import { Session } from "./session";
 import { ModelInvocationOptions } from "./clients/common";
 import { Thread, ToolAssistantContent, ToolCall } from "./thread";
@@ -96,8 +103,8 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
   systemPrompt?: string;
 
   /** Model to use for the agent, can be undefined if the agent does not need to talk to any model.
-	 * Can be a built-in model type or a custom model card (possibly extending an existing one).
-	 */
+   * Can be a built-in model type or a custom model card (possibly extending an existing one).
+   */
   model?: BuiltinModel | ModelMetadata;
 
   /** State of the agent, initial state is obtained by calling `initialize` */
@@ -142,7 +149,7 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
   /** Model details */
   get modelDetails(): ModelCard | undefined {
     if (this.model) {
-			return resolveModelMetadata(this.model).card;
+      return resolveModelMetadata(this.model).card;
     }
     return undefined;
   }
@@ -279,7 +286,7 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
     const messages = thread.messages;
     const response = await this.session.invokeModel(
       this,
-			resolveModelMetadata(this.model),
+      resolveModelMetadata(this.model),
       messages,
       this.modelInvocationOptions
     );

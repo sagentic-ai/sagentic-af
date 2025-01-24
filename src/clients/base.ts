@@ -78,12 +78,12 @@ export abstract class BaseClient<
 
   /** Number of allowed tokens per minute */
   get TPM(): number {
-		return this.model.card.tpm;
+    return this.model.card.tpm;
   }
 
   /** Number of allowed requests per minute */
   get RPM(): number {
-		return this.model.card.rpm;
+    return this.model.card.rpm;
   }
 
   /**
