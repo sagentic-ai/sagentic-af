@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import OpenAI, { AzureOpenAI, ClientOptions } from "openai";
-import { ModelMetadata } from "../models";
+import { ModelMetadata, BuiltinModel } from "../models";
 import {
   OpenAIClientOptions,
   AzureOpenAIClientOptions,
@@ -142,7 +142,7 @@ export abstract class OpenAIClientBase<
   async createChatCompletion(
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
-    if (this.model === ModelType.O1 || this.model === ModelType.O1mini) {
+    if (this.model.id === BuiltinModel.O1 || this.model.id === BuiltinModel.O1mini) {
       for (const message of request.messages) {
         if (message.role === MessageRole.System) {
           message.role = MessageRole.User;
@@ -158,7 +158,7 @@ export abstract class OpenAIClientBase<
       response_format: request.options?.response_format,
       messages: request.messages as OpenAI.Chat.ChatCompletionMessageParam[],
     };
-    if (this.model === ModelType.O1 || this.model === ModelType.O1mini) {
+    if (this.model.id === BuiltinModel.O1 || this.model.id === BuiltinModel.O1mini) {
       delete openaiRequest.temperature;
     }
     var response: OpenAI.Chat.Completions.ChatCompletion;

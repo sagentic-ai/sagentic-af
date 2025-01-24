@@ -77,6 +77,9 @@ export enum BuiltinModel {
 
   GPT35Turbo = "gpt-3.5-turbo",
 
+	O1 = "o1",
+	O1mini = "o1-mini",
+
   GEMINI15 = "gemini-1.5-pro",
   GEMINI10 = "gemini-1.0-pro",
   GEMINI10Vision = "gemini-1.0-pro-vision",
@@ -86,6 +89,7 @@ export enum BuiltinModel {
   CLAUDE3Haiku = "claude-3-haiku",
 
 	AZURE_GPT4o = "azure/gpt-4o",
+	AZURE_GPT4oMini = "azure/gpt-4o-mini",
 }
 /** Deprecated identifier for builtin models */
 export import ModelType = BuiltinModel;
@@ -239,6 +243,7 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     tpm: 1_000_000,
   },
   [ModelType.O1]: {
+		checkpoint: Checkpoint.O1,
     prompt: 15,
     completion: 60,
     contextSize: 200_000,
@@ -249,6 +254,7 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     supportsAudio: false,
   },
   [ModelType.O1mini]: {
+		checkpoint: Checkpoint.O1mini,
     prompt: 3,
     completion: 12,
     contextSize: 128_000,
@@ -324,7 +330,8 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     supportsVideo: true,
     supportsAudio: false, //NB audio support is not yet in the API, TODO add this once OpenAI adds it
   },
-  [ModelType.AZURE_GPT4oMini]: {
+  [BuiltinModel.AZURE_GPT4oMini]: {
+		checkpoint: Checkpoint.AZURE_GPT4oMini,
     prompt: 0.15,
     completion: 0.6,
     contextSize: 128_000,
@@ -383,17 +390,20 @@ export const models: Record<BuiltinModel, ModelMetadata> = {
     provider: providers[BuiltinProvider.OpenAI],
     card: cards[BuiltinModel.GPT35Turbo],
   },
-  [ModelType.O1]: {
-    provider: Provider.OpenAI,
-    pricing: pricing[ModelType.O1],
+  [BuiltinModel.O1]: {
+		id: BuiltinModel.O1,
+    provider: providers[BuiltinProvider.OpenAI],
+		card: cards[BuiltinModel.O1],
   },
-  [ModelType.O1mini]: {
-    provider: Provider.OpenAI,
-    pricing: pricing[ModelType.O1mini],
+  [BuiltinModel.O1mini]: {
+		id: BuiltinModel.O1mini,
+    provider: providers[BuiltinProvider.OpenAI],
+		card: cards[BuiltinModel.O1mini],
   },
-  [ModelType.GEMINI15]: {
-    provider: Provider.Google,
-    pricing: pricing[ModelType.GEMINI15],
+  [BuiltinModel.GEMINI15]: {
+		id: BuiltinModel.GEMINI15,
+    provider: providers[BuiltinProvider.Google],
+		card: cards[BuiltinModel.GEMINI15],
   },
   [BuiltinModel.GEMINI10]: {
 		id: BuiltinModel.GEMINI10,
@@ -425,9 +435,9 @@ export const models: Record<BuiltinModel, ModelMetadata> = {
     provider: providers[BuiltinProvider.AzureOpenAI],
 		card: cards[BuiltinModel.AZURE_GPT4o],
   },
-  [ModelType.AZURE_GPT4oMini]: {
-    provider: Provider.AzureOpenAI,
-    pricing: pricing[ModelType.AZURE_GPT4oMini],
+  [BuiltinModel.AZURE_GPT4oMini]: {
+		id: BuiltinModel.AZURE_GPT4oMini,
+    provider: providers[BuiltinProvider.AzureOpenAI],
     card: cards[BuiltinModel.AZURE_GPT4oMini],
   },
 };
