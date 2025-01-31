@@ -84,6 +84,7 @@ export enum BuiltinModel {
 
   O1 = "o1",
   O1mini = "o1-mini",
+  O3mini = "o3-mini",
 
   GEMINI15 = "gemini-1.5-pro",
   GEMINI10 = "gemini-1.0-pro",
@@ -115,6 +116,7 @@ enum Checkpoint {
 
   O1 = "o1",
   O1mini = "o1-mini",
+  O3mini = "o3-mini",
 
   GEMINI15 = "gemini-1.5-pro-latest",
   GEMINI10 = "gemini-1.0-pro",
@@ -269,6 +271,17 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     supportsVideo: false,
     supportsAudio: false,
   },
+  [ModelType.O3mini]: {
+    checkpoint: Checkpoint.O3mini,
+    prompt: 1.1,
+    completion: 4.4,
+    contextSize: 200_000,
+    rpm: 20,
+    tpm: 150_000_000,
+    supportsImages: false,
+    supportsVideo: false,
+    supportsAudio: false,
+  },
   //TODO ensure correct pricing for Gemini models
   [BuiltinModel.GEMINI15]: {
     checkpoint: Checkpoint.GEMINI15,
@@ -404,6 +417,11 @@ export const models: Record<BuiltinModel, ModelMetadata> = {
     id: BuiltinModel.O1mini,
     provider: providers[BuiltinProvider.OpenAI],
     card: cards[BuiltinModel.O1mini],
+  },
+  [BuiltinModel.O3mini]: {
+    id: BuiltinModel.O3mini,
+    provider: providers[BuiltinProvider.OpenAI],
+    card: cards[BuiltinModel.O3mini],
   },
   [BuiltinModel.GEMINI15]: {
     id: BuiltinModel.GEMINI15,
