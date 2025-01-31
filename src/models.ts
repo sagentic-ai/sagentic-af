@@ -188,8 +188,8 @@ export const cards: Record<BuiltinModel, ModelCard> = {
   },
   [BuiltinModel.GPT4o]: {
     checkpoint: Checkpoint.GPT4o,
-    prompt: 5,
-    completion: 15,
+    prompt: 2.5,
+    completion: 10,
     contextSize: 128_000,
     rpm: 500,
     tpm: 30_000,
@@ -210,8 +210,8 @@ export const cards: Record<BuiltinModel, ModelCard> = {
   },
   [BuiltinModel.GPT4o240806]: {
     checkpoint: Checkpoint.GPT4o240806,
-    prompt: 5,
-    completion: 15,
+    prompt: 2.5,
+    completion: 10,
     contextSize: 128_000,
     rpm: 500,
     tpm: 30_000,
@@ -262,8 +262,8 @@ export const cards: Record<BuiltinModel, ModelCard> = {
   },
   [ModelType.O1mini]: {
     checkpoint: Checkpoint.O1mini,
-    prompt: 3,
-    completion: 12,
+    prompt: 1.1,
+    completion: 4.4,
     contextSize: 128_000,
     rpm: 20,
     tpm: 150_000_000,
