@@ -151,7 +151,8 @@ export abstract class OpenAIClientBase<
   ): Promise<ChatCompletionResponse> {
     if (
       this.model.id === BuiltinModel.O1 ||
-      this.model.id === BuiltinModel.O1mini
+      this.model.id === BuiltinModel.O1mini ||
+      this.model.id === BuiltinModel.O3mini
     ) {
       for (const message of request.messages) {
         if (message.role === MessageRole.System) {
@@ -170,7 +171,8 @@ export abstract class OpenAIClientBase<
     };
     if (
       this.model.id === BuiltinModel.O1 ||
-      this.model.id === BuiltinModel.O1mini
+      this.model.id === BuiltinModel.O1mini ||
+      this.model.id === BuiltinModel.O3mini
     ) {
       delete openaiRequest.temperature;
     }
