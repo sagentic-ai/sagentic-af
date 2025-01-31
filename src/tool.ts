@@ -12,6 +12,13 @@ import { OneShotAgent } from "./agents/one-shot";
 
 import log from "loglevel";
 
+declare global {
+  var __SCHEMAS__: Record<
+    string,
+    [Record<string, z.ZodType>, Record<string, z.ZodType>]
+  >;
+}
+
 export type ToolSpec = ChatCompletionTool;
 
 export interface Tool {
@@ -182,3 +189,58 @@ export const isTool = <A, R>(
       }
     );
   };
+
+export function tool(
+  description: string,
+  schema: z.ZodType | undefined = undefined,
+  returns: z.ZodType | undefined = undefined
+) {
+  return function tool<
+    This extends Agent,
+    Args extends [object] | [],
+    Return,
+    ClassName extends string = This extends { constructor: { name: infer N } }
+      ? N extends string
+        ? N
+        : never
+      : never,
+  >(
+    target: (this: This, ...args: Args) => Return,
+    context: ClassMethodDecoratorContext<
+      This,
+      (this: This, ...args: Args) => Return
+    >
+  ) {
+    context.addInitializer(function () {
+      const toolSchema =
+        schema ||
+        globalThis.__SCHEMAS__[this.constructor.name as ClassName][0][
+          context.name.toString()
+        ];
+      const toolReturns =
+        returns ||
+        globalThis.__SCHEMAS__[this.constructor.name as ClassName][1][
+          context.name.toString()
+        ];
+      console.log(
+        "init tool",
+        context.name.toString(),
+        description,
+        toolSchema,
+        toolReturns
+      );
+      this.tools.push(
+        new FunctionTool(
+          context.name.toString(),
+          description,
+          toolSchema,
+          toolReturns,
+          target as any
+        )
+      );
+    });
+    return function (this: This, ...args: Args): Return {
+      return target.apply(this, args);
+    };
+  };
+}
