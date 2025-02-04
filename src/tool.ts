@@ -220,7 +220,6 @@ export function tool(
         globalThis.__RETURN_SCHEMAS__[this.constructor.name as ClassName][
           context.name.toString()
         ];
-      console.log("init tool", context.name.toString(), description);
       this.tools.push(
         new FunctionTool(
           context.name.toString(),

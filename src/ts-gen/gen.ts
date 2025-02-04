@@ -33,7 +33,6 @@ function generateSchema(sourceFile: SourceFile): [SchemaMap, SchemaMap] {
 
         if (parameters.length > 0) {
           const t = parameters[0].getType();
-          console.log("Type: ", t.getText(), t.isArray());
           paramSchemas[className][methodName] = makeZod(t);
         } else {
           paramSchemas[className][methodName] = "z.object({})";
