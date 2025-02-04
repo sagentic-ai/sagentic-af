@@ -16,6 +16,11 @@ declare global {
 
 type ReactionFunction<T, S> = (state: S, input: T) => S | Promise<S>;
 
+interface SupportingWhen<StateType> {
+  reactions: Reaction<any, StateType>[];
+  rules: string[];
+}
+
 export interface Reaction<T, S> {
   type: string;
   match: z.ZodType<T>;
@@ -32,9 +37,9 @@ export const when = <S, T extends z.ZodRawShape>(
   schema: z.ZodObject<T> | undefined = undefined
 ) => {
   return function when<
-    This extends Agent,
+    This extends SupportingWhen<any>,
     Args extends [S, object],
-    Return,
+    Return extends S | Promise<S>,
     ClassName extends string = This extends { constructor: { name: infer N } }
       ? N extends string
         ? N
@@ -58,17 +63,13 @@ export const when = <S, T extends z.ZodRawShape>(
         type: z.literal(methodName),
       });
 
-      const reactions = (this as unknown as ReactiveAgent<any, S, any>)
-        .reactions as Reaction<any, any>[];
-      const rules = (this as unknown as ReactiveAgent<any, S, any>)
-        .rules as string[];
-      reactions.push({
+      this.reactions.push({
         type: methodName,
         match: eschema,
         then: (state: S, input: T) =>
           target.call(this, ...([state, input] as unknown as Args)),
       });
-      rules.push(
+      this.rules.push(
         `When ${rule} answer adhering to the following schema:\n${jsonSchema(
           eschema
         )}`
@@ -107,10 +108,13 @@ export const otherwise = <S, This, Args extends [S, string], Return extends S>(
  * @param ReturnType Return type of the agent
  */
 export class ReactiveAgent<
-  OptionsType extends AgentOptions,
-  StateType,
-  ReturnType
-> extends BaseAgent<OptionsType, StateType, ReturnType> {
+    OptionsType extends AgentOptions,
+    StateType,
+    ReturnType,
+  >
+  extends BaseAgent<OptionsType, StateType, ReturnType>
+  implements SupportingWhen<StateType>
+{
   thread: Thread;
   expectsJSON: boolean = true;
 

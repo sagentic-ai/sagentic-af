@@ -188,13 +188,17 @@ export const isTool = <A, R>(
     );
   };
 
+export interface SupportingTool {
+  tools: Tool[];
+}
+
 export function tool(
   description: string,
   schema: z.ZodType | undefined = undefined,
   returns: z.ZodType | undefined = undefined
 ) {
   return function tool<
-    This extends Agent,
+    This extends SupportingTool,
     Args extends [object] | [],
     Return,
     ClassName extends string = This extends { constructor: { name: infer N } }
