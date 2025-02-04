@@ -2,12 +2,17 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 import { z } from "zod";
-import { AgentOptions, BaseAgent } from "../agent";
+import { AgentOptions, BaseAgent, Agent } from "../agent";
 import { jsonSchema, parseMultipleObjects } from "../common";
 import { Session } from "../session";
 import { Thread } from "../thread";
 
 import log from "loglevel";
+
+declare global {
+  var __PARAM_SCHEMAS__: Record<string, Record<string, z.ZodType>>;
+  var __RETURN_SCHEMAS__: Record<string, Record<string, z.ZodType>>;
+}
 
 type ReactionFunction<T, S> = (state: S, input: T) => S | Promise<S>;
 
@@ -24,24 +29,39 @@ export interface Reaction<T, S> {
  */
 export const when = <S, T extends z.ZodRawShape>(
   rule: string,
-  schema: z.ZodObject<T>
+  schema: z.ZodObject<T> | undefined = undefined
 ) => {
-  return function when<This, Args extends [S, z.infer<typeof schema>], Return>(
+  return function when<
+    This extends Agent,
+    Args extends [S, object],
+    Return,
+    ClassName extends string = This extends { constructor: { name: infer N } }
+      ? N extends string
+        ? N
+        : never
+      : never,
+  >(
     target: (this: This, ...args: Args) => Return,
     context: ClassMethodDecoratorContext<
       This,
       (this: This, ...args: Args) => Return
     >
   ) {
-    const methodName = String(context.name);
-    const eschema = schema.extend({
-      type: z.literal(methodName),
-    });
-
     context.addInitializer(function () {
-      const reactions = (this as ReactiveAgent<any, S, any>)
+      const methodName = String(context.name);
+      const cschema =
+        schema ||
+        globalThis.__PARAM_SCHEMAS__[this.constructor.name as ClassName][
+          methodName
+        ];
+      const eschema = (cschema as z.ZodObject<T>).extend({
+        type: z.literal(methodName),
+      });
+
+      const reactions = (this as unknown as ReactiveAgent<any, S, any>)
         .reactions as Reaction<any, any>[];
-      const rules = (this as ReactiveAgent<any, S, any>).rules as string[];
+      const rules = (this as unknown as ReactiveAgent<any, S, any>)
+        .rules as string[];
       reactions.push({
         type: methodName,
         match: eschema,
