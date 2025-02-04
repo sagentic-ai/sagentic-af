@@ -12,6 +12,7 @@ import { version } from "../../package.json";
 import { AgentOptions } from "../agent";
 import { Registry } from "../registry";
 import { Session } from "../session";
+import { generateSchemas } from "../ts-gen/gen";
 import moment from "moment";
 import chalk from "chalk";
 import child_process from "child_process";
@@ -196,6 +197,9 @@ export const startServer = async ({
     )}\n   dev server ${chalk.gray("v" + version)}\n`
   );
 
+	console.log("Generating schemas...");
+	await generateSchemas();
+
   const server = Fastify({ logger: true });
 
   const registry = new Registry();
@@ -220,7 +224,7 @@ export const startServer = async ({
 
   const watcher = chokidar.watch(process.cwd(), {
     ignoreInitial: true,
-    ignored: [/node_modules/, /cache/, /dist/],
+    ignored: [/node_modules/, /cache/, /dist/, "schemas.gen.ts"],
     cwd: process.cwd(),
   });
 
@@ -232,6 +236,7 @@ export const startServer = async ({
       clearTimeout(timer);
     }
     timer = setTimeout(async () => {
+			await generateSchemas();
       await handleImports(registry, imports || []);
     }, 1000);
   });

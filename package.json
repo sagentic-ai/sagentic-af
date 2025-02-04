@@ -15,8 +15,7 @@
     "dist"
   ],
   "bin": {
-    "sagentic": "dist/bin/sagentic.js",
-		"ts-gen": "dist/bin/ts-gen.js"
+    "sagentic": "dist/bin/sagentic.js"
   },
   "scripts": {
     "build": "rm -rf dist && tsc && cp -R templates dist/templates && chmod u+x dist/bin/sagentic.js",

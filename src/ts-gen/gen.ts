@@ -1,5 +1,5 @@
 import { Project, SourceFile } from "ts-morph";
-import { makeZod } from "../src/ts-gen/zodGen";
+import { makeZod } from "./zodGen";
 
 const SCHEMA_FILE = "schemas.gen.ts";
 
@@ -117,38 +117,14 @@ function writeSchemaFile(project: Project) {
   outputFile.saveSync();
 }
 
-async function main() {
+export async function generateSchemas() {
   const project = new Project({
     tsConfigFilePath: "tsconfig.json",
   });
 
-  // Initial run on all TypeScript files
   for (const sourceFile of project.getSourceFiles()) {
     const [paramSchemas, returnSchemas] = generateSchema(sourceFile);
     updateGlobalSchemas(paramSchemas, returnSchemas, sourceFile.getFilePath());
   }
   writeSchemaFile(project);
-
-  // // Watch for changes
-  // const watcher = Deno.watchFs(".");
-  // for await (const event of watcher) {
-  //   if (
-  //     event.kind === "modify" &&
-  //     event.paths[0].endsWith(".ts") &&
-  //     !event.paths[0].endsWith(SCHEMA_FILE)
-  //   ) {
-  //     const filepath = event.paths[0];
-  //     console.log(`File ${filepath} has been changed`);
-
-  //     const sourceFile =
-  //       project.getSourceFile(filepath) ||
-  //       project.addSourceFileAtPath(filepath);
-
-  //     const schemas = generateSchema(sourceFile);
-  //     updateGlobalSchemas(schemas, filepath);
-  //     writeSchemaFile(project);
-  //   }
-  // }
 }
-
-main();
