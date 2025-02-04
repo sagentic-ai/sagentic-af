@@ -22,7 +22,7 @@ import {
 import { Session } from "./session";
 import { ModelInvocationOptions } from "./clients/common";
 import { Thread, ToolAssistantContent, ToolCall } from "./thread";
-import { Tool, ToolSpec } from "./tool";
+import { Tool, ToolSpec, SupportingTool } from "./tool";
 import { EventEmitter } from "events";
 
 import log from "loglevel";
@@ -92,7 +92,12 @@ export interface BaseAgent<
  */
 export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
   extends EventEmitter
-  implements Identified, Conclusible, ChildOf<Session>, ParentOf<Thread>
+  implements
+    Identified,
+    Conclusible,
+    ChildOf<Session>,
+    ParentOf<Thread>,
+    SupportingTool
 {
   metadata: Metadata;
 
