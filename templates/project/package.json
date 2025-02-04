@@ -5,7 +5,7 @@
   "description": "Made with sagentic.ai",
   "scripts": {
     "dev": "sagentic run",
-		"ts-gen": "sagentic ts-gen",
+    "ts-gen": "sagentic ts-gen",
     "build": "tsc",
     "deploy": "sagentic deploy",
     "spawn": "sagentic spawn",

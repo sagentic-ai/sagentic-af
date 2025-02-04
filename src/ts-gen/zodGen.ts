@@ -127,7 +127,6 @@ export function makeZod(
   } else if (t.isArray()) {
     ret = "z.array(";
     const elementType = t.getArrayElementType();
-    console.log("Array element type: ", elementType?.getText());
     if (!elementType) {
       ret += "z.any()";
     } else {
@@ -195,7 +194,6 @@ export function makeZod(
     ret += types.map((type) => makeZod(type)).join(", ");
     ret += ")";
   } else if (t.isClass()) {
-    console.log("Class type");
     ret = "z.object({/* class */})";
   } else if (t.isStringLiteral()) {
     ret = `z.literal(${t.getText()})`;
