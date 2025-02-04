@@ -20,7 +20,9 @@ jobs:
           submodules: true
 
       - name: Enable corepack
-        run: corepack enable
+        run: |
+          npm install -g corepack@latest
+          corepack enable
 
       - name: Enable corepack pnpm
         run: corepack enable pnpm
