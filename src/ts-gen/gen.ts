@@ -15,11 +15,14 @@ function generateSchema(sourceFile: SourceFile): [SchemaMap, SchemaMap] {
     const className = classDecl.getName()!;
 
     classDecl.getMethods().forEach((method) => {
-      const hasInferMeDecorator = method
+      const hasToolDecorator = method
         .getDecorators()
         .some((d) => d.getName() === "tool");
+      const hasWhenDecorator = method
+        .getDecorators()
+        .some((d) => d.getName() === "when");
 
-      if (hasInferMeDecorator) {
+      if (hasToolDecorator || hasWhenDecorator) {
         const methodName = method.getName();
         const parameters = method.getParameters();
         const returns = method.getReturnType();
@@ -31,14 +34,24 @@ function generateSchema(sourceFile: SourceFile): [SchemaMap, SchemaMap] {
           returnSchemas[className] = {};
         }
 
-        if (parameters.length > 0) {
-          const t = parameters[0].getType();
-          paramSchemas[className][methodName] = makeZod(t);
-        } else {
-          paramSchemas[className][methodName] = "z.object({})";
+        if (hasToolDecorator) {
+          if (parameters.length > 0) {
+            const t = parameters[0].getType();
+            paramSchemas[className][methodName] = makeZod(t);
+          } else {
+            paramSchemas[className][methodName] = "z.object({})";
+          }
+          returnSchemas[className][methodName] = makeZod(returns);
         }
 
-        returnSchemas[className][methodName] = makeZod(returns);
+        if (hasWhenDecorator) {
+          if (parameters.length > 1) {
+            const t = parameters[1].getType();
+            paramSchemas[className][methodName] = makeZod(t);
+          } else {
+            paramSchemas[className][methodName] = "z.object({})";
+          }
+        }
       }
     });
   });
