@@ -197,8 +197,8 @@ export const startServer = async ({
     )}\n   dev server ${chalk.gray("v" + version)}\n`
   );
 
-	console.log("Generating schemas...");
-	await generateSchemas();
+  console.log("Generating schemas...");
+  await generateSchemas();
 
   const server = Fastify({ logger: true });
 
@@ -236,7 +236,7 @@ export const startServer = async ({
       clearTimeout(timer);
     }
     timer = setTimeout(async () => {
-			await generateSchemas();
+      await generateSchemas();
       await handleImports(registry, imports || []);
     }, 1000);
   });

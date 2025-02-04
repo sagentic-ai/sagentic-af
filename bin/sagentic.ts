@@ -310,15 +310,15 @@ program
   });
 
 program
-	.command("ts-gen")
-	.description("Generate schemas for types")
-	.action(async () => {
-		try {
-			await generateSchemas();
-		} catch (e: any) {
-			program.error(`Aborting due to an error: ${e.message}`, { exitCode: 1 });
-		}
-	});
+  .command("ts-gen")
+  .description("Generate schemas for types")
+  .action(async () => {
+    try {
+      await generateSchemas();
+    } catch (e: any) {
+      program.error(`Aborting due to an error: ${e.message}`, { exitCode: 1 });
+    }
+  });
 
 const tarProject = (path: string): Promise<[string, () => void]> => {
   return new Promise((resolve, reject) => {

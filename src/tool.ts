@@ -220,20 +220,16 @@ export function tool(
         globalThis.__RETURN_SCHEMAS__[this.constructor.name as ClassName][
           context.name.toString()
         ];
-      console.log(
-        "init tool",
-        context.name.toString(),
-        description,
-      );
+      console.log("init tool", context.name.toString(), description);
       this.tools.push(
         new FunctionTool(
           context.name.toString(),
           description,
           toolSchema,
           toolReturns,
-					async (agent, ...args) => {
-						return target.apply(this, args as Args);
-					},
+          async (agent, ...args) => {
+            return target.apply(this, args as Args);
+          }
         )
       );
     });
@@ -241,4 +237,4 @@ export function tool(
       return target.apply(this, args);
     };
   };
-};
+}

@@ -27,9 +27,9 @@ function generateSchema(sourceFile: SourceFile): [SchemaMap, SchemaMap] {
         if (!paramSchemas[className]) {
           paramSchemas[className] = {};
         }
-				if (!returnSchemas[className]) {
-					returnSchemas[className] = {};
-				}
+        if (!returnSchemas[className]) {
+          returnSchemas[className] = {};
+        }
 
         if (parameters.length > 0) {
           const t = parameters[0].getType();
@@ -47,7 +47,11 @@ function generateSchema(sourceFile: SourceFile): [SchemaMap, SchemaMap] {
   return [paramSchemas, returnSchemas];
 }
 
-function updateGlobalSchemas(newParamSchemas: SchemaMap, newReturnSchemas: SchemaMap, sourceFilePath: string) {
+function updateGlobalSchemas(
+  newParamSchemas: SchemaMap,
+  newReturnSchemas: SchemaMap,
+  sourceFilePath: string
+) {
   // Remove existing schemas for this file
   Object.keys(globalParamSchemas).forEach((className) => {
     if (globalParamSchemas[className].__sourceFile === sourceFilePath) {
@@ -63,15 +67,15 @@ function updateGlobalSchemas(newParamSchemas: SchemaMap, newReturnSchemas: Schem
   // Add new schemas with source file tracking
   Object.entries(newParamSchemas).forEach(([className, methods]) => {
     globalParamSchemas[className] = {
-			...methods,
-			__sourceFile: sourceFilePath,
-		};
+      ...methods,
+      __sourceFile: sourceFilePath,
+    };
   });
   Object.entries(newReturnSchemas).forEach(([className, methods]) => {
     globalReturnSchemas[className] = {
-			...methods,
-			__sourceFile: sourceFilePath,
-		};
+      ...methods,
+      __sourceFile: sourceFilePath,
+    };
   });
 }
 
