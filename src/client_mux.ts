@@ -66,9 +66,6 @@ export class ClientMux {
       }
       const key = keys[provider];
       if (key === undefined) {
-        log.warn(
-          `No API key provided for provider: ${provider} for model: ${model.id}`
-        );
         continue;
       }
       this.clients[model.id] = new clientConstructor(
