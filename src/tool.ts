@@ -13,10 +13,8 @@ import { OneShotAgent } from "./agents/one-shot";
 import log from "loglevel";
 
 declare global {
-  var __SCHEMAS__: Record<
-    string,
-    [Record<string, z.ZodType>, Record<string, z.ZodType>]
-  >;
+  var __PARAM_SCHEMAS__: Record<string, Record<string, z.ZodType>>;
+  var __RETURN_SCHEMAS__: Record<string, Record<string, z.ZodType>>;
 }
 
 export type ToolSpec = ChatCompletionTool;
@@ -214,20 +212,18 @@ export function tool(
     context.addInitializer(function () {
       const toolSchema =
         schema ||
-        globalThis.__SCHEMAS__[this.constructor.name as ClassName][0][
+        globalThis.__PARAM_SCHEMAS__[this.constructor.name as ClassName][
           context.name.toString()
         ];
       const toolReturns =
         returns ||
-        globalThis.__SCHEMAS__[this.constructor.name as ClassName][1][
+        globalThis.__RETURN_SCHEMAS__[this.constructor.name as ClassName][
           context.name.toString()
         ];
       console.log(
         "init tool",
         context.name.toString(),
         description,
-        toolSchema,
-        toolReturns
       );
       this.tools.push(
         new FunctionTool(
@@ -235,7 +231,9 @@ export function tool(
           description,
           toolSchema,
           toolReturns,
-          target as any
+					async (agent, ...args) => {
+						return target.apply(this, args as Args);
+					},
         )
       );
     });
@@ -243,4 +241,4 @@ export function tool(
       return target.apply(this, args);
     };
   };
-}
+};
