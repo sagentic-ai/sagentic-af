@@ -1,4 +1,5 @@
 import { ModelID, ModelMetadata, ProviderID, ClientOptions } from "@sagentic-ai/sagentic-af";
+import "./schemas.gen";
 
 import dotenv from "dotenv";
 dotenv.config();

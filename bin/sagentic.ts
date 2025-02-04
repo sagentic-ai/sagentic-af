@@ -18,6 +18,7 @@ import { SingleBar } from "cli-progress";
 import tar from "tar";
 import moment from "moment";
 import { getToolInterface } from "../src/tool";
+import { generateSchemas } from "../src/ts-gen/gen";
 import zodToJsonSchema from "zod-to-json-schema";
 import { cliTable } from "./utils";
 import { lockDeps, getLocalDeps, checkDeps } from "./lock-deps";
@@ -307,6 +308,17 @@ program
       program.error(`Aborting due to an error: ${e.message}`, { exitCode: 1 });
     }
   });
+
+program
+	.command("ts-gen")
+	.description("Generate schemas for types")
+	.action(async () => {
+		try {
+			await generateSchemas();
+		} catch (e: any) {
+			program.error(`Aborting due to an error: ${e.message}`, { exitCode: 1 });
+		}
+	});
 
 const tarProject = (path: string): Promise<[string, () => void]> => {
   return new Promise((resolve, reject) => {
