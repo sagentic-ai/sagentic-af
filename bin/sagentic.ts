@@ -297,6 +297,10 @@ program
             resource: process.env.AZURE_OPENAI_RESOURCE_NAME,
             deployment: process.env.AZURE_OPENAI_DEPLOYMENT,
           },
+          [BuiltinModel.AZURE_GPT4oMini]: {
+            resource: process.env.AZURE_OPENAI_RESOURCE_NAME,
+            deployment: process.env.AZURE_OPENAI_DEPLOYMENT,
+          },
         },
       });
     } catch (e: any) {
