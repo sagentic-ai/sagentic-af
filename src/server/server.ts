@@ -155,6 +155,8 @@ const handleImports = async (
     const indexed = addIndexToPath(imp);
     imp = indexed;
     imp = computeFileLocationInCache(imp);
+    // add random query string to avoid caching
+    imp += `?${Math.random().toString(36).substring(7)}`;
 
     log.info(`  imported ${chalk.cyan(path.relative(process.cwd(), indexed))}`);
     try {
