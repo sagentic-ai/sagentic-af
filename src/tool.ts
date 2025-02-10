@@ -1,3 +1,4 @@
+/* eslint-disable no-var */
 // Copyright 2024 Ahyve AI Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
@@ -205,7 +206,7 @@ export function tool(
       ? N extends string
         ? N
         : never
-      : never,
+      : never
   >(
     target: (this: This, ...args: Args) => Return,
     context: ClassMethodDecoratorContext<
