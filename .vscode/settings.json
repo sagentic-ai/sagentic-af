@@ -1,16 +1,11 @@
 {
-    "editor.formatOnSave": true,
-    "licenser.author": "Ahyve AI Inc",
-    "licenser.license": "MIT",
-    "licenser.useSPDXLicenseFormat": true,
-    "licenser.customTermsAndConditions": "Copyright (C) 2023-@YEAR@ Ahyve AI Inc.",
-    "licenser.disableAutoHeaderInsertion": false,
-    "javascript.inlayHints.parameterTypes.enabled": true,
-    "javascript.inlayHints.propertyDeclarationTypes.enabled": true,
-    "javascript.inlayHints.variableTypes.enabled": true,
-    "typescript.inlayHints.functionLikeReturnTypes.enabled": true,
-    "typescript.inlayHints.parameterTypes.enabled": true,
-    "files.associations": {
-        "templates/**/*.ts": "plaintext"
-    }
+  "editor.formatOnSave": true,
+  "javascript.inlayHints.parameterTypes.enabled": true,
+  "javascript.inlayHints.propertyDeclarationTypes.enabled": true,
+  "javascript.inlayHints.variableTypes.enabled": true,
+  "typescript.inlayHints.functionLikeReturnTypes.enabled": true,
+  "typescript.inlayHints.parameterTypes.enabled": true,
+  "files.associations": {
+    "templates/**/*.ts": "plaintext"
+  }
 }

@@ -8,7 +8,7 @@
     "url": "git+ssh://git@github.com/sagentic-ai/sagentic-af.git"
   },
   "author": "Ahyve AI Inc. <hello@sagentic.ai>",
-  "license": "MIT",
+  "license": "BUSL-1.1",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [

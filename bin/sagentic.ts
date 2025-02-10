@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Copyright 2024 Ahyve AI Inc.
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 
 import Path from "path";
 import FS from "fs";

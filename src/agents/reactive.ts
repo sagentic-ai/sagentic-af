@@ -1,5 +1,5 @@
 // Copyright 2024 Ahyve AI Inc.
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 
 import { z } from "zod";
 import { AgentOptions, BaseAgent } from "../agent";
@@ -89,7 +89,7 @@ export const otherwise = <S, This, Args extends [S, string], Return extends S>(
 export class ReactiveAgent<
   OptionsType extends AgentOptions,
   StateType,
-  ReturnType,
+  ReturnType
 > extends BaseAgent<OptionsType, StateType, ReturnType> {
   thread: Thread;
   expectsJSON: boolean = true;

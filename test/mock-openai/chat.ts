@@ -1,5 +1,5 @@
 // Copyright 2024 Ahyve AI Inc.
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 
 import OpenAI from "openai";
 import { v4 as uuidv4 } from "uuid";

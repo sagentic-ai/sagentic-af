@@ -1,5 +1,5 @@
 // Copyright 2024 Ahyve AI Inc.
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 
 import chalk from "chalk";
 import {
@@ -60,7 +60,7 @@ export interface AgentEvents<StateType, ResultType> {
 export interface BaseAgent<
   OptionsType extends AgentOptions,
   StateType,
-  ResultType,
+  ResultType
 > {
   on<U extends keyof AgentEvents<StateType, ResultType>>(
     event: U,
