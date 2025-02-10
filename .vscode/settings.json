@@ -6,6 +6,6 @@
   "typescript.inlayHints.functionLikeReturnTypes.enabled": true,
   "typescript.inlayHints.parameterTypes.enabled": true,
   "files.associations": {
-    "templates/**/*.ts": "plaintext"
+    "**/templates/**/*.ts": "plaintext"
   }
 }
