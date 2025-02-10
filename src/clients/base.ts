@@ -1,5 +1,5 @@
 // Copyright 2024 Ahyve AI Inc.
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 
 import { ModelMetadata } from "../models";
 import {
@@ -37,7 +37,7 @@ interface Ticket<RequestType, ResponseType> {
 export abstract class BaseClient<
   RequestType,
   ResponseType,
-  OptionsType extends BaseClientOptions,
+  OptionsType extends BaseClientOptions
 > implements Client
 {
   /** Model to use */

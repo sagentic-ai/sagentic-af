@@ -53,8 +53,8 @@ Check our [issues page](https://github.com/sagentic-ai/sagentic-af/issues).
 
 ## 📝 License
 
-This project is [MIT](https://opensource.org/license/mit/) licensed.
+This project is licensed under the [Business Source License 1.1](LICENSE).
 
-See the [LICENSE](/LICENSE) file.
+For information about alternative licensing arrangements for the Licensed Work, please contact hello@sagentic.ai.
 
-Copyright (c) 2024 Ahyve Inc.
+Copyright (c) 2023-2025 Ahyve AI Inc.

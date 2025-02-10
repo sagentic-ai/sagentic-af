@@ -1,5 +1,5 @@
 // Copyright 2024 Ahyve AI Inc.
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 
 import {
   Constructor,
@@ -261,6 +261,7 @@ export class Session
     try {
       await this.#clients.ensureClient(model);
     } catch (err) {
+      console.error("Error ensuring client for model", model, err);
       throw err;
     }
 

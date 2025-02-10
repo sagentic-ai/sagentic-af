@@ -1,5 +1,5 @@
 // Copyright 2024 Ahyve AI Inc.
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 
 import { AgentOptions, BaseAgent } from "../agent";
 import { BuiltinModel, ModelMetadata } from "../models";
@@ -8,7 +8,7 @@ import { Thread } from "../thread";
 
 export class OneShotAgent<
   OptionsType extends AgentOptions,
-  ResultType,
+  ResultType
 > extends BaseAgent<OptionsType, void, ResultType> {
   model: BuiltinModel | ModelMetadata = BuiltinModel.GPT35Turbo;
   thread: Thread;
