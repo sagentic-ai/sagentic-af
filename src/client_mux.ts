@@ -7,6 +7,7 @@ import {
   ModelMetadata,
   BuiltinProvider,
   ClientType,
+  BuiltinClientType,
   models as availableModels,
 } from "./models";
 import {
@@ -21,12 +22,28 @@ import { AnthropicClient } from "./clients/anthropic";
 
 import log from "loglevel";
 
-const clientConstructors = {
-  [ClientType.OpenAI]: OpenAIClient,
-  [ClientType.AzureOpenAI]: AzureOpenAIClient,
-  [ClientType.Google]: GoogleClient,
-  [ClientType.Anthropic]: AnthropicClient,
+const builtinConstructors = {
+  [BuiltinClientType.OpenAI]: OpenAIClient,
+  [BuiltinClientType.AzureOpenAI]: AzureOpenAIClient,
+  [BuiltinClientType.Google]: GoogleClient,
+  [BuiltinClientType.Anthropic]: AnthropicClient,
 };
+
+let clientConstructors: Record<
+  ClientType,
+  new (key: string, model: ModelMetadata, options?: ClientOptions) => Client
+> = { ...builtinConstructors };
+
+export function registerClientType(
+  clientType: ClientType,
+  constructor: new (
+    key: string,
+    model: ModelMetadata,
+    options?: ClientOptions
+  ) => Client
+): void {
+  clientConstructors[clientType] = constructor;
+}
 
 interface ClientMuxOptions {
   models?: ModelMetadata[];

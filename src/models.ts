@@ -15,12 +15,15 @@ export import Provider = BuiltinProvider;
 export type ProviderID = BuiltinProvider | string;
 
 /** Available client types */
-export enum ClientType {
+export enum BuiltinClientType {
   OpenAI = "openai",
   AzureOpenAI = "azure-openai",
   Google = "google",
   Anthropic = "anthropic",
 }
+
+/** Identifier for client type */
+export type ClientType = BuiltinClientType | string;
 
 /** default endpoints for each provider */
 /* N.B. For most clients the api endpoint is simply an URL string, but Azure OpenAI API
@@ -46,22 +49,22 @@ export const providers: Record<ProviderID, ProviderMetadata> = {
   [BuiltinProvider.OpenAI]: {
     id: BuiltinProvider.OpenAI,
     url: endpoints[BuiltinProvider.OpenAI],
-    clientType: ClientType.OpenAI,
+    clientType: BuiltinClientType.OpenAI,
   },
   [BuiltinProvider.AzureOpenAI]: {
     id: BuiltinProvider.AzureOpenAI,
     url: endpoints[BuiltinProvider.AzureOpenAI],
-    clientType: ClientType.AzureOpenAI,
+    clientType: BuiltinClientType.AzureOpenAI,
   },
   [BuiltinProvider.Google]: {
     id: BuiltinProvider.Google,
     url: endpoints[BuiltinProvider.Google],
-    clientType: ClientType.Google,
+    clientType: BuiltinClientType.Google,
   },
   [BuiltinProvider.Anthropic]: {
     id: BuiltinProvider.Anthropic,
     url: endpoints[BuiltinProvider.Anthropic],
-    clientType: ClientType.Anthropic,
+    clientType: BuiltinClientType.Anthropic,
   },
 };
 
