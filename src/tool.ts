@@ -206,7 +206,7 @@ export function tool(
       ? N extends string
         ? N
         : never
-      : never
+      : never,
   >(
     target: (this: This, ...args: Args) => Return,
     context: ClassMethodDecoratorContext<

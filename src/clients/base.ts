@@ -37,7 +37,7 @@ interface Ticket<RequestType, ResponseType> {
 export abstract class BaseClient<
   RequestType,
   ResponseType,
-  OptionsType extends BaseClientOptions
+  OptionsType extends BaseClientOptions,
 > implements Client
 {
   /** Model to use */

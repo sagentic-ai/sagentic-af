@@ -60,7 +60,7 @@ export interface AgentEvents<StateType, ResultType> {
 export interface BaseAgent<
   OptionsType extends AgentOptions,
   StateType,
-  ResultType
+  ResultType,
 > {
   on<U extends keyof AgentEvents<StateType, ResultType>>(
     event: U,
