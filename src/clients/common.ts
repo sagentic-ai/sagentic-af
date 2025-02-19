@@ -2,9 +2,16 @@ import { ModelID } from "../models";
 import { Message } from "../thread";
 import { ClientOptions as OpenAIClientOptionsBase } from "openai";
 
-import { get_encoding } from "tiktoken";
+let isVscode: boolean = false;
+let encoding: any;
 
-const encoding = get_encoding("cl100k_base");
+// check if we have tiktoken
+try {
+  require.resolve("vscode");
+  isVscode = true;
+} catch (e) {
+  isVscode = false;
+}
 
 /**
  * Count the number of tokens in a given text.
@@ -12,6 +19,16 @@ const encoding = get_encoding("cl100k_base");
  * @returns The number of tokens in the text.
  */
 export const countTokens = (text: string): number => {
+  // check if we have tiktoken encoding available
+  if (isVscode) {
+    throw new Error("This function is not supported in VSCode");
+  }
+
+  if (!encoding) {
+    const { get_encoding } = require("tiktoken");
+    encoding = get_encoding("cl100k_base");
+  }
+
   return encoding.encode(text).length;
 };
 
