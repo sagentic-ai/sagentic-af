@@ -83,6 +83,10 @@ export enum BuiltinModel {
   GPT4oMini = "gpt-4o-mini",
   GPT4oMini240718 = "gpt-4o-mini-2024-07-18",
 
+  GPT41 = "gpt-4.1",
+  GPT41Mini = "gpt-4.1-mini",
+  GPT41Nano = "gpt-4.1-nano",
+
   GPT35Turbo = "gpt-3.5-turbo",
 
   O1 = "o1",
@@ -114,6 +118,10 @@ enum Checkpoint {
   GPT4o240806 = "gpt-4o-2024-08-06",
   GPT4oMini = "gpt-4o-mini",
   GPT4oMini240718 = "gpt-4o-mini-2024-07-18",
+
+  GPT41 = "gpt-4.1-2025-04-14",
+  GPT41Mini = "gpt-4.1-mini-2025-04-14",
+  GPT41Nano = "gpt-4.1-nano-2025-04-14",
 
   GPT35Turbo = "gpt-3.5-turbo-0125",
 
@@ -362,6 +370,33 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     supportsVideo: true,
     supportsAudio: false, //NB audio support is not yet in the API, TODO add this once OpenAI adds it
   },
+  [BuiltinModel.GPT41]: {
+    checkpoint: Checkpoint.GPT41,
+    prompt: 2,
+    completion: 8,
+    contextSize: 1_047_576,
+    rpm: 10_000,
+    tpm: 30_000_000,
+    supportsImages: true,
+  },
+  [BuiltinModel.GPT41Mini]: {
+    checkpoint: Checkpoint.GPT41Mini,
+    prompt: 0.4,
+    completion: 1.6,
+    contextSize: 1_047_576,
+    rpm: 30_000,
+    tpm: 150_000_000,
+    supportsImages: true,
+  },
+  [BuiltinModel.GPT41Nano]: {
+    checkpoint: Checkpoint.GPT41Nano,
+    prompt: 0.1,
+    completion: 0.4,
+    contextSize: 1_047_576,
+    rpm: 30_000,
+    tpm: 150_000_000,
+    supportsImages: true,
+  },
 };
 
 /** Model metadata */
@@ -465,6 +500,21 @@ export const models: Record<BuiltinModel, ModelMetadata> = {
     id: BuiltinModel.AZURE_GPT4oMini,
     provider: providers[BuiltinProvider.AzureOpenAI],
     card: cards[BuiltinModel.AZURE_GPT4oMini],
+  },
+  [BuiltinModel.GPT41]: {
+    id: BuiltinModel.GPT41,
+    provider: providers[BuiltinProvider.OpenAI],
+    card: cards[BuiltinModel.GPT41],
+  },
+  [BuiltinModel.GPT41Mini]: {
+    id: BuiltinModel.GPT41Mini,
+    provider: providers[BuiltinProvider.OpenAI],
+    card: cards[BuiltinModel.GPT41Mini],
+  },
+  [BuiltinModel.GPT41Nano]: {
+    id: BuiltinModel.GPT41Nano,
+    provider: providers[BuiltinProvider.OpenAI],
+    card: cards[BuiltinModel.GPT41Nano],
   },
 };
 
