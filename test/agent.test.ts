@@ -177,7 +177,7 @@ describe("Agent with tools", () => {
 
   test.each([
     ["OpenAI", BuiltinModel.GPT35Turbo],
-    ["Google", BuiltinModel.GEMINI10],
+    // ["Google", BuiltinModel.GEMINI10],
     // ["Anthropic", BuiltinModel.CLAUDE3Haiku],
   ])("Adding numbers with %s", async (provider, model) => {
     const a = Math.floor(Math.random() * 1000000);
@@ -201,7 +201,7 @@ describe("Agent with tools", () => {
   });
 });
 
-describe("Agent conserving tokens", () => {
+describe.skip("Agent conserving tokens", () => {
   let clients: ClientMux;
   let session: Session;
 

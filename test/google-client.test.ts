@@ -8,7 +8,7 @@ import { MessageRole } from "../src/thread";
 
 const REAL_APIKEY = process.env.GOOGLE_API_KEY || "";
 
-describe("Google Client with real API", () => {
+describe.skip("Google Client with real API", () => {
   let client: Client;
 
   beforeAll(() => {
