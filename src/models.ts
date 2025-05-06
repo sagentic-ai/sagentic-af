@@ -103,6 +103,9 @@ export enum BuiltinModel {
 
   AZURE_GPT4o = "azure/gpt-4o",
   AZURE_GPT4oMini = "azure/gpt-4o-mini",
+  AZURE_GPT41 = "azure/gpt-4.1",
+  AZURE_GPT41Mini = "azure/gpt-4.1-mini",
+  AZURE_GPT41Nano = "azure/gpt-4.1-nano",
 }
 /** Deprecated identifier for builtin models */
 export import ModelType = BuiltinModel;
@@ -139,6 +142,9 @@ enum Checkpoint {
 
   AZURE_GPT4o = "gpt-4o",
   AZURE_GPT4oMini = "azure/gpt-4o-mini",
+  AZURE_GPT41 = "azure/gpt-4.1",
+  AZURE_GPT41Mini = "azure/gpt-4.1-mini",
+  AZURE_GPT41Nano = "azure/gpt-4.1-nano",
 }
 
 /** Describes model checkpoint, context sizes, pricing and limits, etc. */
@@ -397,6 +403,33 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     tpm: 150_000_000,
     supportsImages: true,
   },
+  [BuiltinModel.AZURE_GPT41]: {
+    checkpoint: Checkpoint.AZURE_GPT41,
+    prompt: 2,
+    completion: 8,
+    contextSize: 1_047_576,
+    rpm: 10_000,
+    tpm: 30_000_000,
+    supportsImages: true,
+  },
+  [BuiltinModel.AZURE_GPT41Mini]: {
+    checkpoint: Checkpoint.AZURE_GPT41Mini,
+    prompt: 0.4,
+    completion: 1.6,
+    contextSize: 1_047_576,
+    rpm: 30_000,
+    tpm: 150_000_000,
+    supportsImages: true,
+  },
+  [BuiltinModel.AZURE_GPT41Nano]: {
+    checkpoint: Checkpoint.AZURE_GPT41Nano,
+    prompt: 0.1,
+    completion: 0.4,
+    contextSize: 1_047_576,
+    rpm: 30_000,
+    tpm: 150_000_000,
+    supportsImages: true,
+  },
 };
 
 /** Model metadata */
@@ -515,6 +548,21 @@ export const models: Record<BuiltinModel, ModelMetadata> = {
     id: BuiltinModel.GPT41Nano,
     provider: providers[BuiltinProvider.OpenAI],
     card: cards[BuiltinModel.GPT41Nano],
+  },
+  [BuiltinModel.AZURE_GPT41]: {
+    id: BuiltinModel.AZURE_GPT41,
+    provider: providers[BuiltinProvider.AzureOpenAI],
+    card: cards[BuiltinModel.AZURE_GPT41],
+  },
+  [BuiltinModel.AZURE_GPT41Mini]: {
+    id: BuiltinModel.AZURE_GPT41Mini,
+    provider: providers[BuiltinProvider.AzureOpenAI],
+    card: cards[BuiltinModel.AZURE_GPT41Mini],
+  },
+  [BuiltinModel.AZURE_GPT41Nano]: {
+    id: BuiltinModel.AZURE_GPT41Nano,
+    provider: providers[BuiltinProvider.AzureOpenAI],
+    card: cards[BuiltinModel.AZURE_GPT41Nano],
   },
 };
 

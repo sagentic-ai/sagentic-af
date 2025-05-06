@@ -302,6 +302,18 @@ program
             resource: process.env.AZURE_OPENAI_RESOURCE_NAME,
             deployment: process.env.AZURE_OPENAI_DEPLOYMENT,
           },
+          [BuiltinModel.AZURE_GPT41]: {
+            resource: process.env.AZURE_OPENAI_RESOURCE_NAME,
+            deployment: process.env.AZURE_OPENAI_DEPLOYMENT,
+          },
+          [BuiltinModel.AZURE_GPT41Mini]: {
+            resource: process.env.AZURE_OPENAI_RESOURCE_NAME,
+            deployment: process.env.AZURE_OPENAI_DEPLOYMENT,
+          },
+          [BuiltinModel.AZURE_GPT41Nano]: {
+            resource: process.env.AZURE_OPENAI_RESOURCE_NAME,
+            deployment: process.env.AZURE_OPENAI_DEPLOYMENT,
+          },
         },
       });
     } catch (e: any) {
