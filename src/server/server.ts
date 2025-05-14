@@ -18,6 +18,8 @@ import chalk from "chalk";
 import child_process from "child_process";
 import chokidar from "chokidar";
 
+import { pathToFileURL } from "url";
+
 import log from "loglevel";
 
 export interface ServerOptions {
@@ -32,7 +34,9 @@ const compileTypescript = async (outputDir: string) => {
   return new Promise<void>((resolve, reject) => {
     child_process.execFile(
       process.platform === "win32" ? "npx.cmd" : "npx",
-      ["tsc", "--outDir", outputDir],
+      ["tsc", "--outDir", outputDir], {
+        shell: process.platform === "win32",
+      },
       (error, stdout, stderr) => {
         if (error) {
           log.error(chalk.red("Failed to compile typescript\n"));
@@ -80,7 +84,14 @@ const computeFileLocationInCache = (
 ): string => {
   const cacheDir = path.join(process.cwd(), cacheName || "cache");
   const relativePath = path.relative(process.cwd(), filePath);
-  return path.join(cacheDir, relativePath).replace(".ts", ".js");
+  const result = path.join(cacheDir, relativePath).replace(".ts", ".js");
+
+  // on windows, return file path (e.g. 'file:///C:/path/to/file.js')
+  if (process.platform === "win32") {
+    return pathToFileURL(result).toString();
+  }
+  
+  return result;
 };
 
 const clearRequireCache = () => {
