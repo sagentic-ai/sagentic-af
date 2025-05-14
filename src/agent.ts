@@ -21,7 +21,7 @@ import {
 } from "./models";
 import { Session } from "./session";
 import { ModelInvocationOptions } from "./clients/common";
-import { Thread, ToolAssistantContent, ToolCall } from "./thread";
+import { Message, Thread, ToolAssistantContent, ToolCall } from "./thread";
 import { Tool, ToolSpec, SupportingTool } from "./tool";
 import { EventEmitter } from "events";
 
@@ -55,6 +55,8 @@ export interface AgentEvents<StateType, ResultType> {
   stopping: (state: StateType) => void;
   stop: (result: ResultType) => void;
   heartbeat: () => void;
+  "llm-request": (messages: Message[]) => void;
+  "llm-response": (response: Message) => void;
 }
 
 export interface BaseAgent<
@@ -289,12 +291,14 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
       throw new Error("Thread is complete");
     }
     const messages = thread.messages;
+    this.emit("llm-request", messages);
     const response = await this.session.invokeModel(
       this,
       resolveModelMetadata(this.model),
       messages,
       this.modelInvocationOptions
     );
+    this.emit("llm-response", response);
     let nextThread: Thread;
     if (response.content && typeof response.content === "string") {
       nextThread = thread.appendAssistantMessage(response.content);
