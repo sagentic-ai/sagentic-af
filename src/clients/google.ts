@@ -8,7 +8,8 @@ import {
   TextPart,
   FunctionCallPart,
   FunctionResponsePart,
-  FunctionCallingMode,
+  FunctionCallingMode as Mode,
+  FunctionCallingConfig,
 } from "@google/generative-ai";
 import { ModelMetadata, BuiltinModel } from "../models";
 import {
@@ -16,6 +17,7 @@ import {
   GoogleClientOptions,
   ChatCompletionRequest,
   ChatCompletionResponse,
+  ToolMode,
 } from "./common";
 import { BaseClient, RejectionReason } from "./base";
 import { Message, MessageRole, ContentPart, TextContentPart } from "../thread";
@@ -172,6 +174,34 @@ export class GoogleClient extends BaseClient<
           functionDeclarations: tools,
         },
       ];
+      if (request.options?.tool_choice) {
+        let functionCallingConfig: FunctionCallingConfig;
+        switch (request.options.tool_choice) {
+          case ToolMode.AUTO:
+            functionCallingConfig = {
+              mode: Mode.AUTO,
+            };
+            break;
+          case ToolMode.NONE:
+            functionCallingConfig = {
+              mode: Mode.NONE,
+            };
+            break;
+          case ToolMode.REQUIRED:
+            functionCallingConfig = {
+              mode: Mode.ANY,
+            };
+            break;
+          default: // ToolChoice
+            functionCallingConfig = {
+              mode: Mode.ANY,
+              allowedFunctionNames: [ request.options.tool_choice.function.name ],
+            };
+          }
+        googleRequest.toolConfig = {
+          functionCallingConfig: functionCallingConfig,
+        };
+      } 
     }
 
     // const tokens = estimateTokens(googleRequest);

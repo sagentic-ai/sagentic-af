@@ -32,11 +32,25 @@ export const countTokens = (text: string): number => {
   return encoding.encode(text).length;
 };
 
+export enum ToolMode {
+  AUTO = "auto",
+  NONE = "none",
+  REQUIRED = "required",
+}
+
+export interface ToolChoice {
+  type: "function";
+  function: {
+    name: string;
+  }
+}
+
 /**
  * Model invocation options
  */
 export type ModelInvocationOptions = {
   tools?: any; //TODO: define tools
+  tool_choice?: ToolMode | ToolChoice;
   response_format?: any; //TODO: define response_format
   temperature: number;
   max_tokens?: number;
