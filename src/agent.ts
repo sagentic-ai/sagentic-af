@@ -321,6 +321,16 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
       }
       this.abandon(nextThread);
       this.adopt(nextThread2);
+
+      // agent might've been stopped in the tool handler, 
+      // so we need to check if it is still active
+      if (!this.isActive) {
+        // we need to append dummy assistant response to complete the thread
+        return nextThread2.appendAssistantMessage(
+          "Agent has been stopped, no further responses will be generated."
+        );
+      }
+
       // finally we need to invoke the model again to pass the tool responses to the assistant
       // and obtain its response
       const assistantRespondedThread = await this.advance(nextThread2);
