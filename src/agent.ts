@@ -20,7 +20,7 @@ import {
   ModelCard,
 } from "./models";
 import { Session } from "./session";
-import { ModelInvocationOptions } from "./clients/common";
+import { ModelInvocationOptions, ToolChoice, ToolMode } from "./clients/common";
 import { Message, Thread, ToolAssistantContent, ToolCall } from "./thread";
 import { Tool, ToolSpec, SupportingTool } from "./tool";
 import { EventEmitter } from "events";
@@ -35,6 +35,8 @@ export interface AgentOptions {
   topic?: string;
   /** Tools for the agent to use */
   tools?: Tool[];
+  /** Tool choice mode for the agent */ 
+  tool_choice?: ToolMode | ToolChoice;
   /** System prompt for the agent */
   systemPrompt?: string;
   /** Eat tool results */
@@ -125,6 +127,9 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
 
   /** Tools for the agent to use */
   tools: Tool[] = [];
+
+  /** Tool mode for the agent to use. */
+  tool_choice?: ToolMode | ToolChoice;
 
   /** Flag to indicate whether the tool results should be removed from threads after they were read */
   eatToolResults: boolean = false;
@@ -368,6 +373,9 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
     };
     if (this.tools.length > 0) {
       options.tools = this.describeTools();
+    }
+    if (this.tool_choice) {
+      options.tool_choice = this.tool_choice;
     }
     if (this.expectsJSON) {
       options.response_format = { type: "json_object" };

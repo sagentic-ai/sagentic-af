@@ -5,6 +5,7 @@ import {
   ChatCompletionRequest,
   ChatCompletionResponse,
   countTokens,
+  ToolMode,
 } from "./common";
 import { BaseClient, RejectionReason } from "./base";
 import { Message, MessageRole, ContentPart, TextContentPart } from "../thread";
@@ -162,6 +163,26 @@ export class AnthropicClient extends BaseClient<
         } as Anthropic.Beta.Tools.Tool;
       }),
     } as Anthropic.Beta.Tools.MessageCreateParams;
+
+    if (request.options?.tool_choice) {
+      switch (request.options.tool_choice) {
+        case ToolMode.AUTO:
+          apiRequest.tool_choice = { type: "auto" };
+          break;
+        case ToolMode.NONE:
+          delete apiRequest.tools; // No tools
+          break;
+        case ToolMode.REQUIRED:
+          apiRequest.tool_choice = { type: "any" };
+          break;
+        default: // ToolChoice
+          apiRequest.tool_choice = {
+            type: "tool",
+            name: request.options.tool_choice.function.name,
+          };
+          break;
+      }
+    }
 
     let response: Anthropic.Beta.Tools.ToolsBetaMessage;
     if (this.model.card.supportsImages) {

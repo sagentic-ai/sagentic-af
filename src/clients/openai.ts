@@ -166,6 +166,7 @@ export abstract class OpenAIClientBase<
       temperature: request.options?.temperature,
       max_tokens: request.options?.max_tokens,
       tools: request.options?.tools,
+      tool_choice: request.options?.tool_choice,
       response_format: request.options?.response_format,
       messages: request.messages as OpenAI.Chat.ChatCompletionMessageParam[],
     };
