@@ -36,7 +36,20 @@ export interface SessionOptions {
   notifyHandler?: LoggerFunction;
   /** logger function for internal trace messages */
   traceHandler?: LoggerFunction;
+  /** Function to handle session budget being exceeded */
+  sessionBudgetHandler?: SessionBudgetHandler;
 }
+
+/**
+ * SessionBudgetHandler is an optional function that can be used to handle the budget being exceeded.
+ * It can be used to increase the budget of the session.
+ * @param totalCost the total cost of the session
+ * @param budget the budget of the session
+ * @param nextMessages the next messages to be sent to the model; can be used to estimate the cost of the next messages, or to decide whether to continue
+ * @param session the session object itself for inspection
+ * @returns the new budget for the session; if the budget is not changed, the session will be aborted
+ */
+export type SessionBudgetHandler = (totalCost: number, budget: number, nextMessages: Message[], session: Session) => Promise<number>;
 
 /**
  * SessionReport is a report of the costs of the session
@@ -128,8 +141,12 @@ export class Session
   /** Flag indicating whether the session has been aborted */
   private hasBeenAborted: boolean = false;
 
+  /** Promise tracking current budget handler execution to prevent concurrent calls */
+  private budgetHandlerPromise: Promise<void> | null = null;
+
   notify: LoggerFunction = (..._stuff: any[]): undefined => {};
   trace: LoggerFunction = (..._stuff: any[]): undefined => {};
+  sessionBudgetHandler?: SessionBudgetHandler;
 
   constructor(clients: ClientMux, options: SessionOptions) {
     super();
@@ -139,6 +156,7 @@ export class Session
     if (options.traceHandler) {
       this.trace = options.traceHandler;
     }
+    this.sessionBudgetHandler = options.sessionBudgetHandler;
     this.context = options.context || {};
     this.metadata = meta(Session, options.topic);
     this.ledger = new Ledger(this);
@@ -228,6 +246,64 @@ export class Session
   }
 
   /**
+   * Check budget and handle budget exceeded scenario with proper synchronization.
+   * Only one budget handler can execute at a time. Subsequent calls wait for the current one to complete.
+   * @param messages the messages to be sent to the model
+   */
+  private async checkBudgetAndHandle(messages: Message[]): Promise<void> {
+    // If budget is not exceeded, return immediately
+    if (this.ledger.cost.total < this.budget) {
+      return;
+    }
+
+    // If no budget handler is configured, throw error immediately
+    if (!this.sessionBudgetHandler) {
+      throw new Error("Session budget exceeded");
+    }
+
+    // If there's already a budget handler running, wait for it to complete
+    if (this.budgetHandlerPromise) {
+      await this.budgetHandlerPromise;
+      // After waiting, re-check if budget is now sufficient
+      if (this.ledger.cost.total < this.budget) {
+        return;
+      }
+      // If still over budget, fall through to call handler again
+    }
+
+    // Create and track the budget handler promise
+    this.budgetHandlerPromise = this.executeBudgetHandler(messages);
+    
+    try {
+      await this.budgetHandlerPromise;
+    } finally {
+      this.budgetHandlerPromise = null;
+    }
+
+    // Final check: if budget is still exceeded after handler, throw error
+    if (this.ledger.cost.total > this.budget) {
+      throw new Error("Session budget exceeded");
+    }
+  }
+
+  /**
+   * Execute the budget handler with the given messages.
+   * @param messages the messages to be sent to the model
+   */
+  private async executeBudgetHandler(messages: Message[]): Promise<void> {
+    if (!this.sessionBudgetHandler) {
+      return;
+    }
+
+    this.budget = await this.sessionBudgetHandler(
+      this.ledger.cost.total,
+      this.budget,
+      messages,
+      this
+    );
+  }
+
+  /**
    * Invoke a model with the given messages.
    * Used by agents to invoke LLMs.
    * @param caller object originating the call.
@@ -245,9 +321,8 @@ export class Session
       throw new Error("Session has been aborted");
     }
 
-    if (this.ledger.cost.total >= this.budget) {
-      throw new Error("Session budget exceeded");
-    }
+    // Check budget with proper synchronization to prevent concurrent budget handler calls
+    await this.checkBudgetAndHandle(messages);
 
     const timing = new Timing();
 
