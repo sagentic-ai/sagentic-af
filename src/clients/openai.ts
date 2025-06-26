@@ -245,6 +245,12 @@ export const parseDuration = (duration: string): moment.Duration => {
   const parts = duration.match(/(\d{1,5}(h|ms|m|s))/g);
   if (parts === null) {
     log.warn("WARNING: no parts when parsing time in client:", duration);
+    // the duration might also be just a number of seconds, try to parse that
+    const num = parseInt(duration, 10);
+    if (!isNaN(num)) {
+      return moment.duration(num, "seconds");
+    }
+    log.warn("WARNING: unknown duration format:", duration);
     return moment.duration(0);
   }
   const units: Record<string, number> = parts.reduce(
