@@ -41,13 +41,23 @@ export interface SessionOptions {
 }
 
 /**
- * SessionBudgetHandler is an optional function that can be used to handle the budget being exceeded.
- * It can be used to increase the budget of the session.
- * @param totalCost the total cost of the session
- * @param budget the budget of the session
- * @param nextMessages the next messages to be sent to the model; can be used to estimate the cost of the next messages, or to decide whether to continue
- * @param session the session object itself for inspection
- * @returns the new budget for the session; if the budget is not changed, the session will be aborted
+ * SessionBudgetHandler is called when the session budget is exceeded.
+ * 
+ * IMPORTANT BEHAVIOR:
+ * - This handler will be called AT MOST ONCE per budget exceeded scenario
+ * - When multiple operations hit the budget limit simultaneously, they will all wait
+ *   for a single budget handler call to complete
+ * - After the handler completes, waiting operations check the budget individually:
+ *   - If budget is sufficient when they check, they continue
+ *   - If budget is still/again exceeded when they check (e.g., user declined increase,
+ *     or budget increase was consumed by earlier operations), they fail immediately
+ *     with "Session budget exceeded" WITHOUT calling the handler again
+ * 
+ * @param totalCost - Current total cost of the session
+ * @param budget - Current budget limit that was exceeded
+ * @param nextMessages - Messages from the operation that triggered this call
+ * @param session - The session instance
+ * @returns Promise<number> - New budget limit (return same budget to abort all operations)
  */
 export type SessionBudgetHandler = (totalCost: number, budget: number, nextMessages: Message[], session: Session) => Promise<number>;
 
@@ -248,6 +258,7 @@ export class Session
   /**
    * Check budget and handle budget exceeded scenario with proper synchronization.
    * Only one budget handler can execute at a time. Subsequent calls wait for the current one to complete.
+   * If budget is still exceeded after waiting, those calls fail immediately without calling the handler again.
    * @param messages the messages to be sent to the model
    */
   private async checkBudgetAndHandle(messages: Message[]): Promise<void> {
@@ -268,7 +279,8 @@ export class Session
       if (this.ledger.cost.total < this.budget) {
         return;
       }
-      // If still over budget, fall through to call handler again
+      // If still over budget, fail immediately without calling handler again
+      throw new Error("Session budget exceeded");
     }
 
     // Create and track the budget handler promise
