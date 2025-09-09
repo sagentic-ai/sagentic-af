@@ -173,7 +173,10 @@ export abstract class OpenAIClientBase<
     if (
       this.model.id === BuiltinModel.O1 ||
       this.model.id === BuiltinModel.O1mini ||
-      this.model.id === BuiltinModel.O3mini
+      this.model.id === BuiltinModel.O3mini ||
+      this.model.id === BuiltinModel.GPT5 ||
+      this.model.id === BuiltinModel.GPT5Mini ||
+      this.model.id === BuiltinModel.GPT5Nano
     ) {
       delete openaiRequest.temperature;
     }
