@@ -73,6 +73,10 @@ export type ModelID = BuiltinModel | string;
 
 /** Available default model types */
 export enum BuiltinModel {
+  GPT5 = "gpt-5",
+  GPT5Mini = "gpt-5-mini",
+  GPT5Nano = "gpt-5-nano",
+
   GPT4 = "gpt-4",
   GPT4Turbo = "gpt-4-turbo",
   GPT4Vision = "gpt-4-vision",
@@ -112,6 +116,10 @@ export import ModelType = BuiltinModel;
 
 /** default model checkpoints for each model */
 enum Checkpoint {
+  GPT5 = "gpt-5",
+  GPT5Mini = "gpt-5-mini",
+  GPT5Nano = "gpt-5-nano",
+
   GPT4 = "gpt-4",
   GPT4Turbo = "gpt-4-turbo-preview",
   GPT4Vision = "gpt-4-vision-preview",
@@ -178,6 +186,30 @@ export interface ModelMetadata {
 
 /** Default model cards for each model */
 export const cards: Record<BuiltinModel, ModelCard> = {
+  [BuiltinModel.GPT5]: {
+    checkpoint: Checkpoint.GPT5,
+    prompt: 1.25,
+    completion: 10,
+    contextSize: 400_000,
+    rpm: 500,
+    tpm: 30_000,
+  },
+  [BuiltinModel.GPT5Mini]: {
+    checkpoint: Checkpoint.GPT5Mini,
+    prompt: 0.25,
+    completion: 2,
+    contextSize: 400_000,
+    rpm: 500,
+    tpm: 200_000,
+  },
+  [BuiltinModel.GPT5Nano]: {
+    checkpoint: Checkpoint.GPT5Nano,
+    prompt: 0.05,
+    completion: 0.4,
+    contextSize: 400_000,
+    rpm: 500,
+    tpm: 200_000,
+  },
   [BuiltinModel.GPT4]: {
     checkpoint: Checkpoint.GPT4,
     prompt: 30,
@@ -434,6 +466,21 @@ export const cards: Record<BuiltinModel, ModelCard> = {
 
 /** Model metadata */
 export const models: Record<BuiltinModel, ModelMetadata> = {
+  [BuiltinModel.GPT5]: {
+    id: BuiltinModel.GPT5,
+    provider: providers[BuiltinProvider.OpenAI],
+    card: cards[BuiltinModel.GPT5],
+  },
+  [BuiltinModel.GPT5Mini]: {
+    id: BuiltinModel.GPT5Mini,
+    provider: providers[BuiltinProvider.OpenAI],
+    card: cards[BuiltinModel.GPT5Mini],
+  },
+  [BuiltinModel.GPT5Nano]: {
+    id: BuiltinModel.GPT5Nano,
+    provider: providers[BuiltinProvider.OpenAI],
+    card: cards[BuiltinModel.GPT5Nano],
+  },
   [BuiltinModel.GPT4]: {
     id: BuiltinModel.GPT4,
     provider: providers[BuiltinProvider.OpenAI],
