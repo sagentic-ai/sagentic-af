@@ -143,6 +143,9 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
   /** Maximum tokens to produce */
   maxTokens?: number = undefined;
 
+  /** Maximum completion tokens to produce */
+  maxCompletionTokens?: number = undefined;
+
   /** Used to track threads that the agent is managing */
   private threads: Thread[];
 
@@ -393,6 +396,10 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
 
     if (this.maxTokens !== undefined) {
       options.max_tokens = this.maxTokens;
+    }
+
+    if (this.maxCompletionTokens !== undefined) {
+      options.max_completion_tokens = this.maxCompletionTokens;
     }
 
     if (Object.keys(options).length > 0) {
