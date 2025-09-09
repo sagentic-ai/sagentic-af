@@ -375,6 +375,15 @@ export class AzureOpenAIClient extends OpenAIClientBase<AzureOpenAIClientOptions
       messages: request.messages as OpenAI.Chat.ChatCompletionMessageParam[],
     };
     var response: OpenAI.Chat.Completions.ChatCompletion;
+
+    // remove temperature from unsupported models
+    if (this.model.id === BuiltinModel.AZURE_GPT5 ||
+      this.model.id === BuiltinModel.AZURE_GPT5Mini ||
+      this.model.id === BuiltinModel.AZURE_GPT5Nano
+    ) {
+      delete openaiRequest.temperature;
+    }
+
     if (this.model.card.supportsImages) {
       // FIXME count tokens without base64 images
       response = await this.enqueue(1000, openaiRequest);
