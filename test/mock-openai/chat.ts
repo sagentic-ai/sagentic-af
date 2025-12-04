@@ -10,6 +10,10 @@ export type ChatCompletionRequest =
   OpenAI.Chat.ChatCompletionCreateParamsNonStreaming;
 export type ChatCompletionResponse = OpenAI.Chat.Completions.ChatCompletion;
 
+// Responses API types
+export type ResponsesRequest = OpenAI.Responses.ResponseCreateParamsNonStreaming;
+export type ResponsesResponse = OpenAI.Responses.Response;
+
 const TICKER_UPDATE_INTERVAL = 1000;
 
 const coerceToString = (value: any): string => {
@@ -191,6 +195,69 @@ export class MockChatAPI {
   }
 
   /**
+   * handleResponsesLimits checks if the Responses API request exceeds limits
+   */
+  handleResponsesLimits(request: ResponsesRequest) {
+    this.requests += 1;
+
+    if (this.options.maxRPP && this.requests > this.options.maxRPP) {
+      throw {
+        status: 429,
+        error: {
+          message: "Max requests per period exceeded",
+          type: "invalid_request_error",
+          param: "input",
+          code: "rate_limit_exceeded",
+        },
+      };
+    }
+
+    let tokens = 0;
+    if (typeof request.input === "string") {
+      tokens = countTokens(request.input);
+    } else if (Array.isArray(request.input)) {
+      tokens = countTokens(JSON.stringify(request.input));
+    }
+
+    if (this.options.contextSize && tokens > this.options.contextSize) {
+      throw {
+        status: 400,
+        error: {
+          message: "Max tokens per request exceeded",
+          type: "invalid_request_error",
+          param: "input",
+          code: "context_length_exceeded",
+        },
+      };
+    }
+
+    this.tokens += tokens;
+    this.totalTokens += tokens;
+    if (this.options.maxTPP && this.tokens > this.options.maxTPP) {
+      throw {
+        status: 429,
+        error: {
+          message: "Max tokens per period exceeded",
+          type: "invalid_request_error",
+          param: "input",
+          code: "rate_limit_exceeded",
+        },
+      };
+    }
+    if (this.options.quota && this.totalTokens > this.options.quota) {
+      throw {
+        status: 429,
+        error: {
+          message: "Max tokens exceeded",
+          type: "invalid_request_error",
+          param: "input",
+          code: "insufficient_quota",
+        },
+      };
+    }
+  }
+
+  /**
    * getLimits returns the current state of the rate limits.
    */
   getLimits() {
@@ -228,6 +295,35 @@ export class MockChatAPI {
       return "foobar";
     }
 
+    return "foobar";
+  }
+
+  /**
+   * getResponsesResponse returns the response for a Responses API request
+   */
+  getResponsesResponse(request: ResponsesRequest): string {
+    if (this.options.dictionary) {
+      // Try to match the input text
+      let inputText = "";
+      if (typeof request.input === "string") {
+        inputText = request.input;
+      } else if (Array.isArray(request.input)) {
+        // Extract text from input items
+        for (const item of request.input) {
+          if (item.type === "message" && item.role === "user") {
+            for (const content of item.content) {
+              if (typeof content !== "string" && content.type === "input_text") {
+                inputText += content.text;
+              }
+            }
+          }
+        }
+      }
+      
+      if (inputText && inputText in this.options.dictionary) {
+        return this.options.dictionary[inputText];
+      }
+    }
     return "foobar";
   }
 
@@ -275,5 +371,76 @@ export class MockChatAPI {
         },
       ],
     };
+  }
+
+  /**
+   * responses returns a response for a Responses API request
+   */
+  responses(request: ResponsesRequest): ResponsesResponse {
+    this.handleResponsesLimits(request);
+
+    let input_tokens = 0;
+    if (typeof request.input === "string") {
+      input_tokens = countTokens(request.input);
+    } else if (Array.isArray(request.input)) {
+      input_tokens = countTokens(JSON.stringify(request.input));
+    }
+    
+    const result = this.getResponsesResponse(request);
+    const output_tokens = countTokens(result);
+    const responseId = `resp_${crypto.randomUUID().replace(/-/g, "")}`;
+
+    // Construct a minimal response that satisfies the OpenAI Response type
+    const response: any = {
+      id: responseId,
+      created_at: Math.floor(Date.now() / 1000),
+      model: request.model,
+      object: "response",
+      output: [
+        {
+          type: "message",
+          id: `msg_${crypto.randomUUID().replace(/-/g, "")}`,
+          status: "completed",
+          role: "assistant",
+          content: [
+            {
+              type: "output_text",
+              text: result,
+              annotations: [],
+            },
+          ],
+        },
+      ],
+      output_text: result,
+      parallel_tool_calls: request.parallel_tool_calls ?? true,
+      tool_choice: request.tool_choice ?? "auto",
+      tools: request.tools ?? [],
+      top_p: 1,
+      truncation: "disabled",
+      usage: {
+        input_tokens: input_tokens,
+        input_tokens_details: {
+          cached_tokens: 0,
+        },
+        output_tokens: output_tokens,
+        output_tokens_details: {
+          reasoning_tokens: 0,
+        },
+        total_tokens: input_tokens + output_tokens,
+      },
+      error: null,
+      incomplete_details: null,
+      instructions: request.instructions ?? null,
+      metadata: request.metadata ?? null,
+      temperature: request.temperature ?? 1,
+      max_output_tokens: request.max_output_tokens ?? null,
+      previous_response_id: request.previous_response_id ?? null,
+      reasoning: request.reasoning ?? null,
+      service_tier: "default",
+      status: "completed",
+      text: request.text ?? { format: { type: "text" } },
+    };
+
+    return response as ResponsesResponse;
   }
 }
