@@ -89,7 +89,8 @@ export class FunctionTool<Args, Returns> implements Tool {
   }
 
   describe(): ToolSpec {
-    const parameters = zodToJsonSchema(this.args);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parameters = zodToJsonSchema(this.args as any);
     delete parameters.$schema;
     return {
       type: "function",

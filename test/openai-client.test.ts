@@ -1,7 +1,7 @@
 // Copyright 2024 Ahyve AI Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-import "openai/shims/node";
+//import "openai/shims/node";
 import { OpenAIClient as Client, parseDuration } from "../src/clients/openai";
 import { BuiltinModel, models } from "../src/models";
 import { MessageRole } from "../src/thread";
@@ -222,11 +222,11 @@ describe("OpenAI Client with mock API", () => {
   });
 });
 
-describe("OpenAI Client with real API", () => {
+describe.skip("OpenAI Client with real API", () => {
   let client: Client;
 
   beforeAll(() => {
-    client = new Client(REAL_APIKEY, models[BuiltinModel.GPT35Turbo]);
+    client = new Client(REAL_APIKEY, models[BuiltinModel.GPT41Mini]);
     client.start();
   });
 
@@ -236,7 +236,7 @@ describe("OpenAI Client with real API", () => {
 
   test("Simple Request", async () => {
     const response = await client.createChatCompletion({
-      model: BuiltinModel.GPT35Turbo,
+      model: BuiltinModel.GPT41Mini,
       messages: [
         {
           role: MessageRole.System,

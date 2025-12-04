@@ -38,11 +38,40 @@ export enum ToolMode {
   REQUIRED = "required",
 }
 
+/**
+ * Reasoning effort levels for models that support configurable reasoning
+ * - none: No reasoning, fastest responses (default for GPT-5.1)
+ * - minimal: Minimal reasoning (GPT-5 only, not supported by GPT-5.1)
+ * - low: Light reasoning
+ * - medium: Balanced reasoning (default for GPT-5, O1, O3)
+ * - high: Maximum reasoning effort
+ */
+export enum ReasoningEffort {
+  NONE = "none",
+  MINIMAL = "minimal",
+  LOW = "low",
+  MEDIUM = "medium",
+  HIGH = "high",
+}
+
+/**
+ * Verbosity levels for models that support configurable verbosity (GPT-5.1 family)
+ * Controls the length and detail of the model's responses
+ * - low: Concise, brief responses
+ * - medium: Balanced responses (default)
+ * - high: Detailed, elaborate responses
+ */
+export enum Verbosity {
+  LOW = "low",
+  MEDIUM = "medium",
+  HIGH = "high",
+}
+
 export interface ToolChoice {
   type: "function";
   function: {
     name: string;
-  }
+  };
 }
 
 /**
@@ -52,9 +81,20 @@ export type ModelInvocationOptions = {
   tools?: any; //TODO: define tools
   tool_choice?: ToolMode | ToolChoice;
   response_format?: any; //TODO: define response_format
-  temperature: number;
+  temperature?: number;
+  top_p?: number;
   max_tokens?: number;
   max_completion_tokens?: number;
+  /**
+   * Reasoning effort for models that support configurable reasoning (GPT-5.1, O1, O3, etc.)
+   * Note: When reasoning_effort is not "none", temperature and top_p are not supported
+   */
+  reasoning_effort?: ReasoningEffort;
+  /**
+   * Verbosity level for models that support it (GPT-5.1 family)
+   * Controls the length and detail of responses: "low", "medium", or "high"
+   */
+  verbosity?: Verbosity;
 };
 
 /**

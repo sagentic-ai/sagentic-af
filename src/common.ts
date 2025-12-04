@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 import moment, { Moment } from "moment";
-import shortUUID from "short-uuid";
+import crypto from "crypto";
 import { z } from "zod";
 import zodToJsonSchema from "zod-to-json-schema";
 
-const randomUUID = () => shortUUID.generate();
+const randomUUID = () => crypto.randomUUID().replace(/-/g, "").slice(0, 22);
 
 /** Used to identify objects */
 export type ID = string;
@@ -148,7 +148,8 @@ export interface ParentOf<T extends Identified> {
 /// --- utils
 
 export const jsonSchema = (zodSchema: z.ZodType<any>) => {
-  return JSON.stringify(zodToJsonSchema(zodSchema));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return JSON.stringify(zodToJsonSchema(zodSchema as any));
 };
 
 const parseObject = (source: string): [any, string] => {

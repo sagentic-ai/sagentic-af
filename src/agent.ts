@@ -20,7 +20,13 @@ import {
   ModelCard,
 } from "./models";
 import { Session } from "./session";
-import { ModelInvocationOptions, ToolChoice, ToolMode } from "./clients/common";
+import {
+  ModelInvocationOptions,
+  ToolChoice,
+  ToolMode,
+  ReasoningEffort,
+  Verbosity,
+} from "./clients/common";
 import { Message, Thread, ToolAssistantContent, ToolCall } from "./thread";
 import { Tool, ToolSpec, SupportingTool } from "./tool";
 import { EventEmitter } from "events";
@@ -35,7 +41,7 @@ export interface AgentOptions {
   topic?: string;
   /** Tools for the agent to use */
   tools?: Tool[];
-  /** Tool choice mode for the agent */ 
+  /** Tool choice mode for the agent */
   tool_choice?: ToolMode | ToolChoice;
   /** System prompt for the agent */
   systemPrompt?: string;
@@ -45,6 +51,16 @@ export interface AgentOptions {
   expectsJSON?: boolean;
   /** Temperature for the LLM */
   temperature?: number;
+  /**
+   * Reasoning effort for models that support it (GPT-5.1, GPT-5, O1, O3, etc.)
+   * Note: When set to anything other than "none", temperature will be ignored
+   */
+  reasoning_effort?: ReasoningEffort;
+  /**
+   * Verbosity level for models that support it (GPT-5.1 family)
+   * Controls response length/detail: "low", "medium", or "high"
+   */
+  verbosity?: Verbosity;
 }
 
 /** Agent is the interface for all agents */
@@ -64,7 +80,7 @@ export interface AgentEvents<StateType, ResultType> {
 export interface BaseAgent<
   OptionsType extends AgentOptions,
   StateType,
-  ResultType,
+  ResultType
 > {
   on<U extends keyof AgentEvents<StateType, ResultType>>(
     event: U,
@@ -140,6 +156,12 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
   /** Temperature to use with the LLM */
   temperature: number = 0.0;
 
+  /** Reasoning effort for models that support configurable reasoning */
+  reasoning_effort?: ReasoningEffort = undefined;
+
+  /** Verbosity level for models that support it (GPT-5.1 family) */
+  verbosity?: Verbosity = undefined;
+
   /** Maximum tokens to produce */
   maxTokens?: number = undefined;
 
@@ -188,6 +210,9 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
       this.eatToolResults || this.options?.eatToolResults || false;
     this.expectsJSON = this.expectsJSON || this.options?.expectsJSON || false;
     this.temperature = this.temperature || this.options?.temperature || 0.0;
+    this.reasoning_effort =
+      this.reasoning_effort || this.options?.reasoning_effort;
+    this.verbosity = this.verbosity || this.options?.verbosity;
     this.threads = [];
   }
 
@@ -325,7 +350,7 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
       this.abandon(nextThread);
       this.adopt(nextThread2);
 
-      // agent might've been stopped in the tool handler, 
+      // agent might've been stopped in the tool handler,
       // so we need to check if it is still active
       if (!this.isActive) {
         // we need to append dummy assistant response to complete the thread
@@ -400,6 +425,14 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
 
     if (this.maxCompletionTokens !== undefined) {
       options.max_completion_tokens = this.maxCompletionTokens;
+    }
+
+    if (this.reasoning_effort !== undefined) {
+      options.reasoning_effort = this.reasoning_effort;
+    }
+
+    if (this.verbosity !== undefined) {
+      options.verbosity = this.verbosity;
     }
 
     if (Object.keys(options).length > 0) {
