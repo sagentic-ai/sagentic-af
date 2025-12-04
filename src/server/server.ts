@@ -16,7 +16,6 @@ import { generateSchemas } from "../ts-gen/gen";
 import moment from "moment";
 import chalk from "chalk";
 import child_process from "child_process";
-import chokidar from "chokidar";
 
 import { pathToFileURL } from "url";
 
@@ -235,7 +234,8 @@ export const startServer = async ({
   );
   clientMux.start();
 
-  const watcher = chokidar.watch(process.cwd(), {
+  const chokidar = await import("chokidar");
+  const watcher = chokidar.default.watch(process.cwd(), {
     ignoreInitial: true,
     ignored: [/node_modules/, /cache/, /dist/, "schemas.gen.ts"],
     cwd: process.cwd(),
