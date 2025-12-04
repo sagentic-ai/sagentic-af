@@ -104,11 +104,15 @@ describe("Agent with tools", () => {
   let session: Session;
 
   beforeAll(() => {
-    clients = new ClientMux({
-      [BuiltinProvider.OpenAI]: openaiApiKey,
-      [BuiltinProvider.Google]: googleApiKey,
-      [BuiltinProvider.Anthropic]: anthropicApiKey,
-    });
+    // Use legacy Chat Completions API for this test as GPT-3.5 doesn't work well with Responses API
+    clients = new ClientMux(
+      {
+        [BuiltinProvider.OpenAI]: openaiApiKey,
+        [BuiltinProvider.Google]: googleApiKey,
+        [BuiltinProvider.Anthropic]: anthropicApiKey,
+      },
+      { openaiApiType: "chat" }
+    );
     clients.start();
     session = new Session(clients, {});
   });

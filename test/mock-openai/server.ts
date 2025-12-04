@@ -13,6 +13,8 @@ import {
   MockChatOptions,
   ChatCompletionRequest,
   ChatCompletionResponse,
+  ResponsesRequest,
+  ResponsesResponse,
 } from "./chat";
 
 // hardcoded type matching light-my-request to get around type mismatch
@@ -154,6 +156,7 @@ export class MockOpenAIApi {
       }
     );
 
+    // Chat Completions API endpoint
     this.app.post(
       "/chat/completions",
       async (
@@ -162,6 +165,37 @@ export class MockOpenAIApi {
       ): Promise<ChatCompletionResponse> => {
         try {
           const result = this.chat.completions(req.body);
+          return result;
+        } catch (err: unknown) {
+          const error = err as { status?: number; error?: unknown };
+          if (error.status) {
+            res.statusCode = error.status;
+            throw {
+              error: error.error,
+            };
+          }
+          throw err;
+        } finally {
+          const limits = this.chat.getLimits();
+          res.header("x-ratelimit-limit-requests", limits.maxRPP);
+          res.header("x-ratelimit-limit-tokens", limits.maxTPP);
+          res.header("x-ratelimit-remaining-requests", limits.remainingRPP);
+          res.header("x-ratelimit-remaining-tokens", limits.remainingTPP);
+          res.header("x-ratelimit-reset-requests", limits.timeToReset);
+          res.header("x-ratelimit-reset-tokens", limits.timeToReset);
+        }
+      }
+    );
+
+    // Responses API endpoint (new)
+    this.app.post(
+      "/responses",
+      async (
+        req: FastifyRequest<{ Body: ResponsesRequest }>,
+        res: FastifyReply
+      ): Promise<ResponsesResponse> => {
+        try {
+          const result = this.chat.responses(req.body);
           return result;
         } catch (err: unknown) {
           const error = err as { status?: number; error?: unknown };
