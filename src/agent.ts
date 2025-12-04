@@ -27,8 +27,30 @@ import {
   ReasoningEffort,
   Verbosity,
 } from "./clients/common";
-import { Message, Thread, ToolAssistantContent, ToolCall } from "./thread";
+import {
+  Message,
+  MessageRole,
+  Thread,
+  ToolAssistantContent,
+  ToolCall,
+} from "./thread";
 import { Tool, ToolSpec, SupportingTool } from "./tool";
+import {
+  BuiltinToolType,
+  BuiltinToolSpec,
+  BuiltinToolCall,
+  BuiltinToolResult,
+  BuiltinToolHandler,
+  OutputFilterOptions,
+  createBuiltinToolSpec,
+  createUnhandledError,
+  filterOutputItems,
+  requiresResponse,
+  ApplyPatchCall,
+  ApplyPatchResult,
+  ComputerUseCall,
+  ComputerUseResult,
+} from "./builtin-tools";
 import { EventEmitter } from "events";
 
 import log from "loglevel";
@@ -61,6 +83,25 @@ export interface AgentOptions {
    * Controls response length/detail: "low", "medium", or "high"
    */
   verbosity?: Verbosity;
+  /**
+   * Builtin tools to enable (apply_patch, web_search, file_search, etc.)
+   * These are OpenAI's built-in tools available in the Responses API.
+   * To handle builtin tool calls, register handlers using registerBuiltinToolHandler()
+   * or the @handleBuiltinTool decorator.
+   */
+  builtinTools?: BuiltinToolType[];
+  /**
+   * Options for configuring specific builtin tools.
+   * Key is the BuiltinToolType, value is partial options for that tool.
+   */
+  builtinToolOptions?: Partial<
+    Record<BuiltinToolType, Partial<BuiltinToolSpec>>
+  >;
+  /**
+   * Options for filtering output items before sending back to the model.
+   * Useful for hiding certain tool outputs from the conversation.
+   */
+  outputFilter?: OutputFilterOptions;
 }
 
 /** Agent is the interface for all agents */
@@ -168,6 +209,21 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
   /** Maximum completion tokens to produce */
   maxCompletionTokens?: number = undefined;
 
+  /** Builtin tools enabled for this agent */
+  builtinTools: BuiltinToolType[] = [];
+
+  /** Options for specific builtin tools */
+  builtinToolOptions: Partial<
+    Record<BuiltinToolType, Partial<BuiltinToolSpec>>
+  > = {};
+
+  /** Output filter options */
+  outputFilter?: OutputFilterOptions = undefined;
+
+  /** Registry for builtin tool handlers */
+  private builtinToolHandlers: Map<string, BuiltinToolHandler<any, any>> =
+    new Map();
+
   /** Used to track threads that the agent is managing */
   private threads: Thread[];
 
@@ -213,6 +269,15 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
     this.reasoning_effort =
       this.reasoning_effort || this.options?.reasoning_effort;
     this.verbosity = this.verbosity || this.options?.verbosity;
+    this.builtinTools =
+      this.builtinTools.length > 0
+        ? this.builtinTools
+        : this.options?.builtinTools || [];
+    this.builtinToolOptions =
+      Object.keys(this.builtinToolOptions).length > 0
+        ? this.builtinToolOptions
+        : this.options?.builtinToolOptions || {};
+    this.outputFilter = this.outputFilter || this.options?.outputFilter;
     this.threads = [];
   }
 
@@ -333,37 +398,135 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
     );
     this.emit("llm-response", response);
     let nextThread: Thread;
-    if (response.content && typeof response.content === "string") {
+
+    // Check for builtin tool calls (apply_patch, web_search, etc.)
+    const hasBuiltinToolCalls =
+      response.builtin_tool_calls && response.builtin_tool_calls.length > 0;
+    const hasRegularToolCalls =
+      response.tool_calls && response.tool_calls.length > 0;
+
+    if (
+      response.content &&
+      typeof response.content === "string" &&
+      !hasBuiltinToolCalls &&
+      !hasRegularToolCalls
+    ) {
+      // Pure text response
       nextThread = thread.appendAssistantMessage(response.content);
       if (nextThread !== thread) {
         throw new Error("Thread should have been mutably advanced");
       }
-    } else if (response.tool_calls) {
-      nextThread = thread.appendAssistantToolCalls(response.tool_calls);
-      // now we handle the tool calls by responding to the assistant
-      // since tool calls completed the thread, this will not mutate the thread,
-      // but will create a new one that we need to adopt
-      const nextThread2 = await this.handleToolCalls(nextThread);
-      if (nextThread2 === nextThread) {
-        throw new Error("Thread should have been immutably advanced");
+    } else if (hasRegularToolCalls || hasBuiltinToolCalls) {
+      // Handle tool calls (regular and/or builtin)
+
+      if (hasRegularToolCalls) {
+        nextThread = thread.appendAssistantToolCalls(response.tool_calls!);
+        // Handle regular tool calls
+        const nextThread2 = await this.handleToolCalls(nextThread);
+        if (nextThread2 === nextThread) {
+          throw new Error("Thread should have been immutably advanced");
+        }
+        this.abandon(nextThread);
+        this.adopt(nextThread2);
+        nextThread = nextThread2;
+
+        // Handle builtin tool calls if also present
+        if (hasBuiltinToolCalls) {
+          let builtinCalls = response.builtin_tool_calls!;
+          if (this.outputFilter) {
+            builtinCalls = filterOutputItems(builtinCalls, this.outputFilter);
+          }
+          const builtinResults = await this.handleBuiltinToolCalls(
+            builtinCalls
+          );
+
+          // Store using thread's context system
+          // The builtin calls are part of the assistant message (which has the tool_calls)
+          // We need to find the assistant message index
+          const messagesCount = nextThread.messages.length;
+          // Find the last assistant message
+          for (let i = messagesCount - 1; i >= 0; i--) {
+            if (nextThread.messages[i].role === MessageRole.Assistant) {
+              nextThread.setBuiltinToolContext(
+                i,
+                response.builtin_tool_calls,
+                builtinResults
+              );
+              break;
+            }
+          }
+        }
+      } else {
+        // Only builtin tool calls - no regular tool calls
+        // We treat this similarly to regular tool calls:
+        // 1. Record the builtin calls as an "assistant" response
+        // 2. Handle them
+        // 3. Create a new thread with user message containing results
+        // 4. Recursive advance to get text response
+
+        // Process builtin tool calls first
+        let builtinCalls = response.builtin_tool_calls!;
+        if (this.outputFilter) {
+          builtinCalls = filterOutputItems(builtinCalls, this.outputFilter);
+        }
+        const builtinResults = await this.handleBuiltinToolCalls(builtinCalls);
+
+        // agent might've been stopped in the tool handler
+        if (!this.isActive) {
+          return thread.appendAssistantMessage(
+            "Agent has been stopped, no further responses will be generated."
+          );
+        }
+
+        // Complete current thread with a note about builtin tool calls
+        // This way the thread record shows what happened
+        const callsSummary = builtinCalls
+          .map((c) => `${c.type}(${(c as any).operation?.path || c.id})`)
+          .join(", ");
+        nextThread = thread.appendAssistantMessage(
+          `[Executed builtin tools: ${callsSummary}]`
+        );
+
+        // Store builtin info using the thread's context system
+        const messagesCount = nextThread.messages.length;
+        const assistantMsgIndex = messagesCount - 1; // Last message is the assistant message
+        nextThread.setBuiltinToolContext(
+          assistantMsgIndex,
+          response.builtin_tool_calls,
+          builtinResults
+        );
+
+        // Now create a new interaction (like after tool results)
+        // The thread is complete so this creates a new interaction
+        const threadWithContext = nextThread;
+        const nextThread2 = nextThread.appendUserMessage(
+          "[Builtin tool results submitted]"
+        );
+        this.abandon(nextThread);
+        this.adopt(nextThread2);
+        nextThread = nextThread2;
+
+        // Copy builtin tool contexts from thread before the user message was added
+        nextThread.copyBuiltinToolContextsFrom(threadWithContext);
       }
-      this.abandon(nextThread);
-      this.adopt(nextThread2);
 
       // agent might've been stopped in the tool handler,
       // so we need to check if it is still active
       if (!this.isActive) {
         // we need to append dummy assistant response to complete the thread
-        return nextThread2.appendAssistantMessage(
-          "Agent has been stopped, no further responses will be generated."
-        );
+        if (!nextThread.complete) {
+          return nextThread.appendAssistantMessage(
+            "Agent has been stopped, no further responses will be generated."
+          );
+        }
+        return nextThread;
       }
 
       // finally we need to invoke the model again to pass the tool responses to the assistant
       // and obtain its response
-      const assistantRespondedThread = await this.advance(nextThread2);
+      const assistantRespondedThread = await this.advance(nextThread);
 
-      if (this.eatToolResults) {
+      if (this.eatToolResults && hasRegularToolCalls) {
         const toolCalls: ToolCall[] | undefined = (
           assistantRespondedThread.interaction.previous?.assistant as
             | ToolAssistantContent
@@ -435,10 +598,25 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
       options.verbosity = this.verbosity;
     }
 
+    // Add builtin tools
+    if (this.builtinTools.length > 0) {
+      options.builtin_tools = this.describeBuiltinTools();
+    }
+
     if (Object.keys(options).length > 0) {
       return options;
     }
     return undefined;
+  }
+
+  /**
+   * Describe the builtin tools that the agent uses.
+   * @returns Array of BuiltinToolSpec objects
+   */
+  describeBuiltinTools(): BuiltinToolSpec[] {
+    return this.builtinTools.map((type) =>
+      createBuiltinToolSpec(type, this.builtinToolOptions[type])
+    );
   }
 
   /**
@@ -479,6 +657,104 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
     }
     // at this stage we have appended all the tool results to the thread
     return thread;
+  }
+
+  // ============================================================================
+  // Builtin Tool Handler Registration
+  // ============================================================================
+
+  /**
+   * Register a handler for a builtin tool type.
+   * The handler will be called when the model emits a tool call of this type.
+   * @param type The builtin tool call type (e.g., "apply_patch_call")
+   * @param handler The async function to handle the tool call
+   *
+   * @example
+   * ```typescript
+   * this.registerBuiltinToolHandler("apply_patch_call", async (call: ApplyPatchCall) => {
+   *   // Apply the patch to your filesystem
+   *   await applyPatch(call.operation);
+   *   return { call_id: call.call_id, status: "completed" };
+   * });
+   * ```
+   */
+  /**
+   * @internal Used by decorators - made public for decorator access
+   */
+  registerBuiltinToolHandler<
+    T extends BuiltinToolCall,
+    R extends BuiltinToolResult | void
+  >(type: string, handler: BuiltinToolHandler<T, R>): void {
+    this.builtinToolHandlers.set(type, handler);
+    log.debug(
+      chalk.yellow(this.metadata.ID),
+      chalk.blue("registered builtin tool handler"),
+      type
+    );
+  }
+
+  /**
+   * Check if a handler is registered for a builtin tool type.
+   * @param type The builtin tool call type
+   * @returns true if a handler is registered
+   */
+  protected hasBuiltinToolHandler(type: string): boolean {
+    return this.builtinToolHandlers.has(type);
+  }
+
+  /**
+   * Handle builtin tool calls from the model response.
+   * Invokes registered handlers and returns results to send back to the model.
+   * @param calls Array of builtin tool calls from the model
+   * @returns Array of results to send back to the model
+   */
+  protected async handleBuiltinToolCalls(
+    calls: BuiltinToolCall[]
+  ): Promise<BuiltinToolResult[]> {
+    const results: BuiltinToolResult[] = [];
+
+    for (const call of calls) {
+      const handler = this.builtinToolHandlers.get(call.type);
+
+      if (handler) {
+        try {
+          const result = await handler(call);
+          if (result) {
+            results.push(result);
+          }
+          log.info(
+            chalk.yellow(this.metadata.ID),
+            chalk.green("builtin tool"),
+            call.type,
+            chalk.gray(`(id: ${call.id})`)
+          );
+        } catch (err: any) {
+          this.trace("builtin tool error", call.type, err);
+          // Create error result for tools that require responses
+          if (requiresResponse(call.type)) {
+            if (call.type === "apply_patch_call") {
+              results.push({
+                call_id: (call as ApplyPatchCall).call_id,
+                status: "failed",
+                output: `BUILTIN TOOL ERROR: ${err.message}`,
+              } as ApplyPatchResult);
+            } else if (call.type === "computer_call") {
+              results.push({
+                call_id: (call as ComputerUseCall).call_id,
+              } as ComputerUseResult);
+            }
+          }
+        }
+      } else {
+        // No handler registered - create error result and warn
+        const errorResult = createUnhandledError(call);
+        if (errorResult) {
+          results.push(errorResult);
+        }
+      }
+    }
+
+    return results;
   }
 
   /** Create another agent within the session.
@@ -549,4 +825,54 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
     }
     return undefined;
   }
+}
+
+// ============================================================================
+// Builtin Tool Handler Decorator
+// ============================================================================
+
+/**
+ * Decorator to register a method as a handler for a specific builtin tool type.
+ *
+ * @param type The builtin tool call type to handle (e.g., "apply_patch_call")
+ *
+ * @example
+ * ```typescript
+ * class MyAgent extends BaseAgent<MyOptions, MyState, MyResult> {
+ *   builtinTools = [BuiltinToolType.ApplyPatch];
+ *
+ *   @handleBuiltinTool("apply_patch_call")
+ *   async handleApplyPatch(call: ApplyPatchCall): Promise<ApplyPatchResult> {
+ *     // Implement your patch harness logic here
+ *     const { operation } = call;
+ *     if (operation.type === "create_file") {
+ *       await fs.writeFile(operation.path, applyDiff("", operation.diff));
+ *     } else if (operation.type === "update_file") {
+ *       const content = await fs.readFile(operation.path, "utf-8");
+ *       await fs.writeFile(operation.path, applyDiff(content, operation.diff));
+ *     } else if (operation.type === "delete_file") {
+ *       await fs.unlink(operation.path);
+ *     }
+ *     return { call_id: call.call_id, status: "completed" };
+ *   }
+ * }
+ * ```
+ */
+export function handleBuiltinTool(type: string) {
+  return function <
+    This extends BaseAgent<any, any, any>,
+    Args extends [BuiltinToolCall],
+    Return extends Promise<BuiltinToolResult | void>
+  >(
+    target: (this: This, ...args: Args) => Return,
+    context: ClassMethodDecoratorContext<
+      This,
+      (this: This, ...args: Args) => Return
+    >
+  ) {
+    context.addInitializer(function () {
+      this.registerBuiltinToolHandler(type, target.bind(this) as any);
+    });
+    return target;
+  };
 }

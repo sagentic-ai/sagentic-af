@@ -14,6 +14,18 @@ import {
 } from "./common";
 import { BaseClient, RejectionReason } from "./base";
 import { Message, MessageRole, ToolCall } from "../thread";
+import {
+  BuiltinToolCall,
+  BuiltinToolSpec,
+  ApplyPatchCall,
+  ApplyPatchResult,
+  WebSearchCall,
+  FileSearchCall,
+  CodeInterpreterCall,
+  ComputerUseCall,
+  ComputerUseResult,
+  isBuiltinToolCallType,
+} from "../builtin-tools";
 import moment from "moment";
 import log from "loglevel";
 
@@ -249,8 +261,8 @@ export class OpenAIResponsesClient extends BaseClient<
           for (const toolCall of message.tool_calls) {
             // Responses API requires function call IDs to start with 'fc_'
             // Convert from Chat Completions format (call_xxx) if needed
-            const callId = toolCall.id.startsWith("fc_") 
-              ? toolCall.id 
+            const callId = toolCall.id.startsWith("fc_")
+              ? toolCall.id
               : `fc_${toolCall.id.replace(/^call_/, "")}`;
             input.push({
               type: "function_call",
@@ -260,7 +272,29 @@ export class OpenAIResponsesClient extends BaseClient<
               arguments: toolCall.function.arguments,
             } as any);
           }
-        } else if (typeof message.content === "string" && message.content) {
+        }
+
+        // Handle builtin tool calls from previous assistant message
+        if (message.builtin_tool_calls) {
+          for (const builtinCall of message.builtin_tool_calls) {
+            // Re-add the builtin tool call to maintain conversation context
+            input.push(this.convertBuiltinCallToInput(builtinCall));
+          }
+        }
+
+        // Handle builtin tool results from assistant message (after processing)
+        if (message.builtin_tool_results) {
+          for (const result of message.builtin_tool_results) {
+            input.push(this.convertBuiltinResultToInput(result));
+          }
+        }
+
+        if (
+          !message.tool_calls &&
+          !message.builtin_tool_calls &&
+          typeof message.content === "string" &&
+          message.content
+        ) {
           // Include assistant text messages for conversation context
           // In manual state management mode, the model doesn't know what it said previously
           input.push({
@@ -277,12 +311,86 @@ export class OpenAIResponsesClient extends BaseClient<
         input.push({
           type: "function_call_output",
           call_id: callId,
-          output: typeof message.content === "string" ? message.content : JSON.stringify(message.content),
+          output:
+            typeof message.content === "string"
+              ? message.content
+              : JSON.stringify(message.content),
         });
+
+        // Handle builtin tool results
+        if (message.builtin_tool_results) {
+          for (const result of message.builtin_tool_results) {
+            input.push(this.convertBuiltinResultToInput(result));
+          }
+        }
       }
     }
 
     return input;
+  }
+
+  /**
+   * Convert a builtin tool call to Responses API input format
+   */
+  private convertBuiltinCallToInput(
+    call: BuiltinToolCall
+  ): OpenAI.Responses.ResponseInputItem {
+    switch (call.type) {
+      case "apply_patch_call":
+        const applyPatchCall = call as ApplyPatchCall;
+        return {
+          type: "apply_patch_call",
+          id: applyPatchCall.id,
+          call_id: applyPatchCall.call_id,
+          operation: applyPatchCall.operation,
+          status: applyPatchCall.status,
+        } as any;
+      case "computer_call":
+        const computerCall = call as ComputerUseCall;
+        return {
+          type: "computer_call",
+          id: computerCall.id,
+          call_id: computerCall.call_id,
+          action: computerCall.action,
+          status: computerCall.status,
+        } as any;
+      default:
+        // For web_search, file_search, code_interpreter - they're handled server-side
+        // and don't need to be sent back as input
+        return {
+          type: call.type,
+          id: call.id,
+        } as any;
+    }
+  }
+
+  /**
+   * Convert a builtin tool result to Responses API input format
+   */
+  private convertBuiltinResultToInput(
+    result: ApplyPatchResult | ComputerUseResult
+  ): OpenAI.Responses.ResponseInputItem {
+    if (
+      "status" in result &&
+      (result.status === "completed" || result.status === "failed")
+    ) {
+      // ApplyPatchResult
+      const applyPatchResult = result as ApplyPatchResult;
+      return {
+        type: "apply_patch_call_output",
+        call_id: applyPatchResult.call_id,
+        status: applyPatchResult.status,
+        output: applyPatchResult.output,
+      } as any;
+    } else {
+      // ComputerUseResult
+      const computerResult = result as ComputerUseResult;
+      return {
+        type: "computer_call_output",
+        call_id: computerResult.call_id,
+        output: computerResult.output,
+      } as any;
+    }
   }
 
   /**
@@ -312,7 +420,10 @@ export class OpenAIResponsesClient extends BaseClient<
         item.type === "function_call"
     );
 
-    if (functionCalls.length > 0) {
+    // Check for builtin tool calls
+    const builtinCalls = this.extractBuiltinToolCalls(response.output);
+
+    if (functionCalls.length > 0 || builtinCalls.length > 0) {
       // Convert function calls to tool_calls format
       const toolCalls: ToolCall[] = functionCalls.map((fc) => ({
         id: fc.call_id,
@@ -323,11 +434,20 @@ export class OpenAIResponsesClient extends BaseClient<
         },
       }));
 
-      messages.push({
+      const message: Message = {
         role: MessageRole.Assistant,
         content: null,
-        tool_calls: toolCalls,
-      });
+      };
+
+      if (toolCalls.length > 0) {
+        message.tool_calls = toolCalls;
+      }
+
+      if (builtinCalls.length > 0) {
+        message.builtin_tool_calls = builtinCalls;
+      }
+
+      messages.push(message);
     } else {
       // Text response
       messages.push({
@@ -340,6 +460,73 @@ export class OpenAIResponsesClient extends BaseClient<
   }
 
   /**
+   * Extract builtin tool calls from Responses API output
+   */
+  private extractBuiltinToolCalls(
+    output: OpenAI.Responses.ResponseOutputItem[]
+  ): BuiltinToolCall[] {
+    const builtinCalls: BuiltinToolCall[] = [];
+
+    for (const item of output) {
+      if (item.type === "apply_patch_call") {
+        const applyPatch = item as OpenAI.Responses.ResponseApplyPatchToolCall;
+        builtinCalls.push({
+          id: applyPatch.id,
+          call_id: applyPatch.call_id,
+          type: "apply_patch_call",
+          operation: applyPatch.operation as any,
+          status: applyPatch.status,
+        } as ApplyPatchCall);
+      } else if (item.type === "web_search_call") {
+        const webSearch = item as OpenAI.Responses.ResponseFunctionWebSearch;
+        builtinCalls.push({
+          id: webSearch.id,
+          type: "web_search_call",
+          status: webSearch.status,
+        } as WebSearchCall);
+      } else if (item.type === "file_search_call") {
+        const fileSearch = item as OpenAI.Responses.ResponseFileSearchToolCall;
+        builtinCalls.push({
+          id: fileSearch.id,
+          type: "file_search_call",
+          status: fileSearch.status,
+          queries: fileSearch.queries,
+          results: fileSearch.results?.map((r: any) => ({
+            file_id: r.file_id,
+            file_name: r.file_name,
+            score: r.score,
+            text: r.text,
+          })),
+        } as FileSearchCall);
+      } else if (item.type === "code_interpreter_call") {
+        const codeInterp =
+          item as OpenAI.Responses.ResponseCodeInterpreterToolCall;
+        builtinCalls.push({
+          id: codeInterp.id,
+          type: "code_interpreter_call",
+          code: codeInterp.code || "",
+          status: codeInterp.status,
+          outputs: codeInterp.outputs?.map((r: any) => ({
+            type: r.type,
+            logs: r.logs,
+          })),
+        } as CodeInterpreterCall);
+      } else if (item.type === "computer_call") {
+        const computer = item as OpenAI.Responses.ResponseComputerToolCall;
+        builtinCalls.push({
+          id: computer.id,
+          call_id: computer.call_id,
+          type: "computer_call",
+          action: computer.action as any,
+          status: computer.status,
+        } as ComputerUseCall);
+      }
+    }
+
+    return builtinCalls;
+  }
+
+  /**
    * Create a chat completion using the Responses API
    */
   async createChatCompletion(
@@ -349,23 +536,44 @@ export class OpenAIResponsesClient extends BaseClient<
     const input = this.convertMessagesToInput(request.messages);
 
     // Build the Responses API request
-    const responsesRequest: OpenAI.Responses.ResponseCreateParamsNonStreaming = {
-      model: this.model.card.checkpoint,
-      input,
-      instructions: systemPrompt,
-      temperature: request.options?.temperature,
-      max_output_tokens: request.options?.max_completion_tokens || request.options?.max_tokens,
-      store: false, // Don't store responses by default
-    };
+    const responsesRequest: OpenAI.Responses.ResponseCreateParamsNonStreaming =
+      {
+        model: this.model.card.checkpoint,
+        input,
+        instructions: systemPrompt,
+        temperature: request.options?.temperature,
+        max_output_tokens:
+          request.options?.max_completion_tokens || request.options?.max_tokens,
+        store: false, // Don't store responses by default
+      };
 
-    // Handle tools
+    // Handle tools (both function tools and builtin tools)
+    const allTools: any[] = [];
+
+    // Add function tools
     if (request.options?.tools && request.options.tools.length > 0) {
-      responsesRequest.tools = request.options.tools.map((tool: any) => ({
-        type: "function" as const,
-        name: tool.function.name,
-        description: tool.function.description,
-        parameters: tool.function.parameters,
-      }));
+      for (const tool of request.options.tools) {
+        allTools.push({
+          type: "function" as const,
+          name: tool.function.name,
+          description: tool.function.description,
+          parameters: tool.function.parameters,
+        });
+      }
+    }
+
+    // Add builtin tools
+    if (
+      request.options?.builtin_tools &&
+      request.options.builtin_tools.length > 0
+    ) {
+      for (const builtinTool of request.options.builtin_tools) {
+        allTools.push(builtinTool);
+      }
+    }
+
+    if (allTools.length > 0) {
+      responsesRequest.tools = allTools;
 
       // Handle tool_choice
       if (request.options?.tool_choice) {

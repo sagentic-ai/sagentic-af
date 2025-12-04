@@ -3,6 +3,7 @@
 
 import { Agent } from "./agent";
 import { ChildOf, Conclusible, Identified, Metadata, meta } from "./common";
+import { BuiltinToolCall, BuiltinToolResult } from "./builtin-tools";
 
 /** Role of a message */
 export enum MessageRole {
@@ -37,6 +38,10 @@ export interface Message {
   content: string | ContentPart[] | null;
   tool_calls?: ToolCall[];
   tool_call_id?: string;
+  /** Builtin tool calls from the model (apply_patch, web_search, etc.) */
+  builtin_tool_calls?: BuiltinToolCall[];
+  /** Builtin tool results to send back to the model */
+  builtin_tool_results?: BuiltinToolResult[];
 }
 
 /** ToolResult is a result of a tool call */
@@ -239,6 +244,18 @@ export class Interaction {
   }
 }
 
+/**
+ * Tracks builtin tool calls and results for a specific interaction point
+ */
+interface BuiltinToolsContext {
+  /** Index of the message (after system prompt adjustment) */
+  messageIndex: number;
+  /** Builtin tool calls from the model */
+  calls?: BuiltinToolCall[];
+  /** Builtin tool results to send back */
+  results?: BuiltinToolResult[];
+}
+
 /** Thread is a single thread of conversation.
  * In practice Thread just points to the last interaction in the thread.
  * Threads are only partially mutable, meaning that appending messages to a
@@ -250,6 +267,9 @@ export class Thread implements Identified, Conclusible, ChildOf<Agent> {
 
   /** last interaction in this thread */
   interaction: Interaction;
+
+  /** Builtin tool contexts to inject into messages */
+  private builtinToolContexts: BuiltinToolsContext[] = [];
 
   /** Agent owning this thread */
   get parent(): Agent {
@@ -280,7 +300,52 @@ export class Thread implements Identified, Conclusible, ChildOf<Agent> {
         role: MessageRole.System,
         content: this.parent.systemPrompt,
       });
+
+    // Inject builtin tool contexts into messages
+    for (const ctx of this.builtinToolContexts) {
+      if (ctx.messageIndex >= 0 && ctx.messageIndex < m.length) {
+        if (ctx.calls) {
+          m[ctx.messageIndex].builtin_tool_calls = ctx.calls;
+        }
+        if (ctx.results) {
+          m[ctx.messageIndex].builtin_tool_results = ctx.results;
+        }
+      }
+    }
+
     return m;
+  }
+
+  /**
+   * Set builtin tool calls and results for a specific message index.
+   * This is used by the agent to track builtin tool interactions.
+   * @param messageIndex Index of the message (0-based, after system prompt)
+   * @param calls Builtin tool calls from the model
+   * @param results Builtin tool results to send back
+   */
+  setBuiltinToolContext(
+    messageIndex: number,
+    calls?: BuiltinToolCall[],
+    results?: BuiltinToolResult[]
+  ): void {
+    // Update existing context or add new one
+    const existing = this.builtinToolContexts.find(
+      (ctx) => ctx.messageIndex === messageIndex
+    );
+    if (existing) {
+      if (calls) existing.calls = calls;
+      if (results) existing.results = results;
+    } else {
+      this.builtinToolContexts.push({ messageIndex, calls, results });
+    }
+  }
+
+  /**
+   * Copy builtin tool contexts from another thread.
+   * Used when creating a new thread from an existing one.
+   */
+  copyBuiltinToolContextsFrom(other: Thread): void {
+    this.builtinToolContexts = [...other.builtinToolContexts];
   }
 
   /** Is this thread complete?

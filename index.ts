@@ -12,6 +12,8 @@ export * from "./src/logging";
 export * from "./src/common";
 export * from "./src/ledger";
 export * from "./src/tool";
+export * from "./src/builtin-tools";
+export * from "./src/builtin-tools/apply-patch";
 export * from "./src/agents/one-shot";
 export * from "./src/agents/reactive";
 export * from "./src/agents/chat";
