@@ -1,6 +1,7 @@
 import { ModelID } from "../models";
 import { Message } from "../thread";
 import { ClientOptions as OpenAIClientOptionsBase } from "openai";
+import { BuiltinToolSpec } from "../builtin-tools";
 
 let isVscode: boolean = false;
 let encoding: any;
@@ -95,6 +96,11 @@ export type ModelInvocationOptions = {
    * Controls the length and detail of responses: "low", "medium", or "high"
    */
   verbosity?: Verbosity;
+  /**
+   * Builtin tools to enable (apply_patch, web_search, file_search, code_interpreter, etc.)
+   * Only supported in the Responses API.
+   */
+  builtin_tools?: BuiltinToolSpec[];
 };
 
 /**
