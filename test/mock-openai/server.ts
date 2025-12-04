@@ -1,16 +1,13 @@
 // Copyright 2024 Ahyve AI Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-import fastify, {
-  FastifyListenOptions,
-  FastifyInstance,
+import Fastify, {
   FastifyReply,
   FastifyRequest,
+  LightMyRequestResponse,
 } from "fastify";
 import middie from "@fastify/middie";
 import http from "http";
-import { Fetch } from "openai/core";
-import fetch, { RequestInfo, RequestInit, Response } from "node-fetch";
 import {
   MockChatAPI,
   MockChatOptions,
@@ -59,12 +56,13 @@ type APIOptions = {
 
 /**
  * MockOpenAIApi is a mock implementation of the OpenAI API.
- * It can be used to test the aipacks OpenAI client.
+ * It can be used to test the OpenAI client.
  * It is not a complete implementation of the OpenAI API.
- * It only implements the endpoints used by the aipacks OpenAI client.
+ * It only implements the endpoints used by the OpenAI client.
  */
 export class MockOpenAIApi {
-  app: FastifyInstance;
+  // Use 'any' for app type to work around Fastify v5 type issues in test code
+  app: ReturnType<typeof Fastify>;
   chat: MockChatAPI;
   errorProbability: number;
   latency: number;
@@ -78,7 +76,7 @@ export class MockOpenAIApi {
    * @returns MockOpenAIApi
    */
   constructor(options: ServerOptions = {}, apiOptions: APIOptions = {}) {
-    this.app = fastify({ logger: options.logger });
+    this.app = Fastify({ logger: options.logger });
     this.chat = new MockChatAPI(apiOptions.chat);
     this.errorProbability = options.errorProbability || 0;
     this.latency = options.latency || 0;
@@ -121,9 +119,9 @@ export class MockOpenAIApi {
 
     this.app.use(
       async (
-        req: http.IncomingMessage,
-        res: http.ServerResponse,
-        next: (err?: any) => void
+        _req: http.IncomingMessage,
+        _res: http.ServerResponse,
+        next: (err?: unknown) => void
       ) => {
         next();
       }
@@ -131,9 +129,9 @@ export class MockOpenAIApi {
 
     this.app.use(
       async (
-        req: http.IncomingMessage,
+        _req: http.IncomingMessage,
         res: http.ServerResponse,
-        next: (err?: any) => void
+        next: (err?: unknown) => void
       ) => {
         // count total requests
         this.requests++;
@@ -142,7 +140,7 @@ export class MockOpenAIApi {
         res.setHeader("x-mock-openai-api", "true");
 
         // simulate latency
-        await latency(this.latency, this.jitter);
+        await simulateLatency(this.latency, this.jitter);
 
         // simulate random error
         if (Math.random() < this.errorProbability) {
@@ -165,11 +163,12 @@ export class MockOpenAIApi {
         try {
           const result = this.chat.completions(req.body);
           return result;
-        } catch (err: any) {
-          if (err.status) {
-            res.statusCode = err.status;
+        } catch (err: unknown) {
+          const error = err as { status?: number; error?: unknown };
+          if (error.status) {
+            res.statusCode = error.status;
             throw {
-              error: err.error,
+              error: error.error,
             };
           }
           throw err;
@@ -199,33 +198,51 @@ export class MockOpenAIApi {
    * Custom fetch function to be passed to the OpenAI client.
    * Do not call directly.
    */
-  fetch = (url: RequestInfo, init?: RequestInit): Promise<Response> => {
+  fetch = (
+    url: string | URL | globalThis.Request,
+    init?: RequestInit
+  ): Promise<Response> => {
+    // Convert Headers object to plain object if needed
+    let headers: http.IncomingHttpHeaders = {};
+    if (init?.headers) {
+      if (init.headers instanceof Headers) {
+        init.headers.forEach((value, key) => {
+          headers[key] = value;
+        });
+      } else if (Array.isArray(init.headers)) {
+        init.headers.forEach(([key, value]) => {
+          headers[key] = value;
+        });
+      } else {
+        headers = init.headers as http.IncomingHttpHeaders;
+      }
+    }
+
     return this.app
       .inject({
         method: init?.method as HTTPMethods,
         url: url.toString(),
-        headers: init?.headers as http.IncomingHttpHeaders,
+        headers,
         payload: init?.body || {},
       })
-      .then((response): Response => {
-        const resp = new Response(response.payload, {
+      .then((response: LightMyRequestResponse): Response => {
+        return new Response(response.payload, {
           status: response.statusCode,
           statusText: response.statusMessage,
-          headers: response.headers as { [key: string]: string },
+          headers: response.headers as Record<string, string>,
         });
-        return resp;
       });
   };
 }
 
 /**
  * Simulate latency and jitter.
- * @param latency latency in ms
+ * @param latencyMs latency in ms
  * @param jitter jitter in ms
  * @returns void
  */
-async function latency(latency: number, jitter: number) {
+async function simulateLatency(latencyMs: number, jitter: number) {
   // sleep for latency +- jitter
-  const sleepTime = latency + Math.random() * jitter * 2 - jitter;
+  const sleepTime = latencyMs + Math.random() * jitter * 2 - jitter;
   await new Promise((resolve) => setTimeout(resolve, sleepTime));
 }

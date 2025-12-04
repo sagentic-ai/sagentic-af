@@ -9,13 +9,6 @@ import {
 } from "./common";
 import { BaseClient, RejectionReason } from "./base";
 import { Message, MessageRole, ContentPart, TextContentPart } from "../thread";
-import fetch from "node-fetch";
-import {
-  RequestInfo,
-  RequestInit,
-  Response,
-  Headers,
-} from "@anthropic-ai/sdk/_shims/node-types.mjs";
 import moment from "moment";
 import log from "loglevel";
 
@@ -131,14 +124,16 @@ export class AnthropicClient extends BaseClient<
     super(model, options);
 
     const url = options?.endpointURL || model.provider.url;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const customFetch = (fetchUrl: any, opts?: any): Promise<any> => {
+      return globalThis.fetch(fetchUrl, opts).then((response) => {
+        this.updatePools(response.headers);
+        return response;
+      });
+    };
     this.anthropic = new Anthropic({
       baseURL: url,
-      fetch: (url: RequestInfo, opts?: RequestInit): Promise<Response> => {
-        return fetch(url, opts).then((response) => {
-          this.updatePools(response.headers);
-          return response;
-        });
-      },
+      fetch: customFetch,
       apiKey: anthropicKey,
     });
   }
@@ -167,16 +162,16 @@ export class AnthropicClient extends BaseClient<
     if (request.options?.tool_choice) {
       switch (request.options.tool_choice) {
         case ToolMode.AUTO:
-          apiRequest.tool_choice = { type: "auto" };
+          (apiRequest as any).tool_choice = { type: "auto" };
           break;
         case ToolMode.NONE:
           delete apiRequest.tools; // No tools
           break;
         case ToolMode.REQUIRED:
-          apiRequest.tool_choice = { type: "any" };
+          (apiRequest as any).tool_choice = { type: "any" };
           break;
         default: // ToolChoice
-          apiRequest.tool_choice = {
+          (apiRequest as any).tool_choice = {
             type: "tool",
             name: request.options.tool_choice.function.name,
           };
@@ -242,7 +237,7 @@ export class AnthropicClient extends BaseClient<
    * Update pools based on API response.
    * @returns void
    */
-  private updatePools = (headers: Headers): void => {
+  private updatePools = (headers: globalThis.Headers): void => {
     if (headers.has("anthropic-ratelimit-requests-limit")) {
       this.requestPoolMax = parseInt(
         headers.get("anthropic-ratelimit-requests-limit") || "0"

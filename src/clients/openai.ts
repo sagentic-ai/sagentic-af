@@ -9,12 +9,15 @@ import {
   ChatCompletionRequest,
   ChatCompletionResponse,
   countTokens,
+  ReasoningEffort,
+  Verbosity,
 } from "./common";
 import { BaseClient, RejectionReason } from "./base";
 import { Message, MessageRole } from "../thread";
 import moment from "moment";
 import log from "loglevel";
-import fetch, { RequestInfo, RequestInit, Response, Headers } from "node-fetch";
+// Use native fetch (Node 18+) - type alias for compatibility
+type FetchFn = typeof fetch;
 
 type OpenAIBase = OpenAI | AzureOpenAI;
 
@@ -39,7 +42,7 @@ const estimateTokens = (
 
 /** OpenAI Client wrapper */
 export abstract class OpenAIClientBase<
-  Options extends ClientOptions,
+  Options extends ClientOptions
 > extends BaseClient<
   OpenAI.Chat.ChatCompletionCreateParamsNonStreaming,
   OpenAI.Chat.Completions.ChatCompletion,
@@ -63,7 +66,7 @@ export abstract class OpenAIClientBase<
    * Update pools based on API response.
    * @returns void
    */
-  protected updatePools = (headers: Headers): void => {
+  protected updatePools = (headers: globalThis.Headers): void => {
     if (headers.has("x-ratelimit-limit-requests")) {
       this.requestPoolMax = parseInt(
         headers.get("x-ratelimit-limit-requests") || "0"
@@ -149,6 +152,7 @@ export abstract class OpenAIClientBase<
   async createChatCompletion(
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
+    // O1/O3 models don't support system messages, convert to user
     if (
       this.model.id === BuiltinModel.O1 ||
       this.model.id === BuiltinModel.O1mini ||
@@ -161,9 +165,18 @@ export abstract class OpenAIClientBase<
       }
     }
 
+    // Determine effective reasoning effort
+    const supportsReasoning = this.model.card.supportsReasoning ?? false;
+    const defaultEffort = this.model.card.defaultReasoningEffort ?? "none";
+    const reasoningEffort = supportsReasoning
+      ? request.options?.reasoning_effort ?? defaultEffort
+      : undefined;
+
+    // Build the request
     const openaiRequest: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
       model: this.model.card.checkpoint,
       temperature: request.options?.temperature,
+      top_p: request.options?.top_p,
       max_tokens: request.options?.max_tokens,
       max_completion_tokens: request.options?.max_completion_tokens,
       tools: request.options?.tools,
@@ -171,16 +184,29 @@ export abstract class OpenAIClientBase<
       response_format: request.options?.response_format,
       messages: request.messages as OpenAI.Chat.ChatCompletionMessageParam[],
     };
-    if (
-      this.model.id === BuiltinModel.O1 ||
-      this.model.id === BuiltinModel.O1mini ||
-      this.model.id === BuiltinModel.O3mini ||
-      this.model.id === BuiltinModel.GPT5 ||
-      this.model.id === BuiltinModel.GPT5Mini ||
-      this.model.id === BuiltinModel.GPT5Nano
-    ) {
-      delete openaiRequest.temperature;
+
+    // Handle reasoning models
+    if (supportsReasoning && reasoningEffort) {
+      // Add reasoning_effort to request
+      // Note: GPT-5.1 supports "none" which may not be in older SDK type definitions
+      (openaiRequest as any).reasoning_effort = reasoningEffort;
+
+      // When reasoning_effort is not "none", temperature and top_p are not supported
+      if (reasoningEffort !== ReasoningEffort.NONE) {
+        delete openaiRequest.temperature;
+        delete openaiRequest.top_p;
+      }
     }
+
+    // Handle verbosity for GPT-5.1 family
+    const supportsVerbosity = this.model.card.supportsVerbosity ?? false;
+    if (supportsVerbosity && request.options?.verbosity) {
+      (openaiRequest as any).text = {
+        ...(openaiRequest as any).text,
+        verbosity: request.options.verbosity,
+      };
+    }
+
     var response: OpenAI.Chat.Completions.ChatCompletion;
     if (this.model.card.supportsImages) {
       // FIXME count tokens without base64 images
@@ -257,38 +283,35 @@ export const parseDuration = (duration: string): moment.Duration => {
     log.warn("WARNING: unknown duration format:", duration);
     return moment.duration(0);
   }
-  const units: Record<string, number> = parts.reduce(
-    (acc, part) => {
-      const s = part.match(/(\d{1,5})(h|ms|m|s)/);
-      if (s === null) {
-        log.warn("WARNING: invalid part format:", part);
-        return acc;
-      }
-
-      const num = parseInt(s[1], 10);
-
-      if (isNaN(num)) {
-        log.warn("WARNING: NaN when parsing time in client", s[1], s[2]);
-        return acc;
-      }
-
-      const unit = {
-        s: "seconds",
-        m: "minutes",
-        h: "hours",
-        ms: "milliseconds",
-      }[s[2]];
-
-      if (!unit) {
-        log.warn("WARNING: unknown unit when parsing time in client", s[2]);
-        return acc;
-      }
-
-      acc[unit] = num;
+  const units: Record<string, number> = parts.reduce((acc, part) => {
+    const s = part.match(/(\d{1,5})(h|ms|m|s)/);
+    if (s === null) {
+      log.warn("WARNING: invalid part format:", part);
       return acc;
-    },
-    {} as Record<string, number>
-  );
+    }
+
+    const num = parseInt(s[1], 10);
+
+    if (isNaN(num)) {
+      log.warn("WARNING: NaN when parsing time in client", s[1], s[2]);
+      return acc;
+    }
+
+    const unit = {
+      s: "seconds",
+      m: "minutes",
+      h: "hours",
+      ms: "milliseconds",
+    }[s[2]];
+
+    if (!unit) {
+      log.warn("WARNING: unknown unit when parsing time in client", s[2]);
+      return acc;
+    }
+
+    acc[unit] = num;
+    return acc;
+  }, {} as Record<string, number>);
   return moment.duration(units);
 };
 
@@ -303,9 +326,9 @@ export class OpenAIClient extends OpenAIClientBase<OpenAIClientOptions> {
     super(model, options);
 
     const openAIOptions = options || {};
-    const origFetch = openAIOptions.fetch || fetch;
+    const origFetch = openAIOptions.fetch || globalThis.fetch;
     openAIOptions.fetch = (
-      url: RequestInfo,
+      url: string | URL | globalThis.Request,
       opts?: RequestInit
     ): Promise<Response> => {
       return origFetch(url, opts).then((response) => {
@@ -334,9 +357,9 @@ export class AzureOpenAIClient extends OpenAIClientBase<AzureOpenAIClientOptions
     super(model, options);
 
     const openAIOptions = options || { deployment: "", resource: "" };
-    const origFetch = openAIOptions.fetch || fetch;
+    const origFetch = openAIOptions.fetch || globalThis.fetch;
     openAIOptions.fetch = (
-      url: RequestInfo,
+      url: string | URL | globalThis.Request,
       opts?: RequestInit
     ): Promise<Response> => {
       return origFetch(url, opts).then((response) => {
@@ -364,9 +387,17 @@ export class AzureOpenAIClient extends OpenAIClientBase<AzureOpenAIClientOptions
   async createChatCompletion(
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
+    // Determine effective reasoning effort
+    const supportsReasoning = this.model.card.supportsReasoning ?? false;
+    const defaultEffort = this.model.card.defaultReasoningEffort ?? "none";
+    const reasoningEffort = supportsReasoning
+      ? request.options?.reasoning_effort ?? defaultEffort
+      : undefined;
+
     const openaiRequest: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
       model: this.model.card.checkpoint.replace(/^azure\//, ""),
       temperature: request.options?.temperature,
+      top_p: request.options?.top_p,
       max_tokens: request.options?.max_tokens,
       max_completion_tokens: request.options?.max_completion_tokens,
       tools: request.options?.tools,
@@ -374,16 +405,30 @@ export class AzureOpenAIClient extends OpenAIClientBase<AzureOpenAIClientOptions
       response_format: request.options?.response_format,
       messages: request.messages as OpenAI.Chat.ChatCompletionMessageParam[],
     };
-    var response: OpenAI.Chat.Completions.ChatCompletion;
 
-    // remove temperature from unsupported models
-    if (this.model.id === BuiltinModel.AZURE_GPT5 ||
-      this.model.id === BuiltinModel.AZURE_GPT5Mini ||
-      this.model.id === BuiltinModel.AZURE_GPT5Nano
-    ) {
-      delete openaiRequest.temperature;
+    // Handle reasoning models
+    if (supportsReasoning && reasoningEffort) {
+      // Add reasoning_effort to request
+      // Note: GPT-5.1 supports "none" which may not be in older SDK type definitions
+      (openaiRequest as any).reasoning_effort = reasoningEffort;
+
+      // When reasoning_effort is not "none", temperature and top_p are not supported
+      if (reasoningEffort !== ReasoningEffort.NONE) {
+        delete openaiRequest.temperature;
+        delete openaiRequest.top_p;
+      }
     }
 
+    // Handle verbosity for GPT-5.1 family
+    const supportsVerbosity = this.model.card.supportsVerbosity ?? false;
+    if (supportsVerbosity && request.options?.verbosity) {
+      (openaiRequest as any).text = {
+        ...(openaiRequest as any).text,
+        verbosity: request.options.verbosity,
+      };
+    }
+
+    var response: OpenAI.Chat.Completions.ChatCompletion;
     if (this.model.card.supportsImages) {
       // FIXME count tokens without base64 images
       response = await this.enqueue(1000, openaiRequest);

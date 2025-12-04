@@ -91,6 +91,10 @@ export enum BuiltinModel {
   GPT41Mini = "gpt-4.1-mini",
   GPT41Nano = "gpt-4.1-nano",
 
+  GPT51 = "gpt-5.1",
+  GPT51Codex = "gpt-5.1-codex",
+  GPT5Codex = "gpt-5-codex",
+
   GPT35Turbo = "gpt-3.5-turbo",
 
   O1 = "o1",
@@ -110,6 +114,7 @@ export enum BuiltinModel {
   AZURE_GPT41 = "azure/gpt-4.1",
   AZURE_GPT41Mini = "azure/gpt-4.1-mini",
   AZURE_GPT41Nano = "azure/gpt-4.1-nano",
+  AZURE_GPT51 = "azure/gpt-5.1",
   AZURE_GPT5 = "azure/gpt-5",
   AZURE_GPT5Mini = "azure/gpt-5-mini",
   AZURE_GPT5Nano = "azure/gpt-5-nano",
@@ -137,6 +142,10 @@ enum Checkpoint {
   GPT41Mini = "gpt-4.1-mini-2025-04-14",
   GPT41Nano = "gpt-4.1-nano-2025-04-14",
 
+  GPT51 = "gpt-5.1-2025-11-13",
+  GPT51Codex = "gpt-5.1-codex",
+  GPT5Codex = "gpt-5-codex",
+
   GPT35Turbo = "gpt-3.5-turbo-0125",
 
   O1 = "o1",
@@ -156,6 +165,7 @@ enum Checkpoint {
   AZURE_GPT41 = "azure/gpt-4.1",
   AZURE_GPT41Mini = "azure/gpt-4.1-mini",
   AZURE_GPT41Nano = "azure/gpt-4.1-nano",
+  AZURE_GPT51 = "azure/gpt-5.1",
   AZURE_GPT5 = "azure/gpt-5",
   AZURE_GPT5Mini = "azure/gpt-5-mini",
   AZURE_GPT5Nano = "azure/gpt-5-nano",
@@ -181,6 +191,12 @@ export interface ModelCard {
   supportsVideo?: boolean;
   /** does it support audio? */
   supportsAudio?: boolean;
+  /** does it support configurable reasoning effort? */
+  supportsReasoning?: boolean;
+  /** default reasoning effort (if supportsReasoning is true) */
+  defaultReasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
+  /** does it support configurable verbosity? (GPT-5.1 family) */
+  supportsVerbosity?: boolean;
 }
 
 /** Describes model metadata */
@@ -197,24 +213,30 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     prompt: 1.25,
     completion: 10,
     contextSize: 400_000,
-    rpm: 500,
-    tpm: 30_000,
+    rpm: 15_000,
+    tpm: 40_000_000,
+    supportsReasoning: true,
+    defaultReasoningEffort: "medium",
   },
   [BuiltinModel.GPT5Mini]: {
     checkpoint: Checkpoint.GPT5Mini,
     prompt: 0.25,
     completion: 2,
     contextSize: 400_000,
-    rpm: 500,
-    tpm: 200_000,
+    rpm: 30_000,
+    tpm: 180_000_000,
+    supportsReasoning: true,
+    defaultReasoningEffort: "medium",
   },
   [BuiltinModel.GPT5Nano]: {
     checkpoint: Checkpoint.GPT5Nano,
     prompt: 0.05,
     completion: 0.4,
     contextSize: 400_000,
-    rpm: 500,
-    tpm: 200_000,
+    rpm: 30_000,
+    tpm: 180_000_000,
+    supportsReasoning: true,
+    defaultReasoningEffort: "medium",
   },
   [BuiltinModel.GPT4]: {
     checkpoint: Checkpoint.GPT4,
@@ -314,6 +336,8 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     supportsImages: false,
     supportsVideo: false,
     supportsAudio: false,
+    supportsReasoning: true,
+    defaultReasoningEffort: "medium",
   },
   [ModelType.O1mini]: {
     checkpoint: Checkpoint.O1mini,
@@ -325,6 +349,8 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     supportsImages: false,
     supportsVideo: false,
     supportsAudio: false,
+    supportsReasoning: true,
+    defaultReasoningEffort: "medium",
   },
   [ModelType.O3mini]: {
     checkpoint: Checkpoint.O3mini,
@@ -336,6 +362,8 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     supportsImages: false,
     supportsVideo: false,
     supportsAudio: false,
+    supportsReasoning: true,
+    defaultReasoningEffort: "medium",
   },
   //TODO ensure correct pricing for Gemini models
   [BuiltinModel.GEMINI15]: {
@@ -441,6 +469,41 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     tpm: 150_000_000,
     supportsImages: true,
   },
+  [BuiltinModel.GPT51]: {
+    checkpoint: Checkpoint.GPT51,
+    prompt: 1.25,
+    completion: 10,
+    contextSize: 400_000,
+    rpm: 15_000,
+    tpm: 45_000_000,
+    supportsImages: true,
+    supportsReasoning: true,
+    defaultReasoningEffort: "medium",
+    supportsVerbosity: true,
+  },
+  [BuiltinModel.GPT51Codex]: {
+    checkpoint: Checkpoint.GPT51Codex,
+    prompt: 1.25,
+    completion: 10,
+    contextSize: 400_000,
+    rpm: 15_000,
+    tpm: 40_000_000,
+    supportsImages: true,
+    supportsReasoning: true,
+    defaultReasoningEffort: "medium",
+    supportsVerbosity: true,
+  },
+  [BuiltinModel.GPT5Codex]: {
+    checkpoint: Checkpoint.GPT5Codex,
+    prompt: 1.25,
+    completion: 10,
+    contextSize: 400_000,
+    rpm: 15_000,
+    tpm: 40_000_000,
+    supportsImages: true,
+    supportsReasoning: true,
+    defaultReasoningEffort: "medium",
+  },
   [BuiltinModel.AZURE_GPT41]: {
     checkpoint: Checkpoint.AZURE_GPT41,
     prompt: 2,
@@ -468,6 +531,18 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     tpm: 150_000_000,
     supportsImages: true,
   },
+  [BuiltinModel.AZURE_GPT51]: {
+    checkpoint: Checkpoint.AZURE_GPT51,
+    prompt: 1.25,
+    completion: 10,
+    contextSize: 400_000,
+    rpm: 500,
+    tpm: 500_000,
+    supportsImages: true,
+    supportsReasoning: true,
+    defaultReasoningEffort: "none",
+    supportsVerbosity: true,
+  },
   [BuiltinModel.AZURE_GPT5]: {
     checkpoint: Checkpoint.AZURE_GPT5,
     prompt: 1.25,
@@ -475,6 +550,8 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     contextSize: 400_000,
     rpm: 10_000,
     tpm: 1_000_000,
+    supportsReasoning: true,
+    defaultReasoningEffort: "medium",
   },
   [BuiltinModel.AZURE_GPT5Mini]: {
     checkpoint: Checkpoint.AZURE_GPT5Mini,
@@ -483,6 +560,8 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     contextSize: 400_000,
     rpm: 1_000,
     tpm: 1_000_000,
+    supportsReasoning: true,
+    defaultReasoningEffort: "medium",
   },
   [BuiltinModel.AZURE_GPT5Nano]: {
     checkpoint: Checkpoint.AZURE_GPT5Nano,
@@ -491,6 +570,8 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     contextSize: 400_000,
     rpm: 5_000,
     tpm: 5_000_000,
+    supportsReasoning: true,
+    defaultReasoningEffort: "medium",
   },
 };
 
@@ -626,6 +707,21 @@ export const models: Record<BuiltinModel, ModelMetadata> = {
     provider: providers[BuiltinProvider.OpenAI],
     card: cards[BuiltinModel.GPT41Nano],
   },
+  [BuiltinModel.GPT51]: {
+    id: BuiltinModel.GPT51,
+    provider: providers[BuiltinProvider.OpenAI],
+    card: cards[BuiltinModel.GPT51],
+  },
+  [BuiltinModel.GPT51Codex]: {
+    id: BuiltinModel.GPT51Codex,
+    provider: providers[BuiltinProvider.OpenAI],
+    card: cards[BuiltinModel.GPT51Codex],
+  },
+  [BuiltinModel.GPT5Codex]: {
+    id: BuiltinModel.GPT5Codex,
+    provider: providers[BuiltinProvider.OpenAI],
+    card: cards[BuiltinModel.GPT5Codex],
+  },
   [BuiltinModel.AZURE_GPT41]: {
     id: BuiltinModel.AZURE_GPT41,
     provider: providers[BuiltinProvider.AzureOpenAI],
@@ -640,6 +736,11 @@ export const models: Record<BuiltinModel, ModelMetadata> = {
     id: BuiltinModel.AZURE_GPT41Nano,
     provider: providers[BuiltinProvider.AzureOpenAI],
     card: cards[BuiltinModel.AZURE_GPT41Nano],
+  },
+  [BuiltinModel.AZURE_GPT51]: {
+    id: BuiltinModel.AZURE_GPT51,
+    provider: providers[BuiltinProvider.AzureOpenAI],
+    card: cards[BuiltinModel.AZURE_GPT51],
   },
   [BuiltinModel.AZURE_GPT5]: {
     id: BuiltinModel.AZURE_GPT5,

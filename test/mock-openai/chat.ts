@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 import OpenAI from "openai";
-import { v4 as uuidv4 } from "uuid";
+import crypto from "crypto";
 import { countTokens } from "../../src/clients/common";
 import moment from "moment";
 
@@ -146,9 +146,11 @@ export class MockChatAPI {
     }
 
     let tokens = 0;
-    request.messages.forEach((message) => {
-      tokens += countTokens(coerceToString(message.content) ?? "");
-    });
+    request.messages.forEach(
+      (message: OpenAI.Chat.ChatCompletionMessageParam) => {
+        tokens += countTokens(coerceToString(message.content) ?? "");
+      }
+    );
 
     if (this.options.contextSize && tokens > this.options.contextSize) {
       throw {
@@ -241,14 +243,16 @@ export class MockChatAPI {
     this.handleLimits(request);
 
     let prompt_tokens = 0;
-    request.messages.forEach((message) => {
-      prompt_tokens += countTokens(coerceToString(message.content) ?? "");
-    });
+    request.messages.forEach(
+      (message: OpenAI.Chat.ChatCompletionMessageParam) => {
+        prompt_tokens += countTokens(coerceToString(message.content) ?? "");
+      }
+    );
     const result = this.getResponse(request);
     const completion_tokens = countTokens(result);
 
     return {
-      id: uuidv4(),
+      id: crypto.randomUUID(),
       // current unix time in seconds
       created: Math.floor(Date.now() / 1000),
       model: request.model,

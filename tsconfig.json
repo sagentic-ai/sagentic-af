@@ -8,7 +8,8 @@
     "declaration": true /* Generate .d.ts files from TypeScript and JavaScript files in your project. */,
     "outDir": "dist" /* Specify an output folder for all emitted files. */,
     "forceConsistentCasingInFileNames": true /* Ensure that casing is correct in imports. */,
-    "noImplicitAny": true /* Enable error reporting for expressions and declarations with an implied 'any' type. */
+    "noImplicitAny": true /* Enable error reporting for expressions and declarations with an implied 'any' type. */,
+    "isolatedModules": true
   },
   "exclude": [
     "node_modules",

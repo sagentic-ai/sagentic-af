@@ -1,7 +1,7 @@
 // Copyright 2024 Ahyve AI Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-import "openai/shims/node";
+//import "openai/shims/node";
 import {
   AzureOpenAIClient as Client,
   parseDuration,
