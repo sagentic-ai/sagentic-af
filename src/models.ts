@@ -92,6 +92,7 @@ export enum BuiltinModel {
   GPT41Nano = "gpt-4.1-nano",
 
   GPT51 = "gpt-5.1",
+  GPT52 = "gpt-5.2",
   GPT51Codex = "gpt-5.1-codex",
   GPT5Codex = "gpt-5-codex",
 
@@ -115,6 +116,7 @@ export enum BuiltinModel {
   AZURE_GPT41Mini = "azure/gpt-4.1-mini",
   AZURE_GPT41Nano = "azure/gpt-4.1-nano",
   AZURE_GPT51 = "azure/gpt-5.1",
+  AZURE_GPT52 = "azure/gpt-5.2",
   AZURE_GPT5 = "azure/gpt-5",
   AZURE_GPT5Mini = "azure/gpt-5-mini",
   AZURE_GPT5Nano = "azure/gpt-5-nano",
@@ -143,6 +145,7 @@ enum Checkpoint {
   GPT41Nano = "gpt-4.1-nano-2025-04-14",
 
   GPT51 = "gpt-5.1-2025-11-13",
+  GPT52 = "gpt-5.2-2025-12-11",
   GPT51Codex = "gpt-5.1-codex",
   GPT5Codex = "gpt-5-codex",
 
@@ -166,6 +169,7 @@ enum Checkpoint {
   AZURE_GPT41Mini = "azure/gpt-4.1-mini",
   AZURE_GPT41Nano = "azure/gpt-4.1-nano",
   AZURE_GPT51 = "azure/gpt-5.1",
+  AZURE_GPT52 = "azure/gpt-5.2",
   AZURE_GPT5 = "azure/gpt-5",
   AZURE_GPT5Mini = "azure/gpt-5-mini",
   AZURE_GPT5Nano = "azure/gpt-5-nano",
@@ -181,10 +185,16 @@ export interface ModelCard {
   completion: number;
   /** context size in tokens */
   contextSize: number;
+  /** maximum output tokens, if known */
+  maxOutputTokens?: number;
+  /** model knowledge cutoff date (YYYY-MM-DD), if known */
+  knowledgeCutoff?: string;
   /** requests per minute */
   rpm: number;
   /** tokens per minute */
   tpm: number;
+  /** batch queue limit (tokens), if known */
+  batchQueueLimit?: number;
   /** does it support images? */
   supportsImages?: boolean;
   /** does it support video? */
@@ -474,8 +484,25 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     prompt: 1.25,
     completion: 10,
     contextSize: 400_000,
+    maxOutputTokens: 128_000,
+    knowledgeCutoff: "2025-08-31",
     rpm: 15_000,
     tpm: 45_000_000,
+    supportsImages: true,
+    supportsReasoning: true,
+    defaultReasoningEffort: "medium",
+    supportsVerbosity: true,
+  },
+  [BuiltinModel.GPT52]: {
+    checkpoint: Checkpoint.GPT52,
+    prompt: 1.75,
+    completion: 14,
+    contextSize: 400_000,
+    maxOutputTokens: 128_000,
+    knowledgeCutoff: "2025-08-31",
+    rpm: 15_000,
+    tpm: 40_000_000,
+    batchQueueLimit: 15_000_000_000,
     supportsImages: true,
     supportsReasoning: true,
     defaultReasoningEffort: "medium",
@@ -536,6 +563,20 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     prompt: 1.25,
     completion: 10,
     contextSize: 400_000,
+    rpm: 500,
+    tpm: 500_000,
+    supportsImages: true,
+    supportsReasoning: true,
+    defaultReasoningEffort: "none",
+    supportsVerbosity: true,
+  },
+  [BuiltinModel.AZURE_GPT52]: {
+    checkpoint: Checkpoint.AZURE_GPT52,
+    prompt: 1.75,
+    completion: 14,
+    contextSize: 400_000,
+    maxOutputTokens: 128_000,
+    knowledgeCutoff: "2025-08-31",
     rpm: 500,
     tpm: 500_000,
     supportsImages: true,
@@ -712,6 +753,11 @@ export const models: Record<BuiltinModel, ModelMetadata> = {
     provider: providers[BuiltinProvider.OpenAI],
     card: cards[BuiltinModel.GPT51],
   },
+  [BuiltinModel.GPT52]: {
+    id: BuiltinModel.GPT52,
+    provider: providers[BuiltinProvider.OpenAI],
+    card: cards[BuiltinModel.GPT52],
+  },
   [BuiltinModel.GPT51Codex]: {
     id: BuiltinModel.GPT51Codex,
     provider: providers[BuiltinProvider.OpenAI],
@@ -741,6 +787,11 @@ export const models: Record<BuiltinModel, ModelMetadata> = {
     id: BuiltinModel.AZURE_GPT51,
     provider: providers[BuiltinProvider.AzureOpenAI],
     card: cards[BuiltinModel.AZURE_GPT51],
+  },
+  [BuiltinModel.AZURE_GPT52]: {
+    id: BuiltinModel.AZURE_GPT52,
+    provider: providers[BuiltinProvider.AzureOpenAI],
+    card: cards[BuiltinModel.AZURE_GPT52],
   },
   [BuiltinModel.AZURE_GPT5]: {
     id: BuiltinModel.AZURE_GPT5,
