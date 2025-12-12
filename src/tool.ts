@@ -1,4 +1,3 @@
-/* eslint-disable no-var */
 // Copyright 2024 Ahyve AI Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
@@ -10,13 +9,9 @@ import moment from "moment";
 import chalk from "chalk";
 import { Constructor } from "./common";
 import { OneShotAgent } from "./agents/one-shot";
+import { getParamSchemas, getReturnSchemas } from "./schema_registry";
 
 import log from "loglevel";
-
-declare global {
-  var __PARAM_SCHEMAS__: Record<string, Record<string, z.ZodType>>;
-  var __RETURN_SCHEMAS__: Record<string, Record<string, z.ZodType>>;
-}
 
 export type ToolSpec = ChatCompletionTool;
 
@@ -165,8 +160,8 @@ export const isTool = <A, R>(
   description: string,
   args: z.ZodType<A>,
   returns: z.ZodType<R>
-) =>
-  function (constructor: Constructor<Agent>, _context: any) {
+): ((constructor: Constructor<Agent>, _context: any) => void) =>
+  function (constructor: Constructor<Agent>, _context: any): void {
     const c = constructor as ToolableAgentConstructor;
     c.toolInterface = {
       name,
@@ -198,7 +193,13 @@ export function tool(
   description: string,
   schema: z.ZodType | undefined = undefined,
   returns: z.ZodType | undefined = undefined
-) {
+): <This extends SupportingTool, Args extends [object] | [], Return>(
+  target: (this: This, ...args: Args) => Return,
+  context: ClassMethodDecoratorContext<
+    This,
+    (this: This, ...args: Args) => Return
+  >
+) => (this: This, ...args: Args) => Return {
   return function tool<
     This extends SupportingTool,
     Args extends [object] | [],
@@ -218,14 +219,10 @@ export function tool(
     context.addInitializer(function () {
       const toolSchema =
         schema ||
-        globalThis.__PARAM_SCHEMAS__[this.constructor.name as ClassName][
-          context.name.toString()
-        ];
+        getParamSchemas()[this.constructor.name as ClassName][context.name.toString()];
       const toolReturns =
         returns ||
-        globalThis.__RETURN_SCHEMAS__[this.constructor.name as ClassName][
-          context.name.toString()
-        ];
+        getReturnSchemas()[this.constructor.name as ClassName][context.name.toString()];
       this.tools.push(
         new FunctionTool(
           context.name.toString(),

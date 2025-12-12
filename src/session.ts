@@ -385,32 +385,32 @@ export class Session
     return report;
   }
 
-  totalCost() {
+  totalCost(): number {
     return this.ledger.cost.total;
   }
 
-  totalTokens() {
+  totalTokens(): number {
     return this.ledger.tokens.total;
   }
 
-  getLedger() {
+  getLedger(): Ledger {
     return this.ledger;
   }
 
   /** Abort the session.
    * After calling this method, all agents will be notified to abort and the session won't accept new agents or invocations.
    */
-  abort() {
+  abort(): void {
     this.metadata.timing.finish();
     this.ledger.off("entry", this.ledgerListener);
     this.hasBeenAborted = true;
   }
 
-  get isOverBudget() {
+  get isOverBudget(): boolean {
     return this.ledger.cost.total >= this.budget;
   }
 
-  get isAborted() {
+  get isAborted(): boolean {
     return this.hasBeenAborted;
   }
 

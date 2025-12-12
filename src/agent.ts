@@ -858,7 +858,19 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
  * }
  * ```
  */
-export function handleBuiltinTool(type: string) {
+export function handleBuiltinTool(
+  type: string
+): <
+  This extends BaseAgent<any, any, any>,
+  Args extends [BuiltinToolCall],
+  Return extends Promise<BuiltinToolResult | void>
+>(
+  target: (this: This, ...args: Args) => Return,
+  context: ClassMethodDecoratorContext<
+    This,
+    (this: This, ...args: Args) => Return
+  >
+) => (this: This, ...args: Args) => Return {
   return function <
     This extends BaseAgent<any, any, any>,
     Args extends [BuiltinToolCall],

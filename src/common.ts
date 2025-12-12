@@ -83,7 +83,9 @@ export class Timing {
 /** Waits for given number of milliseconds
  * @param ms number of milliseconds to wait
  */
-export const delay = async (ms: number) => {
+export const delay: (ms: number) => Promise<void> = async (
+  ms: number
+): Promise<void> => {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
@@ -147,7 +149,9 @@ export interface ParentOf<T extends Identified> {
 
 /// --- utils
 
-export const jsonSchema = (zodSchema: z.ZodType<any>) => {
+export const jsonSchema: (zodSchema: z.ZodType<any>) => string = (
+  zodSchema: z.ZodType<any>
+): string => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return JSON.stringify(zodToJsonSchema(zodSchema as any));
 };

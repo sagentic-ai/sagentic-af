@@ -6,13 +6,9 @@ import { AgentOptions, BaseAgent, Agent } from "../agent";
 import { jsonSchema, parseMultipleObjects } from "../common";
 import { Session } from "../session";
 import { Thread } from "../thread";
+import { getParamSchemas } from "../schema_registry";
 
 import log from "loglevel";
-
-declare global {
-  var __PARAM_SCHEMAS__: Record<string, Record<string, z.ZodType>>;
-  var __RETURN_SCHEMAS__: Record<string, Record<string, z.ZodType>>;
-}
 
 type ReactionFunction<T, S> = (state: S, input: T) => S | Promise<S>;
 
@@ -35,7 +31,13 @@ export interface Reaction<T, S> {
 export const when = <S, T extends z.ZodRawShape>(
   rule: string,
   schema: z.ZodObject<T> | undefined = undefined
-) => {
+): (<This extends SupportingWhen<any>, Args extends [S, object], Return extends S | Promise<S>>(
+  target: (this: This, ...args: Args) => Return,
+  context: ClassMethodDecoratorContext<
+    This,
+    (this: This, ...args: Args) => Return
+  >
+) => (this: This, ...args: Args) => Return) => {
   return function when<
     This extends SupportingWhen<any>,
     Args extends [S, object],
@@ -56,9 +58,7 @@ export const when = <S, T extends z.ZodRawShape>(
       const methodName = String(context.name);
       const cschema =
         schema ||
-        globalThis.__PARAM_SCHEMAS__[this.constructor.name as ClassName][
-          methodName
-        ];
+        getParamSchemas()[this.constructor.name as ClassName][methodName];
       const eschema = (cschema as z.ZodObject<T>).extend({
         type: z.literal(methodName),
       });
@@ -89,7 +89,7 @@ export const otherwise = <S, This, Args extends [S, string], Return extends S>(
     This,
     (this: This, ...args: Args) => Return
   >
-) => {
+): ((this: This, ...args: Args) => Return) => {
   context.addInitializer(function () {
     (this as ReactiveAgent<any, S, any>).defaultReaction = (
       state: S,
