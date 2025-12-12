@@ -1,0 +1,58 @@
+name: Publish
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  check_versions:
+    name: Check version sync
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Ensure package versions are in sync (package.json vs jsr.json)
+        run: |
+          node -e "const pkg=require('./package.json'); const jsr=require('./jsr.json'); if(pkg.version!==jsr.version){ console.error(`Version mismatch: package.json=${pkg.version} jsr.json=${jsr.version}`); process.exit(1);} console.log(`OK: version=${pkg.version}`);"
+
+  publish_npm:
+    name: Publish (npm)
+    needs: check_versions
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm build
+      - name: Publish package
+        run: npm publish --access private
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish_jsr:
+    name: Publish (jsr)
+    needs: check_versions
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+      - name: Publish package
+        run: npx jsr publish
+
+
