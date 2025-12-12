@@ -6,7 +6,27 @@ on:
       - "v[0-9]+.[0-9]+.[0-9]+"
 
 jobs:
+  check_versions:
+    name: Check version sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Ensure package versions are in sync (package.json vs jsr.json)
+        run: |
+          node -e "const pkg=require('./package.json'); const jsr=require('./jsr.json'); if(pkg.version!==jsr.version){ console.error(`Version mismatch: package.json=${pkg.version} jsr.json=${jsr.version}`); process.exit(1);} console.log(`OK: version=${pkg.version}`);"
+
   release:
+    needs: check_versions
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -59,3 +79,42 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_KEY }}
         run: npm publish --access public --provenance
+
+  jsr_publish:
+    name: Publish (jsr)
+    needs: check_versions
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Enable corepack
+        run: |
+          npm install -g corepack@latest
+          corepack enable
+
+      - name: Enable corepack pnpm
+        run: corepack enable pnpm
+
+      - name: Use latest pnpm
+        run: corepack use pnpm@latest
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Publish package
+        run: npx jsr publish
