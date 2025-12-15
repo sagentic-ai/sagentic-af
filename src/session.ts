@@ -14,6 +14,7 @@ import { ClientMux } from "./client_mux";
 import {
   ChatCompletionRequest,
   ChatCompletionResponse,
+  InvocationMetadata,
   ModelInvocationOptions,
 } from "./clients/common";
 import { Agent, AgentOptions } from "./agent";
@@ -338,10 +339,20 @@ export class Session
 
     const timing = new Timing();
 
+    const metadata: InvocationMetadata = {
+      sessionId: this.metadata.ID,
+      sessionTopic: this.metadata.topic,
+      agentId: caller.metadata.ID,
+      agentTopic: caller.metadata.topic,
+      modelId: model.id,
+      modelProvider: model.provider.id,
+    };
+
     const invocation: ChatCompletionRequest = {
       options: options,
       messages: messages,
       model: model.id,
+      metadata: metadata,
     };
 
     // ensure client for model is available

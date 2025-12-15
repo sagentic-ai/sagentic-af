@@ -104,12 +104,37 @@ export type ModelInvocationOptions = {
 };
 
 /**
+ * Metadata about the invocation context, useful for analytics and tracking.
+ * All fields are optional since different contexts may have different information available.
+ * - Client-side (vscode-monk, watcher): typically only source and agentId
+ * - Server-side (Session.invokeModel): populates sessionId, modelId, modelProvider
+ */
+export interface InvocationMetadata {
+  /** Unique session ID (e.g., "session-abc123...") */
+  sessionId?: string;
+  /** Human-readable session topic */
+  sessionTopic?: string;
+  /** Unique agent ID with class name prefix (e.g., "myagent-abc123...") */
+  agentId?: string;
+  /** Human-readable agent topic */
+  agentTopic?: string;
+  /** Model ID being invoked */
+  modelId?: string;
+  /** Provider handling the request (e.g., "openai", "anthropic", "google") */
+  modelProvider?: string;
+  /** Source of the invocation (e.g., "vscode-monk", "watcher") */
+  source?: string;
+}
+
+/**
  * Sagentic Chat completion request
  */
 export interface ChatCompletionRequest {
   options?: ModelInvocationOptions;
   model: ModelID;
   messages: Message[];
+  /** Optional metadata about the invocation context */
+  metadata?: InvocationMetadata;
 }
 
 /**
