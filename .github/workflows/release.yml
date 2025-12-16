@@ -55,8 +55,10 @@ jobs:
         with:
           node-version: 20
           registry-url: "https://registry.npmjs.org"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_KEY }}
+
+      # Ensure npm 11.5.1 or later for trusted publishing
+      - name: Update npm
+        run: npm install -g npm@latest
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -75,10 +77,9 @@ jobs:
       - name: Build
         run: pnpm build
 
+      # Publish uses OIDC trusted publishing - no token needed
       - name: Publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_KEY }}
-        run: npm publish --access public --provenance
+        run: npm publish --access public
 
   jsr_publish:
     name: Publish (jsr)
