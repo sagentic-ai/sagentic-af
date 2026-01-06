@@ -116,6 +116,7 @@ export interface AgentEvents<StateType, ResultType> {
   heartbeat: () => void;
   "llm-request": (messages: Message[]) => void;
   "llm-response": (response: Message) => void;
+  "llm-error": (error: Error) => void;
 }
 
 export interface BaseAgent<
@@ -390,12 +391,21 @@ export class BaseAgent<OptionsType extends AgentOptions, StateType, ResultType>
     }
     const messages = thread.messages;
     this.emit("llm-request", messages);
-    const response = await this.session.invokeModel(
-      this,
-      resolveModelMetadata(this.model),
-      messages,
-      this.modelInvocationOptions
-    );
+    
+    let response: Message;
+    try {
+      response = await this.session.invokeModel(
+        this,
+        resolveModelMetadata(this.model),
+        messages,
+        this.modelInvocationOptions
+      );
+    } catch (error) {
+      // Emit error event for observability before re-throwing
+      this.emit("llm-error", error instanceof Error ? error : new Error(String(error)));
+      throw error;
+    }
+    
     this.emit("llm-response", response);
     let nextThread: Thread;
 
