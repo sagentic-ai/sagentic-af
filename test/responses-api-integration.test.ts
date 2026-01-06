@@ -679,7 +679,9 @@ describeWithKey("GPT-5.1 Responses API Integration", () => {
       expect(lookup?.result).toBeNull();
 
       // Agent should report not found (flexible pattern to handle various phrasings)
-      expect(result.toLowerCase()).toMatch(
+      // Normalize smart quotes to ASCII apostrophe (LLMs often return curly quotes)
+      const normalizedResult = result.toLowerCase().replace(/[''ʼ]/g, "'");
+      expect(normalizedResult).toMatch(
         /not found|null|doesn't exist|no data|unavailable|did not find|couldn't find|no.*stored|no.*record/
       );
     }, 30000);
