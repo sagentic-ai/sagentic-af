@@ -15,13 +15,24 @@ export enum RejectionReason {
   TOO_MANY_REQUESTS = "too_many_requests",
   SERVER_ERROR = "server_error",
   INSUFFICIENT_QUOTA = "insufficient_quota",
+  TIMEOUT = "timeout",
   UNKNOWN = "unknown",
+}
+
+/** Error class for request timeouts */
+export class RequestTimeoutError extends Error {
+  constructor(timeoutMs: number) {
+    super(`Request timed out after ${timeoutMs}ms`);
+    this.name = "RequestTimeoutError";
+  }
 }
 
 /** Maximum number of attempts to retry a failed request before giving up */
 const DEFAULT_MAX_RETRIES = 5;
 /** Interval for fallback clearing limit counters */
 const DEFAULT_RESET_INTERVAL = 60 * 1000;
+/** Default request timeout: 10 minutes (to handle long LLM requests while defending against hung connections) */
+const DEFAULT_REQUEST_TIMEOUT = 10 * 60 * 1000;
 
 /** Ticket is a request waiting to be fulfilled */
 interface Ticket<RequestType, ResponseType> {
@@ -37,7 +48,7 @@ interface Ticket<RequestType, ResponseType> {
 export abstract class BaseClient<
   RequestType,
   ResponseType,
-  OptionsType extends BaseClientOptions,
+  OptionsType extends BaseClientOptions
 > implements Client
 {
   /** Model to use */
@@ -69,6 +80,8 @@ export abstract class BaseClient<
   private maxRetries: number = DEFAULT_MAX_RETRIES;
   /** Interval for fallback clearing limit counters */
   private resetInterval: number = DEFAULT_RESET_INTERVAL;
+  /** Request timeout in milliseconds (0 = disabled) */
+  private requestTimeout: number = DEFAULT_REQUEST_TIMEOUT;
 
   /** Set of inflight tickets */
   private inflightTickets: Set<number> = new Set();
@@ -95,12 +108,16 @@ export abstract class BaseClient<
   constructor(model: ModelMetadata, options?: OptionsType) {
     this.model = model;
 
-    if (options && options.maxRetries) {
+    if (options && options.maxRetries !== undefined) {
       this.maxRetries = options.maxRetries;
     }
 
     if (options && options.resetInterval) {
       this.resetInterval = options.resetInterval;
+    }
+
+    if (options && options.requestTimeout !== undefined) {
+      this.requestTimeout = options.requestTimeout;
     }
 
     this.tokenPool = this.TPM;
@@ -163,12 +180,14 @@ export abstract class BaseClient<
   /**
    * Make an API request.
    * @param request RequestType
+   * @param signal Optional AbortSignal for cancellation (used by timeout wrapper)
    * @returns Promise<ResponseType>
    * @abstract
    * @protected
    */
   protected abstract makeAPIRequest(
-    request: RequestType
+    request: RequestType,
+    signal?: AbortSignal
   ): Promise<ResponseType>;
 
   /**
@@ -196,6 +215,64 @@ export abstract class BaseClient<
     });
     this.tick("enqueue");
     return promise;
+  }
+
+  /**
+   * Execute a request with timeout protection.
+   * Defends against hung connections (e.g. Deno fetch bug https://github.com/denoland/deno/issues/25992)
+   * Uses AbortController to actually cancel hung requests, not just ignore them.
+   * @param request The request to execute
+   * @param timeoutMs Timeout in milliseconds (0 = no timeout)
+   * @returns Promise that rejects with RequestTimeoutError if timeout is exceeded
+   */
+  private executeWithTimeout(
+    request: RequestType,
+    timeoutMs: number
+  ): Promise<ResponseType> {
+    if (timeoutMs <= 0) {
+      return this.makeAPIRequest(request);
+    }
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    return new Promise<ResponseType>((resolve, reject) => {
+      let settled = false;
+
+      const timer = setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          controller.abort(); // Actually cancel the request
+          reject(new RequestTimeoutError(timeoutMs));
+        }
+      }, timeoutMs);
+
+      // Use unref() so the timer doesn't prevent Node.js from exiting
+      if (typeof timer === "object" && "unref" in timer) {
+        timer.unref();
+      }
+
+      this.makeAPIRequest(request, signal)
+        .then((result) => {
+          if (!settled) {
+            settled = true;
+            clearTimeout(timer);
+            resolve(result);
+          }
+        })
+        .catch((error) => {
+          if (!settled) {
+            settled = true;
+            clearTimeout(timer);
+            // Check if this was an abort error (from our timeout)
+            if (error.name === "AbortError") {
+              reject(new RequestTimeoutError(timeoutMs));
+            } else {
+              reject(error);
+            }
+          }
+        });
+    });
   }
 
   /**
@@ -244,7 +321,7 @@ export abstract class BaseClient<
 
     log.debug("processing ticket", ticket.id, "tokens", ticket.tokens);
     this.inflightTickets.add(ticket.id);
-    this.makeAPIRequest(ticket.request)
+    this.executeWithTimeout(ticket.request, this.requestTimeout)
       .then((response) => {
         log.debug("ticket resolved", ticket.id);
         this.inflightTickets.delete(ticket.id);
@@ -270,6 +347,10 @@ export abstract class BaseClient<
             ticket.reject(reason);
             return;
           case RejectionReason.TOO_MANY_REQUESTS:
+            log.debug(
+              "ticket rejected: too many requests (retrying)",
+              ticket.id
+            );
             // retry
             break;
           case RejectionReason.INSUFFICIENT_QUOTA:
@@ -280,6 +361,12 @@ export abstract class BaseClient<
             return;
           case RejectionReason.SERVER_ERROR:
             // server error
+            log.debug("ticket rejected: server error (retrying)", ticket.id);
+            // retry
+            break;
+          case RejectionReason.TIMEOUT:
+            // request timed out (e.g. Deno fetch bug)
+            log.debug("ticket rejected: timeout (retrying)", ticket.id);
             // retry
             break;
           case RejectionReason.UNKNOWN:
@@ -292,10 +379,12 @@ export abstract class BaseClient<
             return;
         }
 
-        // retry
+        // retry - remove from inflight before re-queuing
+        this.inflightTickets.delete(ticket.id);
         ticket.retries += 1;
         this.queue.push(ticket);
         log.debug("ticket retrying", ticket.id);
+        this.tick("retry");
       });
 
     this.tick("recursive");

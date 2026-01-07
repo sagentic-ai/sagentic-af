@@ -7,7 +7,7 @@ import {
   countTokens,
   ToolMode,
 } from "./common";
-import { BaseClient, RejectionReason } from "./base";
+import { BaseClient, RejectionReason, RequestTimeoutError } from "./base";
 import { Message, MessageRole, ContentPart, TextContentPart } from "../thread";
 import moment from "moment";
 import log from "loglevel";
@@ -226,11 +226,12 @@ export class AnthropicClient extends BaseClient<
    * Make request to the API
    */
   protected async makeAPIRequest(
-    request: Anthropic.MessageCreateParams
+    request: Anthropic.MessageCreateParams,
+    signal?: AbortSignal
   ): Promise<Anthropic.Message> {
-    return this.anthropic.messages.create(
-      request
-    ) as Promise<Anthropic.Message>;
+    return this.anthropic.messages.create(request, {
+      signal,
+    }) as Promise<Anthropic.Message>;
   }
 
   /**
@@ -319,6 +320,11 @@ export class AnthropicClient extends BaseClient<
    * Parse error from API
    */
   protected parseError(error: any): RejectionReason {
+    // Check for request timeout (defends against hung connections like Deno fetch bug)
+    if (error instanceof RequestTimeoutError) {
+      return RejectionReason.TIMEOUT;
+    }
+
     if (error instanceof Anthropic.APIError) {
       switch (error.status) {
         case 400:

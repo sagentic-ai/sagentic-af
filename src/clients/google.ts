@@ -19,7 +19,7 @@ import {
   ChatCompletionResponse,
   ToolMode,
 } from "./common";
-import { BaseClient, RejectionReason } from "./base";
+import { BaseClient, RejectionReason, RequestTimeoutError } from "./base";
 import { Message, MessageRole, ContentPart, TextContentPart } from "../thread";
 import log from "loglevel";
 
@@ -246,23 +246,31 @@ export class GoogleClient extends BaseClient<
    * Make request to the API
    */
   protected async makeAPIRequest(
-    request: GenerateContentRequest
+    request: GenerateContentRequest,
+    signal?: AbortSignal
   ): Promise<GenerateContentResult> {
-    return this.googleConfig
-      .getGenerativeModel(
-        { model: this.model.card.checkpoint },
-        { baseUrl: this.url }
-      )
-      .generateContent(request);
+    const model = this.googleConfig.getGenerativeModel(
+      { model: this.model.card.checkpoint },
+      { baseUrl: this.url }
+    );
+
+    // Google SDK accepts abort signal via requestOptions
+    const requestOptions = signal ? { signal } : undefined;
+    return model.generateContent(request, requestOptions);
   }
 
   /**
    * Parse the error from the API
    */
   protected parseError(error: any): RejectionReason {
+    // Check for request timeout (defends against hung connections like Deno fetch bug)
+    if (error instanceof RequestTimeoutError) {
+      return RejectionReason.TIMEOUT;
+    }
+
     //TODO actually check and parse error
     // if contains 429 Too Many Requests, return RejectionReason.RATE_LIMIT
-    if (error.message.includes("429 Too Many Requests")) {
+    if (error.message && error.message.includes("429 Too Many Requests")) {
       return RejectionReason.TOO_MANY_REQUESTS;
     }
 
