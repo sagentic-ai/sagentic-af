@@ -12,7 +12,7 @@ import {
   ReasoningEffort,
   Verbosity,
 } from "./common";
-import { BaseClient, RejectionReason } from "./base";
+import { BaseClient, RejectionReason, RequestTimeoutError } from "./base";
 import { Message, MessageRole, ToolCall } from "../thread";
 import {
   BuiltinToolCall,
@@ -654,15 +654,21 @@ export class OpenAIResponsesClient extends BaseClient<
    * Make a request to the OpenAI Responses API
    */
   protected async makeAPIRequest(
-    request: OpenAI.Responses.ResponseCreateParamsNonStreaming
+    request: OpenAI.Responses.ResponseCreateParamsNonStreaming,
+    signal?: AbortSignal
   ): Promise<OpenAI.Responses.Response> {
-    return this.openai.responses.create(request);
+    return this.openai.responses.create(request, { signal });
   }
 
   /**
    * Parse an error from the API
    */
   protected parseError(error: any): RejectionReason {
+    // Check for request timeout (defends against hung connections like Deno fetch bug)
+    if (error instanceof RequestTimeoutError) {
+      return RejectionReason.TIMEOUT;
+    }
+
     switch (error.status) {
       case 400:
         return RejectionReason.BAD_REQUEST;
@@ -844,15 +850,21 @@ export abstract class OpenAIClientBase<
    * Make a request to the OpenAI Chat Completions API
    */
   protected async makeAPIRequest(
-    request: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming
+    request: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming,
+    signal?: AbortSignal
   ): Promise<OpenAI.Chat.Completions.ChatCompletion> {
-    return this.openai.chat.completions.create(request);
+    return this.openai.chat.completions.create(request, { signal });
   }
 
   /**
    * Parse an error from the API
    */
   protected parseError(error: any): RejectionReason {
+    // Check for request timeout (defends against hung connections like Deno fetch bug)
+    if (error instanceof RequestTimeoutError) {
+      return RejectionReason.TIMEOUT;
+    }
+
     switch (error.status) {
       case 400:
         return RejectionReason.BAD_REQUEST;

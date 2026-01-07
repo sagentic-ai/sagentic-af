@@ -11,7 +11,8 @@ export type ChatCompletionRequest =
 export type ChatCompletionResponse = OpenAI.Chat.Completions.ChatCompletion;
 
 // Responses API types
-export type ResponsesRequest = OpenAI.Responses.ResponseCreateParamsNonStreaming;
+export type ResponsesRequest =
+  OpenAI.Responses.ResponseCreateParamsNonStreaming;
 export type ResponsesResponse = OpenAI.Responses.Response;
 
 const TICKER_UPDATE_INTERVAL = 1000;
@@ -39,6 +40,7 @@ const coerceToString = (value: any): string => {
  * @param maxTPP - max tokens per period
  * @param period - period in milliseconds
  * @param contextSize - max tokens per request
+ * @param failFirstN - fail the first N requests with 500 error (for testing retries)
  */
 export type MockChatOptions = {
   dictionary?: { [key: string]: string }; // dictionary of prompts and responses
@@ -47,6 +49,7 @@ export type MockChatOptions = {
   period?: number; // period in milliseconds
   contextSize?: number; // max tokens per request
   quota?: number; // lifetime max tokens total
+  failFirstN?: number; // fail the first N requests with 500 error
 };
 
 /**
@@ -65,6 +68,7 @@ export class MockChatAPI {
   tokens: number;
   timeToReset: number;
   totalTokens: number;
+  totalRequests: number; // lifetime request counter for failFirstN
 
   constructor(options?: MockChatOptions) {
     this.options = options || {};
@@ -72,6 +76,7 @@ export class MockChatAPI {
     this.tokens = 0;
     this.timeToReset = 0;
     this.totalTokens = 0;
+    this.totalRequests = 0;
 
     this.initPeriod();
   }
@@ -112,6 +117,17 @@ export class MockChatAPI {
   }
 
   /**
+   * resetCounters resets all request and token counters.
+   * Useful for test setup.
+   */
+  resetCounters() {
+    this.requests = 0;
+    this.tokens = 0;
+    this.totalTokens = 0;
+    this.totalRequests = 0;
+  }
+
+  /**
    * close closes the MockChatAPI.
    * @returns void
    * @remarks
@@ -136,6 +152,22 @@ export class MockChatAPI {
    */
   handleLimits(request: ChatCompletionRequest) {
     this.requests += 1;
+    this.totalRequests += 1;
+
+    // Fail first N requests with 500 error if configured
+    if (
+      this.options.failFirstN &&
+      this.totalRequests <= this.options.failFirstN
+    ) {
+      throw {
+        status: 500,
+        error: {
+          message: `Simulated server error (request ${this.totalRequests} of ${this.options.failFirstN})`,
+          type: "server_error",
+          code: "server_error",
+        },
+      };
+    }
 
     if (this.options.maxRPP && this.requests > this.options.maxRPP) {
       throw {
@@ -199,6 +231,22 @@ export class MockChatAPI {
    */
   handleResponsesLimits(request: ResponsesRequest) {
     this.requests += 1;
+    this.totalRequests += 1;
+
+    // Fail first N requests with 500 error if configured
+    if (
+      this.options.failFirstN &&
+      this.totalRequests <= this.options.failFirstN
+    ) {
+      throw {
+        status: 500,
+        error: {
+          message: `Simulated server error (request ${this.totalRequests} of ${this.options.failFirstN})`,
+          type: "server_error",
+          code: "server_error",
+        },
+      };
+    }
 
     if (this.options.maxRPP && this.requests > this.options.maxRPP) {
       throw {
@@ -312,14 +360,17 @@ export class MockChatAPI {
         for (const item of request.input) {
           if (item.type === "message" && item.role === "user") {
             for (const content of item.content) {
-              if (typeof content !== "string" && content.type === "input_text") {
+              if (
+                typeof content !== "string" &&
+                content.type === "input_text"
+              ) {
                 inputText += content.text;
               }
             }
           }
         }
       }
-      
+
       if (inputText && inputText in this.options.dictionary) {
         return this.options.dictionary[inputText];
       }
@@ -385,7 +436,7 @@ export class MockChatAPI {
     } else if (Array.isArray(request.input)) {
       input_tokens = countTokens(JSON.stringify(request.input));
     }
-    
+
     const result = this.getResponsesResponse(request);
     const output_tokens = countTokens(result);
     const responseId = `resp_${crypto.randomUUID().replace(/-/g, "")}`;

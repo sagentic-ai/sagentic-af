@@ -169,6 +169,9 @@ export interface BaseClientOptions {
   maxRetries?: number;
   /** Interval for fallback clearing limit counters */
   resetInterval?: number;
+  /** Request timeout in milliseconds. Defends against hung connections (e.g. Deno fetch bug).
+   * Default: 10 minutes (600000ms). Set to 0 to disable. */
+  requestTimeout?: number;
 }
 
 /** Options for sagentic OpenAI Client */
