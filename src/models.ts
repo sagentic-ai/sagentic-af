@@ -93,8 +93,10 @@ export enum BuiltinModel {
 
   GPT51 = "gpt-5.1",
   GPT52 = "gpt-5.2",
+  GPT54 = "gpt-5.4",
   GPT51Codex = "gpt-5.1-codex",
   GPT5Codex = "gpt-5-codex",
+  GPT53Codex = "gpt-5.3-codex",
 
   GPT35Turbo = "gpt-3.5-turbo",
 
@@ -146,8 +148,10 @@ enum Checkpoint {
 
   GPT51 = "gpt-5.1-2025-11-13",
   GPT52 = "gpt-5.2-2025-12-11",
+  GPT54 = "gpt-5.4-2026-03-05",
   GPT51Codex = "gpt-5.1-codex",
   GPT5Codex = "gpt-5-codex",
+  GPT53Codex = "gpt-5.3-codex",
 
   GPT35Turbo = "gpt-3.5-turbo-0125",
 
@@ -508,6 +512,20 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     defaultReasoningEffort: "medium",
     supportsVerbosity: true,
   },
+  [BuiltinModel.GPT54]: {
+    checkpoint: Checkpoint.GPT54,
+    prompt: 2.5,
+    completion: 15,
+    contextSize: 1_050_000,
+    maxOutputTokens: 128_000,
+    knowledgeCutoff: "2025-08-31",
+    rpm: 15_000,
+    tpm: 40_000_000,
+    batchQueueLimit: 15_000_000_000,
+    supportsImages: true,
+    supportsReasoning: true,
+    defaultReasoningEffort: "none",
+  },
   [BuiltinModel.GPT51Codex]: {
     checkpoint: Checkpoint.GPT51Codex,
     prompt: 1.25,
@@ -530,6 +548,19 @@ export const cards: Record<BuiltinModel, ModelCard> = {
     supportsImages: true,
     supportsReasoning: true,
     defaultReasoningEffort: "medium",
+  },
+  [BuiltinModel.GPT53Codex]: {
+    checkpoint: Checkpoint.GPT53Codex,
+    prompt: 1.75,
+    completion: 14,
+    contextSize: 400_000,
+    maxOutputTokens: 128_000,
+    knowledgeCutoff: "2025-08-31",
+    rpm: 15_000,
+    tpm: 40_000_000,
+    batchQueueLimit: 15_000_000_000,
+    supportsImages: true,
+    supportsReasoning: true,
   },
   [BuiltinModel.AZURE_GPT41]: {
     checkpoint: Checkpoint.AZURE_GPT41,
@@ -758,6 +789,11 @@ export const models: Record<BuiltinModel, ModelMetadata> = {
     provider: providers[BuiltinProvider.OpenAI],
     card: cards[BuiltinModel.GPT52],
   },
+  [BuiltinModel.GPT54]: {
+    id: BuiltinModel.GPT54,
+    provider: providers[BuiltinProvider.OpenAI],
+    card: cards[BuiltinModel.GPT54],
+  },
   [BuiltinModel.GPT51Codex]: {
     id: BuiltinModel.GPT51Codex,
     provider: providers[BuiltinProvider.OpenAI],
@@ -767,6 +803,11 @@ export const models: Record<BuiltinModel, ModelMetadata> = {
     id: BuiltinModel.GPT5Codex,
     provider: providers[BuiltinProvider.OpenAI],
     card: cards[BuiltinModel.GPT5Codex],
+  },
+  [BuiltinModel.GPT53Codex]: {
+    id: BuiltinModel.GPT53Codex,
+    provider: providers[BuiltinProvider.OpenAI],
+    card: cards[BuiltinModel.GPT53Codex],
   },
   [BuiltinModel.AZURE_GPT41]: {
     id: BuiltinModel.AZURE_GPT41,
