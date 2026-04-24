@@ -608,6 +608,10 @@ export class OpenAIResponsesClient extends BaseClient<
       delete responsesRequest.temperature;
     }
 
+    if (this.model.id === BuiltinModel.GPT55) {
+      delete responsesRequest.temperature;
+    }
+
     // Handle verbosity (only supported in Responses API)
     const supportsVerbosity = this.model.card.supportsVerbosity ?? false;
     if (supportsVerbosity && request.options?.verbosity) {
@@ -830,6 +834,11 @@ export abstract class OpenAIClientBase<
       }
     }
 
+    if (this.model.id === BuiltinModel.GPT55) {
+      delete openaiRequest.temperature;
+      delete openaiRequest.top_p;
+    }
+
     // Note: verbosity is NOT supported in Chat Completions API
     // Use OpenAIResponsesClient for verbosity support
 
@@ -987,6 +996,11 @@ export class AzureOpenAIClient extends OpenAIClientBase<AzureOpenAIClientOptions
         delete openaiRequest.temperature;
         delete openaiRequest.top_p;
       }
+    }
+
+    if (this.model.id === BuiltinModel.GPT55) {
+      delete openaiRequest.temperature;
+      delete openaiRequest.top_p;
     }
 
     // Note: verbosity is NOT supported in Chat Completions API
