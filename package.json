@@ -83,8 +83,5 @@
   },
   "engines": {
     "node": ">=22"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": ["unrs-resolver"]
   }
 }
